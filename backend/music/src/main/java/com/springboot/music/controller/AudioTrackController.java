@@ -15,7 +15,7 @@ import java.util.List;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
-@RequestMapping("/tracks")
+@RequestMapping("/audio-tracks")
 @Tag(name = "Audio Tracks", description = "Các API liên quan đến bài hát/âm thanh")
 public class AudioTrackController {
 

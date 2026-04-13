@@ -1,4 +1,4 @@
-import ProductCard from "../layouts/ProductCard";
+import ProductCard from "../utils/ProductCard";
 import SearchProductCard from "./SearchProductCard";
 
 const SearchProductList = () => {

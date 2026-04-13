@@ -1,6 +1,9 @@
-import ProductCard from "../layouts/ProductCard";
+import React from "react";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import ProductCard from "../utils/ProductCard";
 
-const CategorySellerSection = () => {
+const CategorySellerSection:React.FC<{tracks: AudioTrackModel[]}> = ({tracks}) => {
+
   return (
     <section id="best-sellers" className="best-sellers section">
       {/* Section title */}
@@ -15,10 +18,11 @@ const CategorySellerSection = () => {
 
       <div className="container" data-aos="fade-up" data-aos-delay="100">
         <div className="row g-5">
-          <ProductCard />
-          <ProductCard />
-          <ProductCard />
-          <ProductCard />
+          {tracks.slice(0,8).map((track) => (
+            <ProductCard key={track.id} track={track}/>
+          ))
+
+          }
         </div>
 
         <div className="text-center mt-4">

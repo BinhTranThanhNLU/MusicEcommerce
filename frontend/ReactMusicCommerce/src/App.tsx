@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import './assets/css/style.css'
 
 import AdminCopyrightManagementPage from "./pages/admin/AdminCopyrightManagementPage";
-import Header from "./components/layouts/Header";
+import Header from "./components/HeaderAndFooter/Header";
 import HomePage from "./pages/HomePage";
-import Footer from "./components/layouts/Footer";
+import Footer from "./components/HeaderAndFooter/Footer";
 
 function App() {
 

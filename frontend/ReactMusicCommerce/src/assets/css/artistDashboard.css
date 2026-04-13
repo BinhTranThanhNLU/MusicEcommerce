@@ -1,0 +1,79 @@
+/* ArtistDashboard.css */
+
+.artist-dashboard {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  transition: all 0.3s ease-in-out;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Khi sidebar bị đóng (trên mobile hoặc do user toggle) */
+.sidebar.closed {
+  margin-left: -260px; /* Ẩn sidebar đi */
+}
+
+/* Responsive behavior */
+@media (max-width: 991.98px) {
+  .sidebar {
+    position: fixed; /* Nổi lên trên content ở màn hình nhỏ */
+  }
+  .sidebar.open {
+    margin-left: 0;
+  }
+  .sidebar.closed {
+    margin-left: -260px;
+  }
+}
+
+/* Tinh chỉnh nav link trong sidebar */
+.sidebar-menu .nav-link {
+  transition: all 0.2s ease;
+}
+
+.sidebar-menu .nav-link:hover {
+  background-color: #f8f9fa; /* Màu nền khi hover */
+  color: var(--accent-color) !important;
+}
+
+.sidebar-menu .nav-link.active {
+  background-color: #f0f4f8 !important; /* Màu nền cho mục đang chọn */
+  color: var(--accent-color) !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-menu .nav-link.active i {
+  color: var(--accent-color) !important;
+}
+
+/* Header Styling */
+.header {
+  height: 70px;
+  z-index: 999;
+}
+
+.header .search-bar .input-group-text,
+.header .search-bar .form-control {
+    background-color: #f4f6f8 !important; /* Màu nền search bar giống ảnh mẫu */
+    border-radius: 8px;
+}
+.header .search-bar .input-group-text {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.header .search-bar .form-control {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.header .search-bar .form-control:focus {
+    box-shadow: none;
+}

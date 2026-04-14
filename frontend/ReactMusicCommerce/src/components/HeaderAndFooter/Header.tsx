@@ -1,4 +1,41 @@
+import { useEffect, useState } from "react";
+import type { GenreModel } from "../../models/GenreModel";
+import { getAllGenres } from "../../apis/genreApi";
+import { Link } from "react-router-dom";
+import { ErrorMessage } from "../utils/ErrorMessage";
+import type { MoodModel } from "../../models/MoodModel";
+import type { ThemeModel } from "../../models/ThemeModel";
+import { getAllMoods } from "../../apis/moodApi";
+import { getAllThemes } from "../../apis/themeApi";
+
 const Header = () => {
+  const [genres, setGenres] = useState<GenreModel[]>([]);
+  const [moods, setMoods] = useState<MoodModel[]>([]);
+  const [themes, setThemes] = useState<ThemeModel[]>([]);
+  const [httpError, setHttpError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [genresData, moodsData, themesData] = await Promise.all([
+          getAllGenres(),
+          getAllMoods(),
+          getAllThemes(),
+        ]);
+
+        setGenres(genresData);
+        setMoods(moodsData);
+        setThemes(themesData);
+      } catch (error: any) {
+        setHttpError(error.message || "Error fetching");
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (httpError) return <ErrorMessage message={httpError} />;
+
   return (
     <header id="header" className="header sticky-top">
       {/* Main Header */}
@@ -123,81 +160,51 @@ const Header = () => {
                 </a>
               </li>
 
-              {/* 2. THỂ LOẠI (Menu chính - Mở rộng nhiều loại nhạc) */}
+              {/* 2.1. THỂ LOẠI */}
               <li className="dropdown">
                 <a href="/genres">
-                  <span>Thể loại</span>{" "}
+                  <span>Thể loại</span>
                   <i className="bi bi-chevron-down toggle-dropdown"></i>
                 </a>
+
                 <ul>
-                  {/* Nhóm Nhạc Việt */}
-                  <li className="dropdown">
-                    <a href="#">
-                      <span>Nhạc Việt Nam</span>{" "}
-                      <i className="bi bi-chevron-right"></i>
-                    </a>
-                    <ul>
-                      <li>
-                        <a href="/genre/v-pop">V-Pop / Nhạc Trẻ</a>
-                      </li>
-                      <li>
-                        <a href="/genre/bolero">Bolero / Trữ Tình</a>
-                      </li>
-                      <li>
-                        <a href="/genre/rap-viet">Rap Việt / Hip-hop</a>
-                      </li>
-                      <li>
-                        <a href="/genre/indie-viet">Indie / Underground</a>
-                      </li>
-                      <li>
-                        <a href="/genre/remix-viet">Vinahouse / Remix</a>
-                      </li>
-                    </ul>
-                  </li>
+                  {genres.map((genre) => (
+                    <li key={genre.id}>
+                      <Link to={`/genre/${genre.id}`}>{genre.name}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
 
-                  {/* Nhóm Quốc Tế */}
-                  <li className="dropdown">
-                    <a href="#">
-                      <span>Nhạc Quốc Tế</span>{" "}
-                      <i className="bi bi-chevron-right"></i>
-                    </a>
-                    <ul>
-                      <li>
-                        <a href="/genre/us-uk">US-UK (Pop/R&B)</a>
-                      </li>
-                      <li>
-                        <a href="/genre/k-pop">K-Pop</a>
-                      </li>
-                      <li>
-                        <a href="/genre/c-pop">C-Pop (Nhạc Hoa)</a>
-                      </li>
-                      <li>
-                        <a href="/genre/latin">Latin</a>
-                      </li>
-                    </ul>
-                  </li>
+              {/* 2.2. Mood */}
+              <li className="dropdown">
+                <a href="/genres">
+                  <span>Cảm xúc</span>
+                  <i className="bi bi-chevron-down toggle-dropdown"></i>
+                </a>
 
-                  {/* Nhóm Sôi Động / Hiện đại */}
-                  <li>
-                    <a href="/genre/edm">EDM / Electronic</a>
-                  </li>
-                  <li>
-                    <a href="/genre/rock">Rock / Alternative</a>
-                  </li>
+                <ul>
+                  {moods.map((mood) => (
+                    <li key={mood.id}>
+                      <Link to={`/mood/${mood.id}`}>{mood.name}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
 
-                  {/* Nhóm Thư giãn / Tập trung - Phù hợp với tính năng tìm theo ngữ nghĩa/tâm trạng trong tiểu luận */}
-                  <li>
-                    <a href="/genre/lofi">Lo-fi / Study</a>
-                  </li>
-                  <li>
-                    <a href="/genre/acoustic">Acoustic / Guitar</a>
-                  </li>
-                  <li>
-                    <a href="/genre/jazz">Jazz / Blues</a>
-                  </li>
-                  <li>
-                    <a href="/genre/classical">Cổ điển / Không lời</a>
-                  </li>
+              {/* 2.3. Theme */}
+              <li className="dropdown">
+                <a href="/genres">
+                  <span>Chủ đề</span>
+                  <i className="bi bi-chevron-down toggle-dropdown"></i>
+                </a>
+
+                <ul>
+                  {themes.map((theme) => (
+                    <li key={theme.id}>
+                      <Link to={`/theme/${theme.id}`}>{theme.name}</Link>
+                    </li>
+                  ))}
                 </ul>
               </li>
 

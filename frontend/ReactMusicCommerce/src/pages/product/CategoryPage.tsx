@@ -1,5 +1,4 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import BrandFilterWidget from "../../components/CategoryPage/BrandFilterWidget";
 import CategoryHeaderSection from "../../components/CategoryPage/CategoryHeaderSection";
 import ColorFilterWidget from "../../components/CategoryPage/ColorFilterWidget";
 import PricingRangeWidget from "../../components/CategoryPage/PricingRangeWidget";
@@ -8,6 +7,7 @@ import ProductListSection from "../../components/CategoryPage/ProductListSection
 import PageTitle from "../../components/layouts/PageTitle";
 import Pagination from "../../components/utils/Pagination";
 import { useEffect, useState } from "react";
+import ArtistFilterWidget from "../../components/CategoryPage/ArtistFilterWidget";
 
 const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,8 +44,7 @@ const CategoryPage = () => {
             <div className="widgets-container">
               <ProductCategoryWidget />
               <PricingRangeWidget />
-              <ColorFilterWidget />
-              <BrandFilterWidget />
+              <ArtistFilterWidget />
             </div>
           </div>
 

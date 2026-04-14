@@ -1,6 +1,6 @@
 import React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
-import ProductCard from "../utils/ProductCard";
+import ProductCard from "./ProductCard";
 
 const CategorySellerSection:React.FC<{tracks: AudioTrackModel[]}> = ({tracks}) => {
 

@@ -16,7 +16,7 @@ const PricingRangeWidget = () => {
             type="range"
             className="min-range"
             min="0"
-            max="1000000"
+            max="5000000"
             value="0"
             step="10000"
           />
@@ -24,8 +24,8 @@ const PricingRangeWidget = () => {
             type="range"
             className="max-range"
             min="0"
-            max="1000000"
-            value="500000"
+            max="5000000"
+            value="1000000"
             step="10000"
           />
         </div>
@@ -40,7 +40,7 @@ const PricingRangeWidget = () => {
                   className="form-control min-price-input"
                   placeholder="Tối thiểu"
                   min="0"
-                  max="1000000"
+                  max="5000000"
                   value="0"
                   step="10000"
                 />
@@ -54,8 +54,8 @@ const PricingRangeWidget = () => {
                   className="form-control max-price-input"
                   placeholder="Tối đa"
                   min="0"
-                  max="1000000"
-                  value="500000"
+                  max="5000000"
+                  value="1000000"
                   step="10000"
                 />
               </div>

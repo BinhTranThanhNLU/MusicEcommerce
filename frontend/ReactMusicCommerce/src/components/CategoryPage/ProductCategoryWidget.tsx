@@ -1,20 +1,20 @@
 const ProductCategoryWidget = () => {
   return (
     <div className="product-categories-widget widget-item">
-      <h3 className="widget-title">Danh mục</h3>
+      <h3 className="widget-title">Cấp độ âm thanh</h3>
 
       <ul className="category-tree list-unstyled mb-0">
-        {/* Music Category */}
+        {/* Full Song Category */}
         <li className="category-item">
           <div
             className="d-flex justify-content-between align-items-center category-header collapsed"
             data-bs-toggle="collapse"
-            data-bs-target="#categories-1-clothing-subcategories"
+            data-bs-target="#category-fullsong-sub"
             aria-expanded="false"
-            aria-controls="categories-1-clothing-subcategories"
+            aria-controls="category-fullsong-sub"
           >
             <a href="javascript:void(0)" className="category-link">
-              Giày thể thao
+              Bài hát hoàn chỉnh
             </a>
             <span className="category-toggle">
               <i className="bi bi-chevron-down"></i>
@@ -22,43 +22,43 @@ const ProductCategoryWidget = () => {
             </span>
           </div>
           <ul
-            id="categories-1-clothing-subcategories"
+            id="category-fullsong-sub"
             className="subcategory-list list-unstyled collapse ps-3 mt-2"
           >
             <li>
               <a href="#" className="subcategory-link">
-                Bóng đá
+                Pop
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Bóng rổ
+                Rap / Hip-hop
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Bóng chuyền
+                R&B
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Chạy bộ
+                Ballad
               </a>
             </li>
           </ul>
         </li>
 
-        {/* Music Cateogry */}
+        {/* Instrumental Category */}
         <li className="category-item">
           <div
             className="d-flex justify-content-between align-items-center category-header collapsed"
             data-bs-toggle="collapse"
-            data-bs-target="#categories-1-electronics-subcategories"
+            data-bs-target="#category-instrumental-sub"
             aria-expanded="false"
-            aria-controls="categories-1-electronics-subcategories"
+            aria-controls="category-instrumental-sub"
           >
             <a href="javascript:void(0)" className="category-link">
-              Giày thời trang
+              Nhạc không lời
             </a>
             <span className="category-toggle">
               <i className="bi bi-chevron-down"></i>
@@ -66,33 +66,43 @@ const ProductCategoryWidget = () => {
             </span>
           </div>
           <ul
-            id="categories-1-electronics-subcategories"
+            id="category-fullsong-sub"
             className="subcategory-list list-unstyled collapse ps-3 mt-2"
           >
             <li>
               <a href="#" className="subcategory-link">
-                Thời trang nam
+                Beat phối sẵn
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Thời trang nữ
+                Nhạc nền Vlog
+              </a>
+            </li>
+            <li>
+              <a href="#" className="subcategory-link">
+                Nhạc Cinematic
+              </a>
+            </li>
+            <li>
+              <a href="#" className="subcategory-link">
+                Lofi / Chill
               </a>
             </li>
           </ul>
         </li>
 
-        {/* Music Category */}
+        {/* Short Audio Category */}
         <li className="category-item">
           <div
             className="d-flex justify-content-between align-items-center category-header collapsed"
             data-bs-toggle="collapse"
-            data-bs-target="#categories-1-home-subcategories"
+            data-bs-target="#category-shortaudio-sub"
             aria-expanded="false"
-            aria-controls="categories-1-home-subcategories"
+            aria-controls="category-shortaudio-sub"
           >
             <a href="javascript:void(0)" className="category-link">
-              Phụ kiện thể thao
+              Đoạn âm thanh ngắn
             </a>
             <span className="category-toggle">
               <i className="bi bi-chevron-down"></i>
@@ -100,27 +110,27 @@ const ProductCategoryWidget = () => {
             </span>
           </div>
           <ul
-            id="categories-1-home-subcategories"
+            id="category-shortaudio-sub"
             className="subcategory-list list-unstyled collapse ps-3 mt-2"
           >
             <li>
               <a href="#" className="subcategory-link">
-                Bình nước
+                Hiệu ứng (SFX)
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Áo
+                Jingle quảng cáo
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Quần
+                Nhạc chuông
               </a>
             </li>
             <li>
               <a href="#" className="subcategory-link">
-                Khác
+                Mẫu âm thanh (Sample)
               </a>
             </li>
           </ul>

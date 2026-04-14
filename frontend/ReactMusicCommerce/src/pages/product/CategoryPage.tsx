@@ -1,6 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import CategoryHeaderSection from "../../components/CategoryPage/CategoryHeaderSection";
-import ColorFilterWidget from "../../components/CategoryPage/ColorFilterWidget";
 import PricingRangeWidget from "../../components/CategoryPage/PricingRangeWidget";
 import ProductCategoryWidget from "../../components/CategoryPage/ProductCategoryWidget";
 import ProductListSection from "../../components/CategoryPage/ProductListSection";

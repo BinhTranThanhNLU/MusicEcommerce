@@ -52,10 +52,6 @@ const ArtistFilterWidget = () => {
                     {artist.name}
                   </label>
                 </div>
-                {/* Dùng badge cho số lượng */}
-                <span className="badge bg-light text-secondary rounded-pill">
-                  {artist.count}
-                </span>
               </div>
             </div>
           ))}

@@ -1,141 +1,50 @@
 const ProductCategoryWidget = () => {
+  // Đưa data vào mảng tương tự ArtistFilterWidget để dễ quản lý
+  const categories = [
+    { id: "cat-fullsong", name: "Bài hát hoàn chỉnh", count: 345 },
+    { id: "cat-instrumental", name: "Nhạc không lời", count: 128 },
+    { id: "cat-shortaudio", name: "Đoạn âm thanh ngắn", count: 89 },
+  ];
+
   return (
-    <div className="product-categories-widget widget-item">
-      <h3 className="widget-title">Cấp độ âm thanh</h3>
+    <div className="product-categories-widget widget-item mb-4">
+      <h3 className="widget-title mb-3">Cấp độ âm thanh</h3>
 
-      <ul className="category-tree list-unstyled mb-0">
-        {/* Full Song Category */}
-        <li className="category-item">
-          <div
-            className="d-flex justify-content-between align-items-center category-header collapsed"
-            data-bs-toggle="collapse"
-            data-bs-target="#category-fullsong-sub"
-            aria-expanded="false"
-            aria-controls="category-fullsong-sub"
-          >
-            <a href="javascript:void(0)" className="category-link">
-              Bài hát hoàn chỉnh
-            </a>
-            <span className="category-toggle">
-              <i className="bi bi-chevron-down"></i>
-              <i className="bi bi-chevron-up"></i>
-            </span>
-          </div>
-          <ul
-            id="category-fullsong-sub"
-            className="subcategory-list list-unstyled collapse ps-3 mt-2"
-          >
-            <li>
-              <a href="#" className="subcategory-link">
-                Pop
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Rap / Hip-hop
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                R&B
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Ballad
-              </a>
-            </li>
-          </ul>
-        </li>
+      <div className="category-filter-content">
+        <div className="category-list">
+          {categories.map((category) => (
+            <div className="category-item mb-2" key={category.id}>
+              {/* Dùng flexbox để căn hai bên */}
+              <div className="form-check d-flex justify-content-between align-items-center mb-0">
+                <div>
+                  <input
+                    className="form-check-input me-2 shadow-none"
+                    type="checkbox"
+                    id={category.id}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <label
+                    className="form-check-label"
+                    htmlFor={category.id}
+                    style={{ cursor: "pointer", fontSize: "0.95rem" }}
+                  >
+                    {category.name}
+                  </label>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-        {/* Instrumental Category */}
-        <li className="category-item">
-          <div
-            className="d-flex justify-content-between align-items-center category-header collapsed"
-            data-bs-toggle="collapse"
-            data-bs-target="#category-instrumental-sub"
-            aria-expanded="false"
-            aria-controls="category-instrumental-sub"
-          >
-            <a href="javascript:void(0)" className="category-link">
-              Nhạc không lời
-            </a>
-            <span className="category-toggle">
-              <i className="bi bi-chevron-down"></i>
-              <i className="bi bi-chevron-up"></i>
-            </span>
-          </div>
-          <ul
-            id="category-fullsong-sub"
-            className="subcategory-list list-unstyled collapse ps-3 mt-2"
-          >
-            <li>
-              <a href="#" className="subcategory-link">
-                Beat phối sẵn
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Nhạc nền Vlog
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Nhạc Cinematic
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Lofi / Chill
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        {/* Short Audio Category */}
-        <li className="category-item">
-          <div
-            className="d-flex justify-content-between align-items-center category-header collapsed"
-            data-bs-toggle="collapse"
-            data-bs-target="#category-shortaudio-sub"
-            aria-expanded="false"
-            aria-controls="category-shortaudio-sub"
-          >
-            <a href="javascript:void(0)" className="category-link">
-              Đoạn âm thanh ngắn
-            </a>
-            <span className="category-toggle">
-              <i className="bi bi-chevron-down"></i>
-              <i className="bi bi-chevron-up"></i>
-            </span>
-          </div>
-          <ul
-            id="category-shortaudio-sub"
-            className="subcategory-list list-unstyled collapse ps-3 mt-2"
-          >
-            <li>
-              <a href="#" className="subcategory-link">
-                Hiệu ứng (SFX)
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Jingle quảng cáo
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Nhạc chuông
-              </a>
-            </li>
-            <li>
-              <a href="#" className="subcategory-link">
-                Mẫu âm thanh (Sample)
-              </a>
-            </li>
-          </ul>
-        </li>
-      </ul>
+        <div className="category-actions mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+          <button className="btn btn-sm text-muted text-decoration-underline px-0 shadow-none">
+            Xóa
+          </button>
+          <button className="btn btn-sm btn-dark px-3 rounded-pill shadow-none">
+            Áp dụng
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

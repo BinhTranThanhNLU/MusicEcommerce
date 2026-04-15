@@ -5,7 +5,7 @@ import ProductCategoryWidget from "../../components/CategoryPage/ProductCategory
 import ProductListSection from "../../components/CategoryPage/ProductListSection";
 import PageTitle from "../../components/layouts/PageTitle";
 import Pagination from "../../components/utils/Pagination";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ArtistFilterWidget from "../../components/CategoryPage/ArtistFilterWidget";
 import type { ArtistModel } from "../../models/ArtistModel";
 import { getAllArtists } from "../../apis/artistApi";

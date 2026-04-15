@@ -38,9 +38,10 @@ public class AudioTrackController {
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) List<String> types,
-            @RequestParam(required = false) List<Integer> artistIds) {
+            @RequestParam(required = false) List<Integer> artistIds,
+            @RequestParam(required = false) String sort) {
 
-        AudioTrackPageResponse response = audioTrackService.getAudioTracksByGenreId(id, page, size, minPrice, maxPrice, types, artistIds);
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByGenreId(id, page, size, minPrice, maxPrice, types, artistIds, sort);
         return ResponseEntity.ok(response);
     }
 
@@ -52,9 +53,10 @@ public class AudioTrackController {
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) List<String> types,
-            @RequestParam(required = false) List<Integer> artistIds) {
+            @RequestParam(required = false) List<Integer> artistIds,
+            @RequestParam(required = false) String sort) {
 
-        AudioTrackPageResponse response = audioTrackService.getAudioTracksByMoodId(id, page, size, minPrice, maxPrice, types, artistIds);
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByMoodId(id, page, size, minPrice, maxPrice, types, artistIds, sort);
         return ResponseEntity.ok(response);
     }
 
@@ -66,9 +68,10 @@ public class AudioTrackController {
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) List<String> types,
-            @RequestParam(required = false) List<Integer> artistIds) {
+            @RequestParam(required = false) List<Integer> artistIds,
+            @RequestParam(required = false) String sort) {
 
-        AudioTrackPageResponse response = audioTrackService.getAudioTracksByThemeId(id, page, size, minPrice, maxPrice, types, artistIds);
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByThemeId(id, page, size, minPrice, maxPrice, types, artistIds, sort);
         return ResponseEntity.ok(response);
     }
 

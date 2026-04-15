@@ -33,6 +33,7 @@ const ProductListSection: React.FC<TrackListProps> = ({
           maxPrice: searchParams.get("maxPrice") || undefined,
           types: searchParams.getAll("types"),
           artistIds: searchParams.getAll("artistIds"),
+          sort: searchParams.get("sort") || undefined,
         };
 
         let data;

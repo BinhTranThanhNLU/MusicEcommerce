@@ -2,6 +2,8 @@ package com.springboot.music.dto;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,6 +19,7 @@ public class AudioTrackDTO {
     private String watermarkedFileUrl;
     private Integer playCount;
     private Double startingPrice;
+    private LocalDateTime uploadDate;
 
     private ArtistDTO artist;
     private TrackTagsDTO tags;

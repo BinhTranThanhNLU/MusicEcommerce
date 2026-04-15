@@ -34,33 +34,30 @@ public class AudioTrackService {
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
 
-        // Truyền idGenre, các ID khác là null
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds, sort);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
 
-        // Truyền idMood, các ID khác là null
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds, sort);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
 
-        // Truyền idTheme, các ID khác là null
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds, sort);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);

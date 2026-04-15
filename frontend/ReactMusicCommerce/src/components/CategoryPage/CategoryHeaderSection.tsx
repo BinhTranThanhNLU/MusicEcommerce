@@ -1,4 +1,25 @@
+import { useSearchParams } from "react-router-dom";
+
 const CategoryHeaderSection = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentSort = searchParams.get("sort") || "";
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) {
+        next.set("sort", value);
+      } else {
+        next.delete("sort"); // Chọn "Mặc định" thì xoá param cho gọn URL
+      }
+      next.set("page", "0"); // Reset về trang đầu tiên
+      return next;
+    });
+  };
+
   return (
     <section id="category-header" className="category-header section">
       <div className="container" data-aos="fade-up">
@@ -30,7 +51,7 @@ const CategoryHeaderSection = () => {
               </div>
             </div>
 
-            {/* Lọc theo Giấy phép (Thay cho Giá tiền cũ) */}
+            {/* Lọc theo Giấy phép */}
             <div className="col-12 col-md-6 col-lg-3">
               <div className="filter-item">
                 <label htmlFor="licenseType" className="form-label">
@@ -48,7 +69,6 @@ const CategoryHeaderSection = () => {
               </div>
             </div>
 
-            {/* Sắp xếp */}
             <div className="col-12 col-md-6 col-lg-4">
               <div className="filter-item">
                 <label htmlFor="sortBy" className="form-label">
@@ -57,14 +77,14 @@ const CategoryHeaderSection = () => {
                 <select
                   className="form-select shadow-none"
                   id="sortBy"
-                  defaultValue=""
+                  value={currentSort} // Ràng buộc giá trị với URL
+                  onChange={handleSortChange}
                 >
-                  <option value="">Mặc định</option>
+                  <option value="">Mặc định (Mới nhất)</option>
                   <option value="newest">Mới phát hành</option>
                   <option value="popular">Lượt nghe nhiều nhất</option>
                   <option value="price-asc">Giá: Thấp đến cao</option>
                   <option value="price-desc">Giá: Cao đến thấp</option>
-                  <option value="rating">Đánh giá cao nhất</option>
                 </select>
               </div>
             </div>

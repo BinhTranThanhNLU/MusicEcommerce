@@ -10,6 +10,7 @@ export interface AudioTrackModel {
   watermarkedFileUrl: string;
   playCount: number;
   startingPrice: number;
+  uploadDate: string | null;
 
   artist: ArtistModel;
   tags: TrackTagsModel;

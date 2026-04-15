@@ -34,33 +34,42 @@ public class AudioTrackController {
     public ResponseEntity<AudioTrackPageResponse> getTracksByGenre(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size) {
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) List<Integer> artistIds) {
 
-        AudioTrackPageResponse audioTrackPageResponse = audioTrackService.getAudioTracksByGenreId(id, page, size);
-        return ResponseEntity.ok(audioTrackPageResponse);
-
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByGenreId(id, page, size, minPrice, maxPrice, types, artistIds);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/mood/{id}")
     public ResponseEntity<AudioTrackPageResponse> getTracksByMood(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size) {
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) List<Integer> artistIds) {
 
-        AudioTrackPageResponse audioTrackPageResponse = audioTrackService.getAudioTracksByMoodId(id, page, size);
-        return ResponseEntity.ok(audioTrackPageResponse);
-
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByMoodId(id, page, size, minPrice, maxPrice, types, artistIds);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/theme/{id}")
     public ResponseEntity<AudioTrackPageResponse> getTracksByTheme(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size) {
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) List<Integer> artistIds) {
 
-        AudioTrackPageResponse audioTrackPageResponse = audioTrackService.getAudioTracksByThemeId(id, page, size);
-        return ResponseEntity.ok(audioTrackPageResponse);
-
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByThemeId(id, page, size, minPrice, maxPrice, types, artistIds);
+        return ResponseEntity.ok(response);
     }
 
 

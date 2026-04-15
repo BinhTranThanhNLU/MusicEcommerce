@@ -5,10 +5,12 @@ import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.mapper.AudioTrackMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
+import com.springboot.music.specification.AudioTrackSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,54 +34,46 @@ public class AudioTrackService {
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size) {
+    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
 
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findByGenres_Id(idGenre, pageable);
+        // Truyền idGenre, các ID khác là null
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
-        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
-
-        return new AudioTrackPageResponse(
-                audioTracks,
-                audioTrackPage.getNumber(),
-                audioTrackPage.getTotalPages(),
-                audioTrackPage.getTotalElements()
-        );
-
+        return createPageResponse(audioTrackPage);
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size) {
+    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
 
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findByMoods_Id(idMood, pageable);
+        // Truyền idMood, các ID khác là null
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
-        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
-
-        return new AudioTrackPageResponse(
-                audioTracks,
-                audioTrackPage.getNumber(),
-                audioTrackPage.getTotalPages(),
-                audioTrackPage.getTotalElements()
-        );
-
+        return createPageResponse(audioTrackPage);
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size) {
+    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
 
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findByThemes_Id(idTheme, pageable);
+        // Truyền idTheme, các ID khác là null
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
+        return createPageResponse(audioTrackPage);
+    }
+
+    private AudioTrackPageResponse createPageResponse(Page<AudioTrack> audioTrackPage) {
         List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
-
         return new AudioTrackPageResponse(
                 audioTracks,
                 audioTrackPage.getNumber(),
                 audioTrackPage.getTotalPages(),
                 audioTrackPage.getTotalElements()
         );
-
     }
 
 }

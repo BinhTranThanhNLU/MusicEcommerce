@@ -63,13 +63,24 @@ const ProductListSection: React.FC<TrackListProps> = ({
       className="category-product-list section"
     >
       <div className="container" data-aos="fade-up" data-aos-delay="100">
-        <div className="row g-4">
-          {tracks.map((track) => (
-            <div key={track.id} className="col-6 col-xl-4">
-              <ProductCard track={track} />
+        {tracks && tracks.length > 0 ? (
+          <div className="row g-4">
+            {tracks.map((track) => (
+              <div key={track.id} className="col-6 col-xl-4">
+                <ProductCard track={track} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="row">
+            <div className="col-12 text-center py-5">
+              <h5 className="mb-3">Không có sản phẩm</h5>
+              <p className="text-muted">
+                Thử thay đổi bộ lọc hoặc chọn danh mục khác
+              </p>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,3 +1,9 @@
+const AUDIO_TYPES = [
+  { value: "Full-song", label: "Bài hát hoàn chỉnh" },
+  { value: "Instrumental", label: "Nhạc không lời" },
+  { value: "Short-audio", label: "Đoạn âm thanh ngắn" },
+];
+
 const ProductCategoryWidget = () => {
   // Đưa data vào mảng tương tự ArtistFilterWidget để dễ quản lý
   const categories = [

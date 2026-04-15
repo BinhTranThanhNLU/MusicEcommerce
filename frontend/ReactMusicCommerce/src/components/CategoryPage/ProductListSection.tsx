@@ -1,9 +1,13 @@
 import type React from "react";
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import ProductCard from "./ProductCard";
-import { getTracksByGenre, getTracksByMood, getTracksByTheme } from "../../apis/audioTrackApi";
+import {
+  getTracksByGenre,
+  getTracksByMood,
+  getTracksByTheme,
+} from "../../apis/audioTrackApi";
 
 interface TrackListProps {
   categoryId: number;
@@ -18,18 +22,27 @@ const ProductListSection: React.FC<TrackListProps> = ({
 }) => {
   const [tracks, setTracks] = useState<AudioTrackModel[]>([]);
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const fetchTracks = async () => {
       try {
+        const params: any = {
+          page,
+          minPrice: searchParams.get("minPrice") || undefined,
+          maxPrice: searchParams.get("maxPrice") || undefined,
+          types: searchParams.getAll("types"),
+          artistIds: searchParams.getAll("artistIds"),
+        };
+
         let data;
 
         if (location.pathname.includes("genre")) {
-          data = await getTracksByGenre(categoryId, page);
+          data = await getTracksByGenre(categoryId, params);
         } else if (location.pathname.includes("mood")) {
-          data = await getTracksByMood(categoryId, page);
+          data = await getTracksByMood(categoryId, params);
         } else if (location.pathname.includes("theme")) {
-          data = await getTracksByTheme(categoryId, page);
+          data = await getTracksByTheme(categoryId, params);
         }
 
         if (data) {
@@ -42,7 +55,7 @@ const ProductListSection: React.FC<TrackListProps> = ({
     };
 
     fetchTracks();
-  }, [categoryId, page, location.pathname]);
+  }, [categoryId, page, location.pathname, searchParams]);
 
   return (
     <section

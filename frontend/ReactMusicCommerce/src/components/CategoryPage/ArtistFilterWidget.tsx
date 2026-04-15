@@ -1,16 +1,11 @@
-const ArtistFilterWidget = () => {
-  // Đưa data vào mảng để code nhìn clean hơn và dễ map()
-  const artists = [
-    { id: "artist1", name: "Sơn Tùng M-TP", count: 156 },
-    { id: "artist2", name: "HIEUTHUHAI", count: 98 },
-    { id: "artist3", name: "Đen Vâu", count: 85 },
-    { id: "artist4", name: "MCK", count: 72 },
-    { id: "artist5", name: "tlinh", count: 64 },
-    { id: "artist6", name: "Binz", count: 53 },
-    { id: "artist7", name: "Vũ.", count: 41 },
-    { id: "artist8", name: "SOOBIN", count: 38 },
-  ];
+import type React from "react";
+import type { ArtistModel } from "../../models/ArtistModel";
 
+interface ArtistFilterWidgetProps {
+  artists: ArtistModel[];
+}
+
+const ArtistFilterWidget:React.FC<ArtistFilterWidgetProps> = ({artists}) => {
   return (
     <div className="artist-filter-widget widget-item mb-4">
       <h3 className="widget-title mb-3">Nghệ sĩ</h3>
@@ -41,12 +36,12 @@ const ArtistFilterWidget = () => {
                   <input
                     className="form-check-input me-2 shadow-none"
                     type="checkbox"
-                    id={artist.id}
+                    id={artist.id.toString()}
                     style={{ cursor: "pointer" }}
                   />
                   <label
                     className="form-check-label"
-                    htmlFor={artist.id}
+                    htmlFor={artist.id.toString()}
                     style={{ cursor: "pointer", fontSize: "0.95rem" }}
                   >
                     {artist.name}

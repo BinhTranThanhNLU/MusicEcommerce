@@ -7,17 +7,17 @@ export const getAllAudioTracks = async (): Promise<AudioTrackModel[]> => {
     return response.data;
 }
 
-export const getTracksByGenre = async (idGenre: number, page: number): Promise<AudioTrackPageResponse> => {
-    const response = await axiosClient.get(`/audio-tracks/genre/${idGenre}`, {params: {page}});
+export const getTracksByGenre = async (idGenre: number,params: any): Promise<AudioTrackPageResponse> => {
+  const response = await axiosClient.get(`/audio-tracks/genre/${idGenre}`, {params,});
+  return response.data;
+};
+
+export const getTracksByMood = async (idMood: number,  params: any): Promise<AudioTrackPageResponse> => {
+    const response = await axiosClient.get(`/audio-tracks/mood/${idMood}`, {params});
     return response.data;
 }
 
-export const getTracksByMood = async (idMood: number, page: number): Promise<AudioTrackPageResponse> => {
-    const response = await axiosClient.get(`/audio-tracks/mood/${idMood}`, {params: {page}});
-    return response.data;
-}
-
-export const getTracksByTheme = async (idTheme: number, page: number): Promise<AudioTrackPageResponse> => {
-    const response = await axiosClient.get(`/audio-tracks/theme/${idTheme}`, {params: {page}});
+export const getTracksByTheme = async (idTheme: number, params: any): Promise<AudioTrackPageResponse> => {
+    const response = await axiosClient.get(`/audio-tracks/theme/${idTheme}`, {params});
     return response.data;
 }

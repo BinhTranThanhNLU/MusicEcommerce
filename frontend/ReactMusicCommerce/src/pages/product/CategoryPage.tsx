@@ -7,21 +7,41 @@ import PageTitle from "../../components/layouts/PageTitle";
 import Pagination from "../../components/utils/Pagination";
 import { useEffect, useState } from "react";
 import ArtistFilterWidget from "../../components/CategoryPage/ArtistFilterWidget";
+import type { ArtistModel } from "../../models/ArtistModel";
+import { getAllArtists } from "../../apis/artistApi";
+import { ErrorMessage } from "../../components/utils/ErrorMessage";
 
 const CategoryPage = () => {
   const { id } = useParams<{ id: string }>();
   const categoryId = Number(id) || 1;
+
+  const [artists, setArtists] = useState<ArtistModel[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [totalPages, setTotalPages] = useState<number>(0);
 
   const page = Number(searchParams.get("page")) || 0;
 
+  const [httpError, setHttpError] = useState<string | null>(null);
+
   const setPage = (newPage: number) => {
     setSearchParams({
       page: newPage.toString(),
     });
   };
+
+  useEffect(() => {
+    const fetchArtists = async () => {
+      try {
+        const data = await getAllArtists();
+        setArtists(data);
+      } catch (error: any) {
+        setHttpError(error.message || "Error fetching artists");
+      }
+    };
+
+    fetchArtists();
+  }, []);
 
   // Reset page khi thay đổi Category
   useEffect(() => {
@@ -33,6 +53,8 @@ const CategoryPage = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page, categoryId]);
 
+  if (httpError) return <ErrorMessage message={httpError} />;
+
   return (
     <main className="main">
       <PageTitle />
@@ -43,7 +65,7 @@ const CategoryPage = () => {
             <div className="widgets-container">
               <ProductCategoryWidget />
               <PricingRangeWidget />
-              <ArtistFilterWidget />
+              <ArtistFilterWidget artists={artists}/>
             </div>
           </div>
 

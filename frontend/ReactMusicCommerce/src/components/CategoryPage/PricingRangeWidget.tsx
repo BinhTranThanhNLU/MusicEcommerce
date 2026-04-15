@@ -23,11 +23,17 @@ const PricingRangeWidget = () => {
   }, [searchParams]);
 
   const handleMinChange = (value: number) => {
-    setPrices((prev) => ({ ...prev, min: Math.min(value, prev.max - STEP) }));
+    setPrices((prev) => ({
+      ...prev,
+      min: Math.max(MIN_PRICE, Math.min(value, prev.max - STEP)),
+    }));
   };
 
   const handleMaxChange = (value: number) => {
-    setPrices((prev) => ({ ...prev, max: Math.max(value, prev.min + STEP) }));
+    setPrices((prev) => ({
+      ...prev,
+      max: Math.min(MAX_PRICE, Math.max(value, prev.min + STEP)),
+    }));
   };
 
   const handleApply = () => {

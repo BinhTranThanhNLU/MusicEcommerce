@@ -25,8 +25,10 @@ const CategoryPage = () => {
   const [httpError, setHttpError] = useState<string | null>(null);
 
   const setPage = (newPage: number) => {
-    setSearchParams({
-      page: newPage.toString(),
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", newPage.toString());
+      return next;
     });
   };
 
@@ -43,9 +45,9 @@ const CategoryPage = () => {
     fetchArtists();
   }, []);
 
-  // Reset page khi thay đổi Category
+  // Reset page và xóa filter khi thay đổi Category
   useEffect(() => {
-    setSearchParams({ page: "0" });
+    setSearchParams(new URLSearchParams({ page: "0" }));
   }, [categoryId]);
 
   // Tự động scroll khi thay đổi trang hoặc filter

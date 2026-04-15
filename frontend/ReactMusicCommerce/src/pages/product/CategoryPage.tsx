@@ -16,17 +16,18 @@ const CategoryPage = () => {
   const categoryId = Number(id) || 1;
 
   const [artists, setArtists] = useState<ArtistModel[]>([]);
-
   const [searchParams, setSearchParams] = useSearchParams();
   const [totalPages, setTotalPages] = useState<number>(0);
 
   const page = Number(searchParams.get("page")) || 0;
-
   const [httpError, setHttpError] = useState<string | null>(null);
 
+  // chỉ đổi page nhưng giữ các filter khác
   const setPage = (newPage: number) => {
-    setSearchParams({
-      page: newPage.toString(),
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", String(newPage));
+      return next;
     });
   };
 
@@ -43,12 +44,16 @@ const CategoryPage = () => {
     fetchArtists();
   }, []);
 
-  // Reset page khi thay đổi Category
+  // Reset page khi đổi Category (nhưng vẫn giữ filter)
   useEffect(() => {
-    setSearchParams({ page: "0" });
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("page", "0");
+      return next;
+    });
   }, [categoryId]);
 
-  // Tự động scroll khi thay đổi trang hoặc filter
+  // Tự động scroll khi thay đổi trang hoặc category
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page, categoryId]);
@@ -65,7 +70,7 @@ const CategoryPage = () => {
             <div className="widgets-container">
               <ProductCategoryWidget />
               <PricingRangeWidget />
-              <ArtistFilterWidget artists={artists}/>
+              <ArtistFilterWidget artists={artists} />
             </div>
           </div>
 

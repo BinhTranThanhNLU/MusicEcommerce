@@ -1,5 +1,5 @@
 import type { AudioTrackModel } from "../models/AudioTrackModel";
-import type { AudioTrackPageResponse } from "../models/AudioTrackPageResponse";
+import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
 import axiosClient from "./axiosClient";
 
 export const getAllAudioTracks = async (): Promise<AudioTrackModel[]> => {

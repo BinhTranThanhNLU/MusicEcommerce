@@ -1,6 +1,70 @@
+import { useContext, useState } from "react";
 import PageTitle from "../../components/layouts/PageTitle";
+import { ErrorMessage } from "../../components/utils/ErrorMessage";
+import { SpinningLoading } from "../../components/utils/SpinningLoading";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
+import { loginWithEmail, loginWithGoogleToken } from "../../apis/authApi";
+import { GoogleLogin } from "@react-oauth/google";
 
 const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [httpError, setHttpError] = useState<string | null>(null);
+
+  // Dùng hook để lấy hàm loginContext từ kho chứa chung
+  const authContext = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  // ----- Xử lý Đăng nhập Truyền thống -----
+  const handleLocalLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setHttpError(null);
+
+    try {
+      const response = await loginWithEmail({ email, password });
+
+      // Thành công -> Lưu vào Context và chuyển trang
+      if (authContext) {
+        authContext.loginContext(response.user, response.token);
+      }
+      navigate("/"); // Chuyển về trang chủ
+    } catch (error: any) {
+      setHttpError(error.message || "Đăng nhập thất bại. Vui lòng thử lại!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ----- Xử lý Đăng nhập Google -----
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true);
+    setHttpError(null);
+
+    try {
+      // credentialResponse.credential chính là cái ID Token Google trả về
+      const response = await loginWithGoogleToken({
+        credential: credentialResponse.credential,
+      });
+
+      if (authContext) {
+        authContext.loginContext(response.user, response.token);
+      }
+      navigate("/");
+    } catch (error: any) {
+      setHttpError(
+        error.message || "Đăng nhập Google thất bại. Vui lòng thử lại!",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) return <SpinningLoading />;
+  if (httpError) return <ErrorMessage message={httpError} />;
+
   return (
     <main className="main">
       <PageTitle />
@@ -21,7 +85,10 @@ const LoginPage = () => {
                     <p>Đăng nhập vào tài khoản của bạn</p>
                   </div>
 
-                  <form className="auth-form-content">
+                  <form
+                    className="auth-form-content"
+                    onSubmit={handleLocalLogin}
+                  >
                     <div className="input-group mb-3">
                       <span className="input-icon">
                         <i className="bi bi-envelope"></i>
@@ -32,6 +99,8 @@ const LoginPage = () => {
                         placeholder="Email"
                         required
                         autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
 
@@ -45,6 +114,8 @@ const LoginPage = () => {
                         placeholder="Password"
                         required
                         autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                       <span className="password-toggle">
                         <i className="bi bi-eye"></i>
@@ -61,8 +132,12 @@ const LoginPage = () => {
                       </a>
                     </div>
 
-                    <button type="submit" className="auth-btn primary-btn mb-3">
-                      Đăng nhập
+                    <button
+                      type="submit"
+                      className="auth-btn primary-btn mb-3"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Đang xử lý..." : "Đăng nhập"}
                       <i className="bi bi-arrow-right"></i>
                     </button>
 
@@ -70,20 +145,20 @@ const LoginPage = () => {
                       <span>hoặc</span>
                     </div>
 
-                    <button type="button" className="auth-btn social-btn">
-                      <i className="bi bi-google"></i>
-                      Tiếp tục với Google
-                    </button>
+                    <div className="d-flex justify-content-center mb-3">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        useOneTap
+                        theme="outline" // Tùy chỉnh màu sắc nút
+                        text="continue_with"
+                      />
+                    </div>
 
                     <div className="switch-form">
                       <span>Bạn chưa có tài khoản?</span>
-                      <button
-                        type="button"
-                        className="switch-btn"
-                        data-target="register"
-                      >
+                      <Link to="/register" className="switch-btn">
                         Tạo tài khoản
-                      </button>
+                      </Link>
                     </div>
                   </form>
                 </div>

@@ -16,6 +16,7 @@ import com.springboot.music.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -28,17 +29,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserMapper userMapper;
+    private final EmailService emailService;
 
     @Value("${app.google.client-id}")
     private String googleClientId;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
-                       PasswordEncoder passwordEncoder, JwtService jwtService, UserMapper userMapper) {
+                       PasswordEncoder passwordEncoder, JwtService jwtService, UserMapper userMapper,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
+        this.emailService = emailService;
     }
 
     // Đăng nhập
@@ -157,27 +161,28 @@ public class AuthService {
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User with this email not found");
+            return;
         }
 
         // Sinh ra một JWT token thời hạn ngắn (15 phút)
         String resetToken = jwtService.generateResetPasswordToken(email);
 
-        // TODO: Gửi email thực tế chứa link reset.
-        // Trong thực tế, bạn sẽ dùng JavaMailSender để gửi link dạng: http://localhost:3000/reset-password?token=resetToken
-        // Tạm thời log ra console để test dưới local:
-        System.out.println("==== RESET PASSWORD LINK ====");
-        System.out.println("http://localhost:3000/reset-password?token=" + resetToken);
-        System.out.println("=============================");
+        // Gửi email thực tế chứa link reset
+        emailService.sendResetPasswordEmail(user.getEmail(), resetToken);
     }
 
     // Đặt lại mật khẩu
+    @Transactional
     public void resetPassword(String token, String newPassword) {
         // 1. Lấy email từ token (jwtService tự kiểm tra token hết hạn chưa)
         String email;
         try {
             email = jwtService.extractEmail(token);
         } catch (Exception e) {
+            throw new RuntimeException("Invalid or expired password reset token");
+        }
+
+        if (!jwtService.isResetPasswordTokenValid(token, email)) {
             throw new RuntimeException("Invalid or expired password reset token");
         }
 

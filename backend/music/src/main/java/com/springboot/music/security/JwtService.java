@@ -2,8 +2,6 @@ package com.springboot.music.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -15,6 +13,9 @@ import java.util.function.Function;
 
 @Component
 public class JwtService {
+
+    private static final String TOKEN_PURPOSE_CLAIM = "purpose";
+    private static final String RESET_PASSWORD_PURPOSE = "reset-password";
 
     @Value("${app.jwt.secret}")
     private String secretKey;
@@ -69,9 +70,27 @@ public class JwtService {
     public String generateResetPasswordToken(String email) {
         return Jwts.builder()
                 .subject(email)
-                .issuedAt(new Date(System.currentTimeMillis())) // Chuẩn mới: issuedAt
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 phút - Chuẩn mới: expiration
+                .claim(TOKEN_PURPOSE_CLAIM, RESET_PASSWORD_PURPOSE)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 phút
                 .signWith(getSignInKey())
                 .compact();
+    }
+
+    public boolean isResetPasswordTokenValid(String token, String userEmail) {
+        try {
+            final String email = extractEmail(token);
+            final String purpose = extractTokenPurpose(token);
+
+            return email.equals(userEmail)
+                    && RESET_PASSWORD_PURPOSE.equals(purpose)
+                    && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public String extractTokenPurpose(String token) {
+        return extractClaim(token, claims -> claims.get(TOKEN_PURPOSE_CLAIM, String.class));
     }
 }

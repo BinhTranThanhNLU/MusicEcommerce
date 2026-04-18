@@ -127,9 +127,9 @@ const LoginPage = () => {
                         <input type="checkbox" id="rememberLogin" />
                         <label htmlFor="rememberLogin">Remember me</label>
                       </div>
-                      <a href="#" className="forgot-password">
+                      <Link to="/forgot-password" className="forgot-password">
                         Quên mật khẩu?
-                      </a>
+                      </Link>
                     </div>
 
                     <button

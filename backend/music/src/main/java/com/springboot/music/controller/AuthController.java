@@ -1,7 +1,6 @@
 package com.springboot.music.controller;
 
-import com.springboot.music.requestmodel.GoogleLoginRequest;
-import com.springboot.music.requestmodel.LoginRequest;
+import com.springboot.music.requestmodel.*;
 import com.springboot.music.responsemodel.LoginResponse;
 import com.springboot.music.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -30,5 +29,23 @@ public class AuthController {
     public ResponseEntity<LoginResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
         LoginResponse response = authService.loginWithGoogle(request.getCredential());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.ok("User registered successfully");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("Password reset instructions have been sent to your email.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Password has been reset successfully. You can now login.");
     }
 }

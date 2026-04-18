@@ -10,6 +10,7 @@ import com.springboot.music.entity.User;
 import com.springboot.music.mapper.UserMapper;
 import com.springboot.music.repository.RoleRepository;
 import com.springboot.music.repository.UserRepository;
+import com.springboot.music.requestmodel.RegisterRequest;
 import com.springboot.music.responsemodel.LoginResponse;
 import com.springboot.music.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
@@ -115,5 +116,79 @@ public class AuthService {
         } catch (Exception e) {
             throw new RuntimeException("Google authentication failed: " + e.getMessage());
         }
+    }
+
+    // Đăng ký
+    public void register(RegisterRequest request) {
+        // 1. Kiểm tra email đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new RuntimeException("Email is already registered");
+        }
+
+        // 2. Xác định Role (Chỉ cho phép user hoặc artist)
+        String requestedRole = request.getRole() != null ? request.getRole().toLowerCase() : "user";
+        if (!requestedRole.equals("user") && !requestedRole.equals("artist")) {
+            requestedRole = "user"; // Nếu gửi bậy bạ, mặc định cho về user
+        }
+
+        Role userRole = roleRepository.findByName(requestedRole);
+        if (userRole == null) {
+            throw new RuntimeException("Role '" + requestedRole + "' not found in database");
+        }
+
+        // 3. Tạo User mới
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword())); // Mã hóa mật khẩu
+        user.setAuthProvider("local");
+        user.setIsActive(true);
+        user.setIsEmailVerified(true); // tạm thời cho đã xác minh email luôn để dễ test, sau này sẽ thêm chức năng gửi mail xác minh
+        user.setCreatedAt(LocalDateTime.now());
+
+        // Gán Role đã xác định
+        user.setRole(userRole);
+
+        // 4. Lưu vào DB
+        userRepository.save(user);
+    }
+
+    // Quên mật khẩu (Tạo token và "gửi mail")
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User with this email not found");
+        }
+
+        // Sinh ra một JWT token thời hạn ngắn (15 phút)
+        String resetToken = jwtService.generateResetPasswordToken(email);
+
+        // TODO: Gửi email thực tế chứa link reset.
+        // Trong thực tế, bạn sẽ dùng JavaMailSender để gửi link dạng: http://localhost:3000/reset-password?token=resetToken
+        // Tạm thời log ra console để test dưới local:
+        System.out.println("==== RESET PASSWORD LINK ====");
+        System.out.println("http://localhost:3000/reset-password?token=" + resetToken);
+        System.out.println("=============================");
+    }
+
+    // Đặt lại mật khẩu
+    public void resetPassword(String token, String newPassword) {
+        // 1. Lấy email từ token (jwtService tự kiểm tra token hết hạn chưa)
+        String email;
+        try {
+            email = jwtService.extractEmail(token);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid or expired password reset token");
+        }
+
+        // 2. Tìm user
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        // 3. Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 }

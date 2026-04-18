@@ -1,6 +1,82 @@
+import { Link, useNavigate } from "react-router-dom";
 import PageTitle from "../../components/layouts/PageTitle";
+import { useState } from "react";
+import type { RegisterRequest } from "../../requestmodel/RegisterRequest";
+import { registerUser } from "../../apis/authApi";
+import Swal from "sweetalert2";
 
 const RegisterPage = () => {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    role: "user",
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp!");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Tạo cục data
+      const requestData: RegisterRequest = {
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+      };
+
+      // 2. Gọi API
+      await registerUser(requestData);
+
+      // 3. Xử lý khi thành công
+      Swal.fire({
+        icon: "success",
+        title: "Thành công!",
+        text: "Tài khoản của bạn đã được tạo thành công.",
+        confirmButtonText: "Đăng nhập ngay",
+        confirmButtonColor: "#007bff", // đổi màu theo theme của web
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/login");
+        }
+      });
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data || "Đăng ký thất bại. Vui lòng thử lại!";
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="main">
       <PageTitle />
@@ -17,7 +93,13 @@ const RegisterPage = () => {
 
                 <div className="row">
                   <div className="col-lg-8 mx-auto">
-                    <form action="register.php" method="post">
+                    {error && (
+                      <div className="alert alert-danger" role="alert">
+                        {error}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
                       <div className="form-floating mb-3">
                         <input
                           type="text"
@@ -27,6 +109,8 @@ const RegisterPage = () => {
                           placeholder="Họ và Tên"
                           required
                           autoComplete="name"
+                          value={formData.fullName}
+                          onChange={handleChange}
                         />
                         <label htmlFor="fullName">Họ và Tên</label>
                       </div>
@@ -40,15 +124,33 @@ const RegisterPage = () => {
                           placeholder="Email"
                           required
                           autoComplete="email"
+                          value={formData.email}
+                          onChange={handleChange}
                         />
                         <label htmlFor="email">Email</label>
+                      </div>
+
+                      <div className="form-floating mb-3">
+                        <select
+                          className="form-select"
+                          id="role"
+                          name="role"
+                          aria-label="Chọn vai trò của bạn"
+                          defaultValue="user"
+                          value={formData.role}
+                          onChange={handleChange}
+                        >
+                          <option value="user">Người nghe nhạc (User)</option>
+                          <option value="artist">Nghệ sĩ (Artist)</option>
+                        </select>
+                        <label htmlFor="role">Bạn là ai?</label>
                       </div>
 
                       <div className="row mb-3">
                         <div className="col-md-6">
                           <div className="form-floating">
                             <input
-                              type="password"
+                              type={showPassword ? "text" : "password"}
                               className="form-control"
                               id="password"
                               name="password"
@@ -56,14 +158,26 @@ const RegisterPage = () => {
                               required
                               minLength={8}
                               autoComplete="new-password"
+                              value={formData.password}
+                              onChange={handleChange}
                             />
                             <label htmlFor="password">Password</label>
+                            <i
+                              className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"} position-absolute top-50 end-0 translate-middle-y pe-3`}
+                              style={{
+                                cursor: "pointer",
+                                zIndex: 10,
+                                fontSize: "1.2rem",
+                                color: "#6c757d",
+                              }}
+                              onClick={() => setShowPassword(!showPassword)}
+                            ></i>
                           </div>
                         </div>
                         <div className="col-md-6">
                           <div className="form-floating">
                             <input
-                              type="password"
+                              type={showConfirmPassword ? "text" : "password"}
                               className="form-control"
                               id="confirmPassword"
                               name="confirmPassword"
@@ -71,10 +185,24 @@ const RegisterPage = () => {
                               required
                               minLength={8}
                               autoComplete="new-password"
+                              value={formData.confirmPassword}
+                              onChange={handleChange}
                             />
                             <label htmlFor="confirmPassword">
                               Xác nhận Password
                             </label>
+                            <i
+                              className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"} position-absolute top-50 end-0 translate-middle-y pe-3`}
+                              style={{
+                                cursor: "pointer",
+                                zIndex: 10,
+                                fontSize: "1.2rem",
+                                color: "#6c757d",
+                              }}
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                            ></i>
                           </div>
                         </div>
                       </div>
@@ -113,14 +241,19 @@ const RegisterPage = () => {
                       </div>
 
                       <div className="d-grid mb-4">
-                        <button type="submit" className="btn btn-register">
-                          Tạo tài khoản
+                        <button
+                          type="submit"
+                          className="btn btn-register"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Đang xử lý..." : "Tạo tài khoản"}
                         </button>
                       </div>
 
                       <div className="login-link text-center">
                         <p>
-                          Bạn đã có tài khoản? <a href="#">Đăng nhập</a>
+                          Bạn đã có tài khoản?{" "}
+                          <Link to="/login">Đăng nhập</Link>
                         </p>
                       </div>
                     </form>

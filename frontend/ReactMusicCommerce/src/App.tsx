@@ -10,6 +10,7 @@ import CategoryPage from "./pages/product/CategoryPage";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="/mood/:id" element={<CategoryPage />} />
             <Route path="/theme/:id" element={<CategoryPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
           </Routes>
           <Footer />
         </BrowserRouter>

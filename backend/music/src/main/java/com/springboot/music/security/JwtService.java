@@ -2,6 +2,7 @@ package com.springboot.music.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -60,8 +61,17 @@ public class JwtService {
     }
 
     private SecretKey getSignInKey() {
-//        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    // Tạo token từ email với thời gian hết hạn ngắn hơn (dành cho reset password)
+    public String generateResetPasswordToken(String email) {
+        return Jwts.builder()
+                .subject(email)
+                .issuedAt(new Date(System.currentTimeMillis())) // Chuẩn mới: issuedAt
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 15)) // 15 phút - Chuẩn mới: expiration
+                .signWith(getSignInKey())
+                .compact();
     }
 }

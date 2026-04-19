@@ -1,180 +1,191 @@
-const OverviewTab = () => {
+import type React from "react";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import { useEffect, useState } from "react";
+import { getTracksByArtist } from "../../apis/audioTrackApi";
+import WhatWillYouReceive from "./WhatWillYouReceive";
+
+interface OverviewTabProps {
+  track: AudioTrackModel;
+}
+
+const OverviewTab: React.FC<OverviewTabProps> = ({ track }) => {
+  const [relatedTracks, setRelatedTracks] = useState<AudioTrackModel[]>([]);
+
+  // Format tiền tệ
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  useEffect(() => {
+    if (track && track.artist) {
+      const fetchRelated = async () => {
+        try {
+          const data = await getTracksByArtist(track.artist.id, { size: 7 });
+
+          // Kiểm tra cấu trúc response, thường là res.data (chứa mảng DTO)
+          const tracksArray = data.tracks || [];
+
+          // Lọc bỏ bài hát hiện tại đang xem và chỉ lấy tối đa 6 bài cho Carousel
+          const filtered = tracksArray
+            .filter((t: AudioTrackModel) => t.id !== track.id)
+            .slice(0, 6);
+          setRelatedTracks(filtered);
+        } catch (error) {
+          console.error("Lỗi khi tải bài hát liên quan:", error);
+        }
+      };
+      fetchRelated();
+    }
+  }, [track]);
+
   return (
     <div
       className="tab-pane fade show active"
       id="ecommerce-product-details-5-overview"
     >
-      <div className="overview-content">
+      <div className="overview-content mt-4">
         <div className="row g-4">
           <div className="col-lg-8">
             <div className="content-section">
-              <h3>Mô tả sản phẩm</h3>
-              <p>
-                Bởi vì không ai khinh miệt, ghét bỏ hay trốn tránh lạc thú chỉ
-                vì nó là lạc thú, nhưng vì những nỗi đau khổ lớn lao sẽ theo
-                đuổi những ai không biết cách theo đuổi lạc thú một cách lý trí.
-                Cũng không ai yêu thích, theo đuổi hay mong muốn đạt được nỗi
-                đau chỉ vì nó là nỗi đau.
+              <h4 className="mb-3">Mô tả sản phẩm</h4>
+
+              <p
+                dangerouslySetInnerHTML={{
+                  __html:
+                    track.description?.replace(/\n/g, "<br/>") ||
+                    "Đang cập nhật mô tả...",
+                }}
+              />
+
+              <p className="mt-3 bg-light p-3 rounded">
+                <strong>Tâm trạng (Mood):</strong>{" "}
+                {track.tags?.moods?.length
+                  ? track.tags.moods.join(", ")
+                  : "Đang cập nhật"}
+                <br />
+                <strong>Thể loại (Genre):</strong>{" "}
+                {track.tags?.genres?.length
+                  ? track.tags.genres.join(", ")
+                  : "Đang cập nhật"}
               </p>
 
-              <h4>Các sản phẩm liên quan</h4>
-              <div
-                id="relatedProductsCarousel"
-                className="carousel slide"
-                data-bs-ride="carousel"
-              >
-                <div className="carousel-inner">
-                  {/* Slide 1 */}
-                  <div className="carousel-item active">
-                    <div className="row g-4">
-                      <div className="col-md-3">
-                        <div className="product-card">
-                          <div className="product-image">
-                            <img
-                              src="../../assets/img/product/product-1.webp"
-                              className="main-image img-fluid"
-                              alt="Adidas"
-                            />
-                          </div>
-                          <div className="product-details">
-                            <div className="product-category">ADIDAS</div>
-                            <h6 className="product-title">
-                              Giày Sneaker Nữ Adidas Barreda Decode - Hồng
-                            </h6>
-                            <div className="product-price">2.000.000₫</div>
-                          </div>
+              {relatedTracks.length > 0 && (
+                <>
+                  <h4 className="mt-5 mb-4">Các sản phẩm cùng nghệ sĩ</h4>
+                  <div
+                    id="relatedMusicCarousel"
+                    className="carousel slide"
+                    data-bs-ride="carousel"
+                  >
+                    <div className="carousel-inner pb-4">
+                      {/* Slide 1: Tối đa 3 bài đầu */}
+                      <div className="carousel-item active">
+                        <div className="row g-3">
+                          {relatedTracks.slice(0, 3).map((item) => (
+                            <div className="col-md-4" key={item.id}>
+                              <div className="product-card border rounded p-2 text-center h-100 shadow-sm">
+                                <img
+                                  src={
+                                    item.coverImage ||
+                                    "https://placehold.co/300x300"
+                                  }
+                                  className="img-fluid rounded mb-2 w-100"
+                                  alt={item.title}
+                                />
+                                <div className="small text-muted mb-1">
+                                  {item.audioType}
+                                </div>
+                                <h6
+                                  className="text-truncate mb-2"
+                                  title={item.title}
+                                >
+                                  {item.title}
+                                </h6>
+                                <div className="text-primary fw-bold">
+                                  Từ {formatPrice(item.startingPrice)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="col-md-3">
-                        <div className="product-card">
-                          <div className="product-image">
-                            <img
-                              src="../../assets/img/product/product-1.webp"
-                              className="main-image img-fluid"
-                              alt="Hoka Red"
-                            />
-                          </div>
-                          <div className="product-details">
-                            <div className="product-category">HOKA</div>
-                            <h6 className="product-title">
-                              Giày Sneaker Unisex HOKA Mafate Speed 2 - Đỏ
-                            </h6>
-                            <div className="product-price">4.199.000₫</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="product-card">
-                          <div className="product-image">
-                            <img
-                              src="../../assets/img/product/product-1.webp"
-                              className="main-image img-fluid"
-                              alt="Hoka White"
-                            />
-                          </div>
-                          <div className="product-details">
-                            <div className="product-category">HOKA</div>
-                            <h6 className="product-title">
-                              Giày Sneaker Unisex HOKA Mafate Speed 2 - Trắng
-                            </h6>
-                            <div className="product-price">4.199.000₫</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="col-md-3">
-                        <div className="product-card">
-                          <div className="product-image">
-                            <img
-                              src="../../assets/img/product/product-1.webp"
-                              className="main-image img-fluid"
-                              alt="Puma Black"
-                            />
-                          </div>
-                          <div className="product-details">
-                            <div className="product-category">PUMA</div>
-                            <h6 className="product-title">
-                              Giày Sneaker Unisex Puma Speedcat Leather - Đen
-                            </h6>
-                            <div className="product-price">2.800.000₫</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Slide 2 */}
-                  <div className="carousel-item">
-                    <div className="row g-4">
-                      <div className="col-md-3">
-                        <div className="product-card">
-                          <div className="product-image">
-                            <img
-                              src="../../assets/img/product/product-1.webp"
-                              className="main-image img-fluid"
-                              alt="Puma White"
-                            />
-                          </div>
-                          <div className="product-details">
-                            <div className="product-category">PUMA</div>
-                            <h6 className="product-title">
-                              Giày Sneaker Unisex Puma Speedcat Leather - Trắng
-                            </h6>
-                            <div className="product-price">2.800.000₫</div>
+                      {/* Slide 2: Nếu có hơn 3 bài thì mới hiển thị slide này */}
+                      {relatedTracks.length > 3 && (
+                        <div className="carousel-item">
+                          <div className="row g-3">
+                            {relatedTracks.slice(3, 6).map((item) => (
+                              <div className="col-md-4" key={item.id}>
+                                <div className="product-card border rounded p-2 text-center h-100 shadow-sm">
+                                  <img
+                                    src={
+                                      item.coverImage ||
+                                      "https://placehold.co/300x300"
+                                    }
+                                    className="img-fluid rounded mb-2 w-100"
+                                    alt={item.title}
+                                  />
+                                  <div className="small text-muted mb-1">
+                                    {item.audioType}
+                                  </div>
+                                  <h6
+                                    className="text-truncate mb-2"
+                                    title={item.title}
+                                  >
+                                    {item.title}
+                                  </h6>
+                                  <div className="text-primary fw-bold">
+                                    Từ {formatPrice(item.startingPrice)}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      {/* Thêm các col-md-3 sản phẩm khác  */}
+                      )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Điều khiển Carousel  */}
-                <button
-                  className="carousel-control-prev"
-                  type="button"
-                  data-bs-target="#relatedProductsCarousel"
-                  data-bs-slide="prev"
-                >
-                  <span className="carousel-control-prev-icon"></span>
-                </button>
-                <button
-                  className="carousel-control-next"
-                  type="button"
-                  data-bs-target="#relatedProductsCarousel"
-                  data-bs-slide="next"
-                >
-                  <span className="carousel-control-next-icon"></span>
-                </button>
-              </div>
+                    {/* Chỉ hiện nút Next/Prev nếu có nhiều hơn 3 bài */}
+                    {relatedTracks.length > 3 && (
+                      <>
+                        <button
+                          className="carousel-control-prev"
+                          type="button"
+                          data-bs-target="#relatedMusicCarousel"
+                          data-bs-slide="prev"
+                          style={{ width: "5%", left: "-15px" }}
+                        >
+                          <span
+                            className="carousel-control-prev-icon bg-dark rounded-circle p-2"
+                            aria-hidden="true"
+                          ></span>
+                          <span className="visually-hidden">Previous</span>
+                        </button>
+                        <button
+                          className="carousel-control-next"
+                          type="button"
+                          data-bs-target="#relatedMusicCarousel"
+                          data-bs-slide="next"
+                          style={{ width: "5%", right: "-15px" }}
+                        >
+                          <span
+                            className="carousel-control-next-icon bg-dark rounded-circle p-2"
+                            aria-hidden="true"
+                          ></span>
+                          <span className="visually-hidden">Next</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="col-lg-4">
-            <div className="package-contents">
-              <h4>Phụ kiện</h4>
-              <ul className="contents-list">
-                <li>
-                  <i className="bi bi-check-circle"></i>01 Đôi giày chính hãng
-                </li>
-                <li>
-                  <i className="bi bi-check-circle"></i>Hộp giày bảo vệ
-                </li>
-                <li>
-                  <i className="bi bi-check-circle"></i>Bao đựng chống bụi
-                </li>
-                <li>
-                  <i className="bi bi-check-circle"></i>1 cặp dây giày dự phòng
-                </li>
-                <li>
-                  <i className="bi bi-check-circle"></i>Thẻ bảo hành chính hãng
-                </li>
-                <li>
-                  <i className="bi bi-check-circle"></i>Hướng dẫn chăm sóc & vệ
-                  sinh giày
-                </li>
-              </ul>
-            </div>
-          </div>
+          <WhatWillYouReceive />
         </div>
       </div>
     </div>

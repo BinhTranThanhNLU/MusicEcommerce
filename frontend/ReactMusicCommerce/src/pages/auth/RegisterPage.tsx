@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import { useState } from "react";
 import type { RegisterRequest } from "../../requestmodel/RegisterRequest";
 import { registerUser } from "../../apis/authApi";

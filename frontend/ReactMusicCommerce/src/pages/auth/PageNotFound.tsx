@@ -1,4 +1,4 @@
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 
 const PageNotFound = () => {
   return (

@@ -2,6 +2,7 @@ package com.springboot.music.mapper;
 
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.dto.ArtistDTO;
+import com.springboot.music.dto.AudioTrackLicenseDTO;
 import com.springboot.music.dto.TrackTagsDTO;
 import com.springboot.music.entity.*;
 import org.mapstruct.Mapper;
@@ -19,13 +20,19 @@ public interface AudioTrackMapper {
     @Mapping(target = "tags", expression = "java(mapTags(audioTrack.getGenres(), audioTrack.getMoods()))")
     AudioTrackDTO toDto(AudioTrack audioTrack);
 
-    // 5. Từ Entity List sang DTO List
+    // 2. Từ Entity List sang DTO List
     List<AudioTrackDTO> toDtoList(List<AudioTrack> audioTracks);
 
-    // 2. map từ User sang ArtistDTO
+    // 3. map từ User sang ArtistDTO
     ArtistDTO toArtistSummary(User user);
 
-    // 3. Hàm custom để tính "startingPrice"
+    // 4. map từ AudioTrackLicense sang dto
+    @Mapping(source = "license.id", target = "licenseId")
+    @Mapping(source = "license.licenseType", target = "licenseType")
+    @Mapping(source = "license.description", target = "description")
+    AudioTrackLicenseDTO toLicenseDto(AudioTrackLicense audioTrackLicense);
+
+    // 5. Hàm custom để tính "startingPrice"
     default Double calculateStartingPrice(List<AudioTrackLicense> licenses) {
         if (licenses == null || licenses.isEmpty()) {
             return 0.0;
@@ -36,7 +43,7 @@ public interface AudioTrackMapper {
                 .orElse(0.0);
     }
 
-    // 4. Hàm custom để gom danh sách Genre và Mood thành TrackTagsDTO
+    // 6. Hàm custom để gom danh sách Genre và Mood thành TrackTagsDTO
     default TrackTagsDTO mapTags(List<Genre> genres, List<Mood> moods) {
         List<String> genreNames = genres != null ?
                 genres.stream().map(Genre::getName).collect(Collectors.toList()) :

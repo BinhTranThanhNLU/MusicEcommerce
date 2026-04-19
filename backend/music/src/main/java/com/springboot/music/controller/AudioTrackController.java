@@ -74,6 +74,25 @@ public class AudioTrackController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<AudioTrackDTO> getAudioTrackById(@PathVariable int id) {
+        AudioTrackDTO audioTrackDTO = audioTrackService.getAudioTrackById(id);
+        return ResponseEntity.ok(audioTrackDTO);
+    }
+
+    @GetMapping("/artist/{id}")
+    public ResponseEntity<AudioTrackPageResponse> getTracksByArtist(
+            @PathVariable int id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size, // Lấy 7 bài để xíu nữa Frontend trừ đi bài hiện tại là vừa đẹp 6 bài
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) List<String> types,
+            @RequestParam(required = false) String sort) {
+
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, page, size, minPrice, maxPrice, types, sort);
+        return ResponseEntity.ok(response);
+    }
 
 }
 

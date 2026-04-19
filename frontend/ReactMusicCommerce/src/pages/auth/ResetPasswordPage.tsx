@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import { resetPassword } from "../../apis/authApi"; // Chú ý sửa lại đường dẫn nếu cần
 import Swal from "sweetalert2";
 

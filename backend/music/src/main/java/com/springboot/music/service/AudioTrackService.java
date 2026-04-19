@@ -73,4 +73,21 @@ public class AudioTrackService {
         );
     }
 
+    public AudioTrackDTO getAudioTrackById(int id) {
+        AudioTrack audioTrack = audioTrackRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Audio track not found with id: " + id));
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByArtistId(int artistId, int page, int size, Double minPrice, Double maxPrice, List<String> types, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Truyền List.of(artistId) vào vị trí của artistIds trong Specification
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, null, minPrice, maxPrice, types, List.of(artistId), sort);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
 }

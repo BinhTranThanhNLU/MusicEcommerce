@@ -1,4 +1,5 @@
 import type { ArtistModel } from "./ArtistModel";
+import type { AudioTrackLicenseModel } from "./AudioTrackLicenseModel";
 import type { TrackTagsModel } from "./TrackTagsModel";
 
 export interface AudioTrackModel {
@@ -14,4 +15,8 @@ export interface AudioTrackModel {
 
   artist: ArtistModel;
   tags: TrackTagsModel;
+
+  licenses: AudioTrackLicenseModel[];
+
+  description: string;
 }

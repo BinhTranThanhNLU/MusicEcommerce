@@ -21,3 +21,13 @@ export const getTracksByTheme = async (idTheme: number, params: any): Promise<Au
     const response = await axiosClient.get(`/audio-tracks/theme/${idTheme}`, {params});
     return response.data;
 }
+
+export const getAudioTrackById = async (id: number): Promise<AudioTrackModel> => {
+  const response = await axiosClient.get(`/audio-tracks/${id}`);
+  return response.data;
+};
+
+export const getTracksByArtist = async (artistId: number, params?: any): Promise<AudioTrackPageResponse> => {
+  const response = await axiosClient.get(`/audio-tracks/artist/${artistId}`, { params });
+  return response.data;
+};

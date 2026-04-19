@@ -1,5 +1,5 @@
 import { useState } from "react";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import { forgotPassword } from "../../apis/authApi";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";

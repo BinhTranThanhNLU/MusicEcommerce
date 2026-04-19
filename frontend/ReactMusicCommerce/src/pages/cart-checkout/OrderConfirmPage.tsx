@@ -1,4 +1,4 @@
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import LeftSidebar from "../../components/OrderConfirmPage/LeftSidebar";
 import MainContentArea from "../../components/OrderConfirmPage/MainContentArea";
 

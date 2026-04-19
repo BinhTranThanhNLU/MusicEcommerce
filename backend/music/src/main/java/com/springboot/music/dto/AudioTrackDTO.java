@@ -3,6 +3,7 @@ package com.springboot.music.dto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -23,5 +24,9 @@ public class AudioTrackDTO {
 
     private ArtistDTO artist;
     private TrackTagsDTO tags;
+
+    private List<AudioTrackLicenseDTO> licenses;
+
+    private String description;
 
 }

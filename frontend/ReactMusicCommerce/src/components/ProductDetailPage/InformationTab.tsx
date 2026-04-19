@@ -1,7 +1,13 @@
+import type React from "react";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import OverviewTab from "./OverviewTab";
 import ReviewTab from "./ReviewTab";
 
-const InformationTab = () => {
+interface InformationTabProps {
+  track: AudioTrackModel;
+}
+
+const InformationTab: React.FC<InformationTabProps> = ({ track }) => {
   return (
     <div className="row mt-5" data-aos="fade-up" data-aos-delay="300">
       <div className="col-12">
@@ -26,7 +32,7 @@ const InformationTab = () => {
           </nav>
 
           <div className="tab-content">
-            <OverviewTab />
+            <OverviewTab track={track} />
             <ReviewTab />
           </div>
         </div>

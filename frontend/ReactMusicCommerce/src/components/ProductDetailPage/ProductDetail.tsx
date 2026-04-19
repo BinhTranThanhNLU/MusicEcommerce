@@ -1,135 +1,137 @@
-const ProductDetail = () => {
+import type React from "react";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import DigitalBenefitsList from "./DigitalBenefitsList";
+import { useState } from "react";
+
+interface ProductDetailProps {
+  track: AudioTrackModel;
+}
+
+const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
+  // Gán mặc định giấy phép đầu tiên được chọn
+  const [selectedLicenseId, setSelectedLicenseId] = useState<number>(
+    track.licenses && track.licenses.length > 0
+      ? track.licenses[0].licenseId
+      : 0,
+  );
+
+  // Hàm format tiền tệ VNĐ
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price);
+  };
+
+  // Hàm format giây thành phút:giây
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
   return (
-    <div className="col-lg-5" data-aos="fade-left" data-aos-delay="200">
-      <div className="product-details">
-        <div className="product-badge-container">
-          <span className="badge-category">Giày bóng đá</span>
-          <div className="rating-group">
-            <div className="stars">
-              <i className="bi bi-star-fill"></i>
-              <i className="bi bi-star-fill"></i>
-              <i className="bi bi-star-fill"></i>
-              <i className="bi bi-star-fill"></i>
-              <i className="bi bi-star-half"></i>
-            </div>
-            <span className="review-text">(127 đánh giá)</span>
+    <div className="col-lg-7" data-aos="fade-left" data-aos-delay="200">
+      <div className="product-details p-lg-4">
+        <div className="product-badge-container d-flex align-items-center justify-content-between mb-2">
+          <span className="badge bg-secondary">{track.audioType}</span>
+          <div className="rating-group text-warning">
+            <i className="bi bi-star-fill"></i>
+            <i className="bi bi-star-fill"></i>
+            <i className="bi bi-star-fill"></i>
+            <i className="bi bi-star-fill"></i>
+            <i className="bi bi-star-half"></i>
+            <span className="text-muted ms-2 small">
+              ({track.playCount} lượt nghe)
+            </span>
           </div>
         </div>
 
-        <h1 className="product-name">
-          Mauris tempus cursus magna vel scelerisque nisl consectetur
-        </h1>
+        <h1 className="product-name fs-3 fw-bold mb-1">{track.title}</h1>
+        <p className="text-muted mb-3">
+          Sáng tác bởi:{" "}
+          <a href="#" className="text-decoration-none fw-medium">
+            {track.artist?.name}
+          </a>
+        </p>
 
-        <div className="pricing-section">
-          <div className="price-display">
-            <span className="sale-price">$189.99</span>
-            <span className="regular-price">$239.99</span>
-          </div>
-          <div className="savings-info">
-            <span className="save-amount">Tiết kiệm $50.00</span>
-            <span className="discount-percent">(21% off)</span>
-          </div>
+        {/* Thông tin metadata bài hát */}
+        <div className="d-flex gap-3 mb-4 text-muted small">
+          <span>
+            <i className="bi bi-music-note-list"></i>{" "}
+            {track.tags?.genres?.join(", ") || "Đang cập nhật"}
+          </span>
+          <span>
+            <i className="bi bi-stopwatch"></i> {formatDuration(track.duration)}
+          </span>
+          <span>
+            <i className="bi bi-emoji-smile"></i> Cảm xúc:{" "}
+            {track.tags?.moods?.join(", ") || "Đang cập nhật"}
+          </span>
         </div>
 
-        <div className="product-description">
+        <div className="product-description mb-4">
           <p>
-            Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-            accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
-            quae ab illo inventore veritatis et quasi architecto beatae vitae
-            dicta sunt explicabo.
+            Bản nhạc mang âm hưởng hùng tráng, dồn dập, rất phù hợp làm nhạc nền
+            cho các video trailer, phim hành động hoặc các dự án truyền thông
+            cần sự kịch tính và cao trào.
           </p>
         </div>
 
-        <div className="availability-status">
-          <div className="stock-indicator">
-            <i className="bi bi-check-circle-fill"></i>
-            <span className="stock-text">Còn</span>
-          </div>
-          <div className="quantity-left">Chỉ còn lại 18 sản phẩm</div>
-        </div>
-
-        {/* Product Variants Color */}
-        <div className="variant-color-section mb-3">
-          <h6>Màu sắc</h6>
-          <div className="d-flex flex-wrap gap-2">
-            <div className="size-option">Trắng</div>
-            <div className="size-option">Đỏ </div>
-            <div className="size-option">Đen</div>
-            <div className="size-option">Xanh Dương</div>
-          </div>
-        </div>
-
-        {/* Product Variants Size */}
-        <div className="variant-size-section mb-3">
-          <h6>Kích Thước</h6>
-          <div className="d-flex flex-wrap gap-2">
-            <div className="size-option">UK 3.5</div>
-            <div className="size-option">UK 4</div>
-            <div className="size-option">UK 4.5</div>
-            <div className="size-option">UK 5</div>
-            <div className="size-option">UK 5.5</div>
-            <div className="size-option">UK 6</div>
-            <div className="size-option">UK 6.5</div>
+        {/* Lựa chọn giấy phép bản quyền */}
+        <div className="license-selection mb-4">
+          <h6 className="fw-bold mb-3">Chọn loại giấy phép</h6>
+          <div className="d-flex flex-column gap-2">
+            {track.licenses?.map((license) => (
+              <label
+                key={license.licenseId}
+                className={`border p-3 rounded d-flex justify-content-between align-items-center cursor-pointer ${selectedLicenseId === license.licenseId ? "border-primary shadow-sm" : "hover-shadow"}`}
+              >
+                <div className="d-flex align-items-center">
+                  <input
+                    type="radio"
+                    name="licenseType"
+                    className="form-check-input me-3"
+                    value={license.licenseId}
+                    checked={selectedLicenseId === license.licenseId}
+                    onChange={() => setSelectedLicenseId(license.licenseId)}
+                  />
+                  <div>
+                    <div
+                      className={`fw-bold ${selectedLicenseId === license.licenseId ? "text-primary" : ""}`}
+                    >
+                      Giấy phép {license.licenseType}
+                    </div>
+                    <small className="text-muted">{license.description}</small>
+                  </div>
+                </div>
+                <div
+                  className={`fw-bold fs-5 ${selectedLicenseId === license.licenseId ? "text-primary" : ""}`}
+                >
+                  {formatPrice(license.price)}
+                </div>
+              </label>
+            ))}
           </div>
         </div>
 
         {/* Purchase Options */}
-        <div className="purchase-section">
-          <div className="quantity-control">
-            <label className="control-label">Số lượng:</label>
-            <div className="quantity-input-group">
-              <div className="quantity-selector">
-                <button className="quantity-btn decrease" type="button">
-                  <i className="bi bi-dash"></i>
-                </button>
-                <input
-                  type="number"
-                  className="quantity-input"
-                  value="1"
-                  min="1"
-                  max="18"
-                />
-                <button className="quantity-btn increase" type="button">
-                  <i className="bi bi-plus"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="action-buttons">
-            <button className="btn primary-action">
-              <i className="bi bi-bag-plus"></i>
-              Thêm vào giỏ
-            </button>
-            <button className="btn secondary-action">
-              <i className="bi bi-lightning"></i>
-              Mua ngay
-            </button>
-            <button className="btn icon-action" title="Add to Wishlist">
-              <i className="bi bi-heart"></i>
-            </button>
-          </div>
+        <div className="purchase-section d-flex gap-3 mb-4">
+          <button className="btn btn-outline-primary py-2 px-4 flex-grow-1">
+            <i className="bi bi-cart-plus me-2"></i> Thêm vào giỏ
+          </button>
+          <button className="btn btn-primary py-2 px-4 flex-grow-1">
+            <i className="bi bi-lightning me-2"></i> Mua ngay
+          </button>
+          <button
+            className="btn btn-light border py-2 px-3"
+            title="Thêm vào yêu thích"
+          >
+            <i className="bi bi-heart"></i>
+          </button>
         </div>
 
-        {/* Benefits List */}
-        <div className="benefits-list">
-          <div className="benefit-item">
-            <i className="bi bi-truck"></i>
-            <span>Giao hàng miễn phí cho đơn hàng trên 1.000.000đ</span>
-          </div>
-          <div className="benefit-item">
-            <i className="bi bi-arrow-clockwise"></i>
-            <span>Trả hàng miễn phí trong vòng 45 ngày</span>
-          </div>
-          <div className="benefit-item">
-            <i className="bi bi-shield-check"></i>
-            <span>Bảo hành 3 năm của nhà sản xuất</span>
-          </div>
-          <div className="benefit-item">
-            <i className="bi bi-headset"></i>
-            <span>Hỗ trợ khách hàng 24/7</span>
-          </div>
-        </div>
+        <DigitalBenefitsList />
       </div>
     </div>
   );

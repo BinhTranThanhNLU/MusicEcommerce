@@ -1,7 +1,7 @@
 import CartItem from "../../components/CartPage/CartItem";
 import CartList from "../../components/CartPage/CartList";
 import CartSummary from "../../components/CartPage/CartSummary";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 
 const CartPage = () => {
   return (

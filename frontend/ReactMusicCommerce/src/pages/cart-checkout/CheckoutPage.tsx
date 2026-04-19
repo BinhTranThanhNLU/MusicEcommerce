@@ -1,7 +1,7 @@
 import CheckoutForm from "../../components/CheckoutPage/CheckoutForm";
 import SummaryOrder from "../../components/CheckoutPage/SummaryOrder";
 import TermAndPrivacy from "../../components/CheckoutPage/TermAndPrivacy";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 
 const CheckoutPage = () => {
   return (

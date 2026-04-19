@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import { Link } from "react-router-dom";
 
 interface Props {
   track: AudioTrackModel;
@@ -37,7 +38,7 @@ const ProductCard: React.FC<Props> = ({ track }) => {
           className="product-overlay position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
           style={{
             backgroundColor: isPlaying ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.2)",
-            opacity: isPlaying ? 1 : "", // CSS ngoài của bạn có thể handle opacity khi hover
+            opacity: isPlaying ? 1 : "",
             transition: "all 0.3s ease",
           }}
         >
@@ -77,9 +78,9 @@ const ProductCard: React.FC<Props> = ({ track }) => {
 
         {/* Tên bài hát */}
         <h6 className="product-title mb-1 text-truncate" title={track.title}>
-          <a href="#" className="text-decoration-none text-dark fw-bold">
+          <Link to={`/detail-product/${track.id}`} className="text-decoration-none text-dark fw-bold">
             {track.title}
-          </a>
+          </Link>
         </h6>
 
         {/* Tên Nghệ sĩ */}

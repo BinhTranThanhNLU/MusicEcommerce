@@ -3,7 +3,7 @@ import CategoryHeaderSection from "../../components/CategoryPage/CategoryHeaderS
 import PricingRangeWidget from "../../components/CategoryPage/PricingRangeWidget";
 import ProductCategoryWidget from "../../components/CategoryPage/ProductCategoryWidget";
 import ProductListSection from "../../components/CategoryPage/ProductListSection";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import Pagination from "../../components/utils/Pagination";
 import { useEffect, useMemo, useState } from "react";
 import ArtistFilterWidget from "../../components/CategoryPage/ArtistFilterWidget";

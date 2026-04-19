@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import PageTitle from "../../components/layouts/PageTitle";
+import PageTitle from "../../components/utils/PageTitle";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import { SpinningLoading } from "../../components/utils/SpinningLoading";
 import { Link, useNavigate } from "react-router-dom";

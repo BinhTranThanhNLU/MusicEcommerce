@@ -1,19 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import { Link } from "react-router-dom";
+import { useAudioPlayer } from "../../context/AudioPlayerContext";
 
 interface Props {
   track: AudioTrackModel;
 }
 
 const ProductCard: React.FC<Props> = ({ track }) => {
-  // State quản lý trạng thái đang nghe thử
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+
+  // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
+  const isCurrentTrack = currentTrack?.id === track.id;
+  const trackIsPlaying = isCurrentTrack && isPlaying;
 
   const handlePlayToggle = () => {
-    setIsPlaying(!isPlaying);
-    // Sau này sẽ tích hợp logic gọi xuống Global Audio Player tại đây
-    console.log(isPlaying ? "Pause preview" : "Play preview");
+    togglePlayPause(track);
   };
 
   return (
@@ -37,8 +39,8 @@ const ProductCard: React.FC<Props> = ({ track }) => {
         <div
           className="product-overlay position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
           style={{
-            backgroundColor: isPlaying ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.2)",
-            opacity: isPlaying ? 1 : "",
+            backgroundColor: trackIsPlaying ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.2)",
+            opacity: trackIsPlaying ? 1 : "",
             transition: "all 0.3s ease",
           }}
         >
@@ -48,7 +50,7 @@ const ProductCard: React.FC<Props> = ({ track }) => {
             style={{ width: "50px", height: "50px", fontSize: "20px" }}
           >
             <i
-              className={`bi ${isPlaying ? "bi-pause-fill" : "bi-play-fill"}`}
+              className={`bi ${trackIsPlaying ? "bi-pause-fill" : "bi-play-fill"}`}
             ></i>
           </button>
         </div>

@@ -1,0 +1,52 @@
+/* Audio Player Styles */
+.audio-player {
+  z-index: 1000;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.audio-player .form-range {
+  cursor: pointer;
+}
+
+.audio-player .form-range::-webkit-slider-thumb {
+  background-color: #0d6efd;
+  border: none;
+}
+
+.audio-player .form-range::-moz-range-thumb {
+  background-color: #0d6efd;
+  border: none;
+}
+
+.audio-player .btn-primary {
+  background-color: #0d6efd;
+  border: none;
+}
+
+.audio-player .btn-primary:hover {
+  background-color: #0a58ca;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .audio-player {
+    padding: 0.75rem 0.5rem !important;
+  }
+
+  .audio-player .row {
+    --bs-gutter-x: 0.5rem;
+  }
+
+  .audio-player .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .audio-player .col-md-3,
+  .audio-player .col-md-6 {
+    display: none;
+  }
+
+  .audio-player .col-12 {
+    display: block;
+  }
+}

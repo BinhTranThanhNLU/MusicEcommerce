@@ -3,10 +3,58 @@ import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import { useEffect, useState } from "react";
 import { getTracksByArtist } from "../../apis/audioTrackApi";
 import WhatWillYouReceive from "./WhatWillYouReceive";
+import { useAudioPlayer } from "../../context/AudioPlayerContext";
 
 interface OverviewTabProps {
   track: AudioTrackModel;
 }
+
+// Component để hiển thị track card với nút phát nhạc
+const RelatedTrackCard: React.FC<{ track: AudioTrackModel; formatPrice: (price: number) => string }> = ({ track, formatPrice }) => {
+  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const isCurrentTrack = currentTrack?.id === track.id;
+  const trackIsPlaying = isCurrentTrack && isPlaying;
+
+  return (
+    <div className="col-md-4">
+      <div className="product-card border rounded p-2 text-center h-100 shadow-sm position-relative">
+        <div className="position-relative">
+          <img
+            src={
+              track.coverImage ||
+              "https://placehold.co/300x300"
+            }
+            className="img-fluid rounded mb-2 w-100"
+            alt={track.title}
+            style={{ aspectRatio: "1/1", objectFit: "cover" }}
+          />
+          {/* Play button overlay */}
+          <button
+            className={`position-absolute top-50 start-50 translate-middle btn btn-sm rounded-circle ${
+              trackIsPlaying ? "btn-danger" : "btn-primary"
+            }`}
+            onClick={() => togglePlayPause(track)}
+            style={{ width: "40px", height: "40px", zIndex: 10 }}
+          >
+            <i className={`bi ${trackIsPlaying ? "bi-pause-fill" : "bi-play-fill"}`}></i>
+          </button>
+        </div>
+        <div className="small text-muted mb-1">
+          {track.audioType}
+        </div>
+        <h6
+          className="text-truncate mb-2"
+          title={track.title}
+        >
+          {track.title}
+        </h6>
+        <div className="text-primary fw-bold">
+          Từ {formatPrice(track.startingPrice)}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ track }) => {
   const [relatedTracks, setRelatedTracks] = useState<AudioTrackModel[]>([]);
@@ -85,30 +133,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ track }) => {
                       <div className="carousel-item active">
                         <div className="row g-3">
                           {relatedTracks.slice(0, 3).map((item) => (
-                            <div className="col-md-4" key={item.id}>
-                              <div className="product-card border rounded p-2 text-center h-100 shadow-sm">
-                                <img
-                                  src={
-                                    item.coverImage ||
-                                    "https://placehold.co/300x300"
-                                  }
-                                  className="img-fluid rounded mb-2 w-100"
-                                  alt={item.title}
-                                />
-                                <div className="small text-muted mb-1">
-                                  {item.audioType}
-                                </div>
-                                <h6
-                                  className="text-truncate mb-2"
-                                  title={item.title}
-                                >
-                                  {item.title}
-                                </h6>
-                                <div className="text-primary fw-bold">
-                                  Từ {formatPrice(item.startingPrice)}
-                                </div>
-                              </div>
-                            </div>
+                            <RelatedTrackCard key={item.id} track={item} formatPrice={formatPrice} />
                           ))}
                         </div>
                       </div>
@@ -118,30 +143,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ track }) => {
                         <div className="carousel-item">
                           <div className="row g-3">
                             {relatedTracks.slice(3, 6).map((item) => (
-                              <div className="col-md-4" key={item.id}>
-                                <div className="product-card border rounded p-2 text-center h-100 shadow-sm">
-                                  <img
-                                    src={
-                                      item.coverImage ||
-                                      "https://placehold.co/300x300"
-                                    }
-                                    className="img-fluid rounded mb-2 w-100"
-                                    alt={item.title}
-                                  />
-                                  <div className="small text-muted mb-1">
-                                    {item.audioType}
-                                  </div>
-                                  <h6
-                                    className="text-truncate mb-2"
-                                    title={item.title}
-                                  >
-                                    {item.title}
-                                  </h6>
-                                  <div className="text-primary fw-bold">
-                                    Từ {formatPrice(item.startingPrice)}
-                                  </div>
-                                </div>
-                              </div>
+                              <RelatedTrackCard key={item.id} track={item} formatPrice={formatPrice} />
                             ))}
                           </div>
                         </div>

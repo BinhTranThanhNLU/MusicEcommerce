@@ -9,6 +9,8 @@ import CategoryPage from "./pages/product/CategoryPage";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "./context/AuthContext";
+import { AudioPlayerProvider } from "./context/AudioPlayerContext";
+import AudioPlayer from "./components/AudioPlayer";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
@@ -33,22 +35,25 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <AuthProvider>
-        <BrowserRouter>
-          <Header />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/home" element={<HomePage />} />
-            <Route path="/genre/:id" element={<CategoryPage />} />
-            <Route path="/mood/:id" element={<CategoryPage />} />
-            <Route path="/theme/:id" element={<CategoryPage />} />
-            <Route path="/detail-product/:id" element={<ProductDetailPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-          </Routes>
-          <Footer />
-        </BrowserRouter>
+        <AudioPlayerProvider>
+          <BrowserRouter>
+            <Header />
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/home" element={<HomePage />} />
+              <Route path="/genre/:id" element={<CategoryPage />} />
+              <Route path="/mood/:id" element={<CategoryPage />} />
+              <Route path="/theme/:id" element={<CategoryPage />} />
+              <Route path="/detail-product/:id" element={<ProductDetailPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+            </Routes>
+            <Footer />
+            <AudioPlayer />
+          </BrowserRouter>
+        </AudioPlayerProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );

@@ -2,12 +2,19 @@ import type React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import DigitalBenefitsList from "./DigitalBenefitsList";
 import { useState } from "react";
+import { useAudioPlayer } from "../../context/AudioPlayerContext";
 
 interface ProductDetailProps {
   track: AudioTrackModel;
 }
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
+  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  
+  // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
+  const isCurrentTrack = currentTrack?.id === track.id;
+  const trackIsPlaying = isCurrentTrack && isPlaying;
+  
   // Gán mặc định giấy phép đầu tiên được chọn
   const [selectedLicenseId, setSelectedLicenseId] = useState<number>(
     track.licenses && track.licenses.length > 0
@@ -56,7 +63,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
         </p>
 
         {/* Thông tin metadata bài hát */}
-        <div className="d-flex gap-3 mb-4 text-muted small">
+        <div className="d-flex gap-3 mb-4 text-muted small align-items-center flex-wrap">
           <span>
             <i className="bi bi-music-note-list"></i>{" "}
             {track.tags?.genres?.join(", ") || "Đang cập nhật"}
@@ -68,6 +75,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
             <i className="bi bi-emoji-smile"></i> Cảm xúc:{" "}
             {track.tags?.moods?.join(", ") || "Đang cập nhật"}
           </span>
+          
+          {/* Nút phát nhạc preview */}
+          <button
+            className={`btn btn-sm rounded-pill d-flex align-items-center gap-2 ms-auto ${
+              trackIsPlaying
+                ? "btn-danger"
+                : "btn-outline-primary"
+            }`}
+            onClick={() => togglePlayPause(track)}
+          >
+            <i className={`bi ${trackIsPlaying ? "bi-pause-fill" : "bi-play-fill"}`}></i>
+            {trackIsPlaying ? "Dừng" : "Nghe thử"}
+          </button>
         </div>
 
         <div className="product-description mb-4">

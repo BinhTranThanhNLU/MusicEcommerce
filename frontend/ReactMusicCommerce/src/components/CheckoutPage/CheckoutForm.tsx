@@ -30,21 +30,6 @@ const paymentOptions = [
     icon: "bi bi-qr-code",
     label: "Cổng thanh toán VNPay",
   },
-  {
-    id: "MOMO",
-    icon: "bi bi-phone",
-    label: "Ví điện tử MoMo",
-  },
-  {
-    id: "ZALOPAY",
-    icon: "bi bi-chat-dots",
-    label: "Ví ZaloPay",
-  },
-  {
-    id: "BANK_TRANSFER",
-    icon: "bi bi-bank",
-    label: "Chuyển khoản ngân hàng",
-  },
 ];
 
 const CheckoutForm = ({

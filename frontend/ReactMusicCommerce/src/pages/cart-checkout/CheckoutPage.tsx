@@ -29,6 +29,34 @@ const CheckoutPage = () => {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentState = params.get("payment");
+
+    if (!paymentState) {
+      return;
+    }
+
+    const orderId = params.get("orderId") || "";
+    const message = params.get("message") || "";
+
+    void Swal.fire({
+      icon: paymentState === "success" ? "success" : "error",
+      title:
+        paymentState === "success"
+          ? "Thanh toán VNPay thành công"
+          : "Thanh toán VNPay thất bại",
+      html: `
+        <div style="text-align:left">
+          ${orderId ? `<p><strong>Mã đơn hàng:</strong> #${orderId}</p>` : ""}
+          ${message ? `<p>${message}</p>` : ""}
+        </div>
+      `,
+    });
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, []);
+
+  useEffect(() => {
     const syncCart = async () => {
       setIsLoading(true);
       setHttpError(null);
@@ -92,6 +120,12 @@ const CheckoutPage = () => {
 
     try {
       const result = await checkoutOrder(payload);
+
+      if (result.paymentUrl) {
+        window.location.href = result.paymentUrl;
+        return;
+      }
+
       window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
 
       const refreshedCart = await getCart();

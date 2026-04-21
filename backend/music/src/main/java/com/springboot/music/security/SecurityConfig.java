@@ -40,6 +40,8 @@ public class SecurityConfig {
                         .requestMatchers("/themes/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/orders/vnpay/return", "/orders/vnpay/return").permitAll()
+                        .requestMatchers("/cart/**", "/orders/checkout").authenticated()
                         .anyRequest().authenticated()
                 )
                 // Không lưu session (Stateless) vì mỗi request đều có JWT rồi

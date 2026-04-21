@@ -6,7 +6,7 @@ import PageTitle from "../../components/utils/PageTitle";
 const CheckoutPage = () => {
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Thanh toán" current="Thanh toán" />
 
       <section id="checkout" className="checkout section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

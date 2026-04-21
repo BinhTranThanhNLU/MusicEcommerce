@@ -3,54 +3,66 @@ const SummaryOrder = () => {
     <div className="order-summary" data-aos="fade-left" data-aos-delay="200">
       <div className="order-summary-header">
         <h3>Tóm tắt đơn hàng</h3>
-        <span className="item-count">2 sản phẩm</span>
+        <span className="item-count">2 tài nguyên âm thanh</span>
       </div>
 
       <div className="order-summary-content">
         <div className="order-items">
+          {/* Sản phẩm 1: Bài hát hoàn chỉnh - Giấy phép thương mại */}
           <div className="order-item">
             <div className="order-item-image">
               <img
-                src="../../assets/img/product/product-1.webp"
-                alt="Sản phẩm"
-                className="img-fluid"
+                src="../../assets/img/music/cover-1.webp"
+                alt="Song Cover"
+                className="img-fluid rounded"
               />
             </div>
             <div className="order-item-details">
-              <h4>Lorem Ipsum Dolor</h4>
-              <p className="order-item-variant">Màu: Đen | Size: M</p>
-              <div className="order-item-price">
+              <h4 className="text-truncate">Chạy Ngay Đi (Full Song)</h4>
+              <p className="order-item-variant text-muted mb-1">
+                Nghệ sĩ: Sơn Tùng M-TP
+              </p>
+              <p className="order-item-variant text-primary fw-medium">
+                Giấy phép: Thương mại (Commercial)
+              </p>
+              <div className="order-item-price mt-2">
                 <span className="quantity">1 ×</span>
-                <span className="price">89.99₫</span>
+                <span className="price">500.000₫</span>
               </div>
             </div>
           </div>
 
-          <div className="order-item">
+          {/* Sản phẩm 2: Hiệu ứng âm thanh - Giấy phép cá nhân */}
+          <div className="order-item mt-3">
             <div className="order-item-image">
               <img
-                src="../../assets/img/product/product-1.webp"
-                alt="Sản phẩm"
-                className="img-fluid"
+                src="../../assets/img/music/sfx-cover.webp"
+                alt="SFX Cover"
+                className="img-fluid rounded"
               />
             </div>
             <div className="order-item-details">
-              <h4>Sit Amet Consectetur</h4>
-              <p className="order-item-variant">Màu: Trắng | Size: L</p>
-              <div className="order-item-price">
-                <span className="quantity">2 ×</span>
-                <span className="price">59.99₫</span>
+              <h4 className="text-truncate">Cinematic Rain Impact (SFX)</h4>
+              <p className="order-item-variant text-muted mb-1">
+                Cấp độ: Đoạn âm thanh ngắn
+              </p>
+              <p className="order-item-variant text-success fw-medium">
+                Giấy phép: Cá nhân (Personal)
+              </p>
+              <div className="order-item-price mt-2">
+                <span className="quantity">1 ×</span>
+                <span className="price">250.000₫</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="promo-code">
+        <div className="promo-code mt-4">
           <div className="input-group">
             <input
               type="text"
               className="form-control"
-              placeholder="Mã giảm giá"
+              placeholder="Mã giảm giá nghệ sĩ"
               aria-label="Mã giảm giá"
             />
             <button className="btn btn-outline-primary" type="button">
@@ -59,36 +71,32 @@ const SummaryOrder = () => {
           </div>
         </div>
 
-        <div className="order-totals">
-          <div className="order-subtotal d-flex justify-content-between">
-            <span>Tạm tính</span>
-            <span>209.97₫</span>
+        <div className="order-totals mt-4">
+          <div className="order-subtotal d-flex justify-content-between mb-2">
+            <span className="text-muted">Tạm tính</span>
+            <span className="fw-medium">750.000₫</span>
           </div>
-          <div className="order-shipping d-flex justify-content-between">
-            <span>Phí vận chuyển</span>
-            <span>9.99₫</span>
+          {/* Đã bỏ phí vận chuyển vì đây là sản phẩm số */}
+          <div className="order-tax d-flex justify-content-between mb-2">
+            <span className="text-muted">Thuế VAT (8%)</span>
+            <span className="fw-medium">60.000₫</span>
           </div>
-          <div className="order-tax d-flex justify-content-between">
-            <span>Thuế</span>
-            <span>21.00₫</span>
-          </div>
-          <div className="order-total d-flex justify-content-between">
+          <hr />
+          <div className="order-total d-flex justify-content-between fs-5 fw-bold">
             <span>Tổng cộng</span>
-            <span>240.96₫</span>
+            <span className="text-primary">810.000₫</span>
           </div>
         </div>
 
-        <div className="secure-checkout">
-          <div className="secure-checkout-header">
-            <i className="bi bi-shield-lock"></i>
-            <span>Thanh toán an toàn</span>
+        <div className="secure-checkout mt-4 text-center">
+          <div className="secure-checkout-header text-success mb-2">
+            <i className="bi bi-shield-check me-2"></i>
+            <span>Giao dịch an toàn & Bảo vệ bản quyền</span>
           </div>
-          <div className="payment-icons">
-            <i className="bi bi-credit-card-2-front"></i>
-            <i className="bi bi-credit-card"></i>
-            <i className="bi bi-paypal"></i>
-            <i className="bi bi-apple"></i>
-          </div>
+          <p className="text-muted small">
+            File âm thanh gốc chất lượng cao cùng giấy chứng nhận bản quyền sẽ
+            khả dụng ngay sau khi thanh toán thành công.
+          </p>
         </div>
       </div>
     </div>

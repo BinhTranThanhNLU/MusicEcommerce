@@ -1,8 +1,10 @@
 import axiosClient from "./axiosClient";
 import type { AddToCartRequest } from "../requestmodel/AddToCartRequest";
+import type { CheckoutRequest } from "../requestmodel/CheckoutRequest";
 import type { UpdateCartItemLicenseRequest } from "../requestmodel/UpdateCartItemLicenseRequest";
 import type { CartItemResponse } from "../responsemodel/CartItemResponse";
 import type { CartResponse } from "../responsemodel/CartResponse";
+import type { CheckoutResponse } from "../responsemodel/CheckoutResponse";
 
 export const addToCart = async (
   data: AddToCartRequest,
@@ -34,5 +36,12 @@ export const updateCartItemLicense = async (
     `/cart/items/${cartItemId}/license`,
     data,
   );
+  return response.data;
+};
+
+export const checkout = async (
+  data?: CheckoutRequest,
+): Promise<CheckoutResponse> => {
+  const response = await axiosClient.post<CheckoutResponse>("/cart/checkout", data);
   return response.data;
 };

@@ -1,7 +1,65 @@
-const CheckoutForm = () => {
+import type { FormEvent } from "react";
+
+export interface CheckoutFormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  paymentMethod: string;
+  acceptedTerms: boolean;
+}
+
+interface CheckoutFormProps {
+  values: CheckoutFormValues;
+  totalAmount: number;
+  isSubmitting: boolean;
+  onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onPaymentMethodChange: (paymentMethod: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(value);
+
+const paymentOptions = [
+  {
+    id: "VNPAY",
+    icon: "bi bi-qr-code",
+    label: "Cổng thanh toán VNPay",
+  },
+  {
+    id: "MOMO",
+    icon: "bi bi-phone",
+    label: "Ví điện tử MoMo",
+  },
+  {
+    id: "ZALOPAY",
+    icon: "bi bi-chat-dots",
+    label: "Ví ZaloPay",
+  },
+  {
+    id: "BANK_TRANSFER",
+    icon: "bi bi-bank",
+    label: "Chuyển khoản ngân hàng",
+  },
+];
+
+const CheckoutForm = ({
+  values,
+  totalAmount,
+  isSubmitting,
+  onInputChange,
+  onPaymentMethodChange,
+  onSubmit,
+}: CheckoutFormProps) => {
+  const submitDisabled = isSubmitting || !values.acceptedTerms;
+
   return (
     <div className="checkout-container" data-aos="fade-up">
-      <form className="checkout-form">
+      <form className="checkout-form" onSubmit={onSubmit}>
         {/* Customer Information */}
         <div className="checkout-section" id="customer-info">
           <div className="section-header">
@@ -14,10 +72,12 @@ const CheckoutForm = () => {
                 <label htmlFor="first-name">Họ</label>
                 <input
                   type="text"
-                  name="first-name"
+                  name="firstName"
                   className="form-control"
                   id="first-name"
                   placeholder="Nhập họ của bạn"
+                  value={values.firstName}
+                  onChange={onInputChange}
                   required
                 />
               </div>
@@ -25,10 +85,12 @@ const CheckoutForm = () => {
                 <label htmlFor="last-name">Tên</label>
                 <input
                   type="text"
-                  name="last-name"
+                  name="lastName"
                   className="form-control"
                   id="last-name"
                   placeholder="Nhập tên của bạn"
+                  value={values.lastName}
+                  onChange={onInputChange}
                   required
                 />
               </div>
@@ -43,6 +105,8 @@ const CheckoutForm = () => {
                 name="email"
                 id="email"
                 placeholder="Nhập email của bạn"
+                value={values.email}
+                onChange={onInputChange}
                 required
               />
             </div>
@@ -54,6 +118,8 @@ const CheckoutForm = () => {
                 name="phone"
                 id="phone"
                 placeholder="Nhập số điện thoại"
+                value={values.phone}
+                onChange={onInputChange}
                 required
               />
             </div>
@@ -68,54 +134,31 @@ const CheckoutForm = () => {
           </div>
           <div className="section-content">
             <div className="payment-options">
-              {/* VNPay */}
-              <div className="payment-option active">
-                <input
-                  type="radio"
-                  name="payment-method"
-                  id="vnpay"
-                  defaultChecked
-                />
-                <label htmlFor="vnpay">
-                  <span className="payment-icon">
-                    <i className="bi bi-qr-code"></i>
-                  </span>
-                  <span className="payment-label">Cổng thanh toán VNPay</span>
-                </label>
-              </div>
+              {paymentOptions.map((option) => {
+                const elementId = `payment-${option.id.toLowerCase()}`;
+                const isActive = values.paymentMethod === option.id;
 
-              {/* Momo */}
-              <div className="payment-option">
-                <input type="radio" name="payment-method" id="momo" />
-                <label htmlFor="momo">
-                  <span className="payment-icon">
-                    <i className="bi bi-phone"></i>
-                  </span>
-                  <span className="payment-label">Ví điện tử MoMo</span>
-                </label>
-              </div>
-
-              {/* Zalopay */}
-              <div className="payment-option">
-                <input type="radio" name="payment-method" id="zalopay" />
-                <label htmlFor="zalopay">
-                  <span className="payment-icon">
-                    <i className="bi bi-chat-dots"></i>
-                  </span>
-                  <span className="payment-label">Ví ZaloPay</span>
-                </label>
-              </div>
-
-              {/* Bank transfer */}
-              <div className="payment-option">
-                <input type="radio" name="payment-method" id="bank-transfer" />
-                <label htmlFor="bank-transfer">
-                  <span className="payment-icon">
-                    <i className="bi bi-bank"></i>
-                  </span>
-                  <span className="payment-label">Chuyển khoản ngân hàng</span>
-                </label>
-              </div>
+                return (
+                  <div
+                    key={option.id}
+                    className={`payment-option ${isActive ? "active" : ""}`.trim()}
+                  >
+                    <input
+                      type="radio"
+                      name="payment-method"
+                      id={elementId}
+                      checked={isActive}
+                      onChange={() => onPaymentMethodChange(option.id)}
+                    />
+                    <label htmlFor={elementId}>
+                      <span className="payment-icon">
+                        <i className={option.icon}></i>
+                      </span>
+                      <span className="payment-label">{option.label}</span>
+                    </label>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Payment Details Context (Can be toggled via state in real implementation) */}
@@ -140,7 +183,9 @@ const CheckoutForm = () => {
                 className="form-check-input"
                 type="checkbox"
                 id="terms"
-                name="terms"
+                name="acceptedTerms"
+                checked={values.acceptedTerms}
+                onChange={onInputChange}
                 required
               />
               <label className="form-check-label" htmlFor="terms">
@@ -163,9 +208,14 @@ const CheckoutForm = () => {
               <button
                 type="submit"
                 className="btn btn-primary place-order-btn w-100 d-flex justify-content-between align-items-center p-3"
+                disabled={submitDisabled}
               >
-                <span className="btn-text">Thanh Toán & Nhận Link Tải</span>
-                <span className="btn-price fw-bold">750.000₫</span>
+                <span className="btn-text">
+                  {isSubmitting
+                    ? "Đang xử lý thanh toán..."
+                    : "Thanh Toán & Nhận Link Tải"}
+                </span>
+                <span className="btn-price fw-bold">{formatCurrency(totalAmount)}</span>
               </button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import com.springboot.music.repository.CartItemRepository;
 import com.springboot.music.repository.CartRepository;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.requestmodel.AddToCartRequest;
+import com.springboot.music.requestmodel.UpdateCartItemLicenseRequest;
 import com.springboot.music.responsemodel.CartItemDetailResponse;
 import com.springboot.music.responsemodel.CartItemResponse;
 import com.springboot.music.responsemodel.CartResponse;
@@ -153,12 +154,49 @@ public class CartService {
         return deletedItems;
     }
 
+    /**
+     * Cap nhat license cho item trong gio hang
+     */
+    @Transactional
+    public CartItemResponse updateCartItemLicense(String email, Integer cartItemId, UpdateCartItemLicenseRequest request) {
+        User user = Optional.ofNullable(userRepository.findByEmail(email))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        CartItem item = cartItemRepository.findById(cartItemId)
+                .orElseThrow(() -> new RuntimeException("Cart item not found"));
+
+        if (!item.getCart().getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: item does not belong to user");
+        }
+
+        Integer audioId = item.getAudioTrack().getId();
+        Integer newLicenseId = request.getLicenseId();
+
+        AudioTrackLicenseId newPairId = new AudioTrackLicenseId(audioId, newLicenseId);
+        AudioTrackLicense newTrackLicense = audioTrackLicenseRepository.findById(newPairId)
+                .orElseThrow(() -> new RuntimeException("Selected license is invalid for this audio track"));
+
+        Optional<CartItem> duplicatedItem = cartItemRepository.findByCart_IdAndAudioTrack_IdAndLicense_Id(
+                item.getCart().getId(),
+                audioId,
+                newLicenseId
+        );
+        if (duplicatedItem.isPresent() && !duplicatedItem.get().getId().equals(item.getId())) {
+            throw new RuntimeException("Item with selected license already exists in cart");
+        }
+
+        item.setLicense(newTrackLicense.getLicense());
+        CartItem saved = cartItemRepository.save(item);
+        return toResponse(saved, newTrackLicense.getPrice(), false);
+    }
+
     private CartItemResponse toResponse(CartItem item, Double price, boolean alreadyInCart) {
         return CartItemResponse.builder()
                 .cartId(item.getCart().getId())
                 .cartItemId(item.getId())
                 .audioId(item.getAudioTrack().getId())
                 .audioTitle(item.getAudioTrack().getTitle())
+                .artistName(item.getAudioTrack().getArtist() != null ? item.getAudioTrack().getArtist().getName() : null)
                 .licenseId(item.getLicense().getId())
                 .licenseType(item.getLicense().getLicenseType())
                 .licenseDescription(item.getLicense().getDescription())
@@ -172,6 +210,7 @@ public class CartService {
                 .cartItemId(item.getId())
                 .audioId(item.getAudioTrack().getId())
                 .audioTitle(item.getAudioTrack().getTitle())
+                .artistName(item.getAudioTrack().getArtist() != null ? item.getAudioTrack().getArtist().getName() : null)
                 .coverImage(item.getAudioTrack().getCoverImage())
                 .duration(item.getAudioTrack().getDuration())
                 .licenseId(item.getLicense().getId())

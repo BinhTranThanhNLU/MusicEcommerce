@@ -1,6 +1,7 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.requestmodel.AddToCartRequest;
+import com.springboot.music.requestmodel.UpdateCartItemLicenseRequest;
 import com.springboot.music.responsemodel.CartItemResponse;
 import com.springboot.music.responsemodel.CartResponse;
 import com.springboot.music.service.CartService;
@@ -55,6 +56,20 @@ public class CartController {
         String email = authentication.getName();
         cartService.removeFromCart(email, cartItemId);
         return ResponseEntity.ok("Item removed from cart successfully");
+    }
+
+    /**
+     * Cap nhat license cho item trong gio
+     * PUT /cart/items/{cartItemId}/license
+     */
+    @PutMapping("/items/{cartItemId}/license")
+    public ResponseEntity<CartItemResponse> updateCartItemLicense(
+            @PathVariable Integer cartItemId,
+            @Valid @RequestBody UpdateCartItemLicenseRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        CartItemResponse response = cartService.updateCartItemLicense(email, cartItemId, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

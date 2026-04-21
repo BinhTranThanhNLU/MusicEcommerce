@@ -14,6 +14,7 @@ public class CartItemResponse {
 
     private Integer audioId;
     private String audioTitle;
+    private String artistName;
 
     private Integer licenseId;
     private String licenseType;

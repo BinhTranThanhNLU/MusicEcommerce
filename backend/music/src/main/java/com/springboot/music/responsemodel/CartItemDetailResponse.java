@@ -12,6 +12,7 @@ public class CartItemDetailResponse {
     private Integer cartItemId;
     private Integer audioId;
     private String audioTitle;
+    private String artistName;
     private String coverImage;
     private Integer duration;
 

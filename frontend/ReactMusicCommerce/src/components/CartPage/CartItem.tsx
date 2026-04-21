@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
+import { getAudioTrackById } from "../../apis/audioTrackApi";
+import type { AudioTrackLicenseModel } from "../../models/AudioTrackLicenseModel";
 import type { CartItemDetailResponse } from "../../responsemodel/CartItemDetailResponse";
 
 interface CartItemProps {
   item: CartItemDetailResponse;
   onRemoveItem: (cartItemId: number) => void | Promise<void>;
+  onUpdateItemLicense: (cartItemId: number, licenseId: number) => void | Promise<void>;
   isMutating?: boolean;
 }
 
@@ -22,8 +26,48 @@ const formatDuration = (durationSeconds?: number) => {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
 
-const CartItem = ({ item, onRemoveItem, isMutating = false }: CartItemProps) => {
+const CartItem = ({
+  item,
+  onRemoveItem,
+  onUpdateItemLicense,
+  isMutating = false,
+}: CartItemProps) => {
   const imageSrc = item.coverImage || "/assets/img/product/product-1.webp";
+  const [licenses, setLicenses] = useState<AudioTrackLicenseModel[]>([]);
+  const [isLoadingLicenses, setIsLoadingLicenses] = useState(false);
+  const [selectedLicenseId, setSelectedLicenseId] = useState(item.licenseId);
+
+  useEffect(() => {
+    setSelectedLicenseId(item.licenseId);
+  }, [item.licenseId]);
+
+  useEffect(() => {
+    const loadLicenses = async () => {
+      setIsLoadingLicenses(true);
+      try {
+        const track = await getAudioTrackById(item.audioId);
+        setLicenses(track.licenses || []);
+      } catch {
+        setLicenses([]);
+      } finally {
+        setIsLoadingLicenses(false);
+      }
+    };
+
+    void loadLicenses();
+  }, [item.audioId]);
+
+  const handleLicenseChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const nextLicenseId = Number(event.target.value);
+    if (!nextLicenseId || nextLicenseId === item.licenseId) {
+      return;
+    }
+
+    setSelectedLicenseId(nextLicenseId);
+    await onUpdateItemLicense(item.cartItemId, nextLicenseId);
+  };
 
   return (
     <div className="cart-item border-bottom py-3">
@@ -60,6 +104,24 @@ const CartItem = ({ item, onRemoveItem, isMutating = false }: CartItemProps) => 
           <div className="price-tag">
             <span className="license-chip">{item.licenseType}</span>
             <span className="small text-muted">{item.licenseDescription}</span>
+            <div className="mt-2">
+              <select
+                className="form-select form-select-sm"
+                value={selectedLicenseId}
+                onChange={handleLicenseChange}
+                disabled={isMutating || isLoadingLicenses || licenses.length === 0}
+              >
+                {licenses.length > 0 ? (
+                  licenses.map((license) => (
+                    <option key={license.licenseId} value={license.licenseId}>
+                      {license.licenseType}
+                    </option>
+                  ))
+                ) : (
+                  <option value={item.licenseId}>Không có tùy chọn khác</option>
+                )}
+              </select>
+            </div>
           </div>
         </div>
 

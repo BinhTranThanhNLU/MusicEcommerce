@@ -5,11 +5,18 @@ import CartItem from "./CartItem";
 interface CartListProps {
   items: CartItemDetailResponse[];
   onRemoveItem: (cartItemId: number) => void | Promise<void>;
+  onUpdateItemLicense: (cartItemId: number, licenseId: number) => void | Promise<void>;
   onClearCart: () => void | Promise<void>;
   isMutating?: boolean;
 }
 
-const CartList = ({ items, onRemoveItem, onClearCart, isMutating = false }: CartListProps) => {
+const CartList = ({
+  items,
+  onRemoveItem,
+  onUpdateItemLicense,
+  onClearCart,
+  isMutating = false,
+}: CartListProps) => {
   return (
     <div className="cart-items">
       <div className="cart-list-note">
@@ -38,6 +45,7 @@ const CartList = ({ items, onRemoveItem, onClearCart, isMutating = false }: Cart
               key={`${item.audioId}-${item.licenseId}`}
               item={item}
               onRemoveItem={onRemoveItem}
+              onUpdateItemLicense={onUpdateItemLicense}
               isMutating={isMutating}
             />
           ))}

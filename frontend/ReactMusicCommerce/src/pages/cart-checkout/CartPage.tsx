@@ -5,7 +5,12 @@ import PageTitle from "../../components/utils/PageTitle";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import { SpinningLoading } from "../../components/utils/SpinningLoading";
 import type { CartResponse } from "../../responsemodel/CartResponse";
-import { deleteCart, getCart, removeFromCart } from "../../apis/cartApi";
+import {
+  deleteCart,
+  getCart,
+  removeFromCart,
+  updateCartItemLicense,
+} from "../../apis/cartApi";
 import {
   CART_ITEMS_UPDATED_EVENT,
 } from "../../utils/cartStorage";
@@ -56,6 +61,31 @@ const CartPage = () => {
       await Swal.fire({
         icon: "error",
         title: "Xóa sản phẩm thất bại",
+        text: errorMessage,
+      });
+    } finally {
+      setIsUpdatingCart(false);
+    }
+  };
+
+  const handleUpdateItemLicense = async (
+    cartItemId: number,
+    licenseId: number,
+  ) => {
+    setIsUpdatingCart(true);
+
+    try {
+      await updateCartItemLicense(cartItemId, { licenseId });
+      window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data ||
+        error?.message ||
+        "Không thể cập nhật license cho sản phẩm.";
+
+      await Swal.fire({
+        icon: "error",
+        title: "Cập nhật license thất bại",
         text: errorMessage,
       });
     } finally {
@@ -152,6 +182,7 @@ const CartPage = () => {
               <CartList
                 items={cart?.items || []}
                 onRemoveItem={handleRemoveItem}
+                onUpdateItemLicense={handleUpdateItemLicense}
                 onClearCart={handleClearCart}
                 isMutating={isUpdatingCart}
               />

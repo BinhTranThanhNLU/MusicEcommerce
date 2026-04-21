@@ -68,13 +68,6 @@ public class CartController {
         return ResponseEntity.ok("Cart deleted successfully. Removed " + deletedItems + " items.");
     }
 
-    @PostMapping("/checkout")
-    public ResponseEntity<CheckoutResponse> checkout(
-            @RequestBody(required = false) CheckoutRequest request,
-            Authentication authentication) {
-        String email = authentication.getName();
-        CheckoutResponse response = cartService.checkout(email, request);
-        return ResponseEntity.ok(response);
-    }
+
 }
 

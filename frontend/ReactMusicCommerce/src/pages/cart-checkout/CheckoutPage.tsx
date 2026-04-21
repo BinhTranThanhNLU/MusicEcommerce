@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
-import { checkout, getCart } from "../../apis/cartApi";
+import { getCart } from "../../apis/cartApi";
+import { checkoutOrder } from "../../apis/orderApi";
 import CheckoutForm, {
   type CheckoutFormValues,
 } from "../../components/CheckoutPage/CheckoutForm";
@@ -90,7 +91,7 @@ const CheckoutPage = () => {
     setIsSubmitting(true);
 
     try {
-      const result = await checkout(payload);
+      const result = await checkoutOrder(payload);
       window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
 
       const refreshedCart = await getCart();

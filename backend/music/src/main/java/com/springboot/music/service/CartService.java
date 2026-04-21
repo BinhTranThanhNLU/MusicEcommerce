@@ -82,9 +82,6 @@ public class CartService {
         return toResponse(saved, trackLicense.getPrice(), false);
     }
 
-    /**
-     * Lấy giỏ hàng của user
-     */
     @Transactional(readOnly = true)
     public CartResponse getCart(String email) {
         User user = Optional.ofNullable(userRepository.findByEmail(email))
@@ -128,9 +125,6 @@ public class CartService {
                 .build();
     }
 
-    /**
-     * Xóa sản phẩm khỏi giỏ hàng
-     */
     @Transactional
     public void removeFromCart(String email, Integer cartItemId) {
         User user = Optional.ofNullable(userRepository.findByEmail(email))
@@ -147,9 +141,6 @@ public class CartService {
         cartItemRepository.delete(item);
     }
 
-    /**
-     * Xoa toan bo gio hang cua user
-     */
     @Transactional
     public long deleteCart(String email) {
         User user = Optional.ofNullable(userRepository.findByEmail(email))
@@ -166,9 +157,6 @@ public class CartService {
         return deletedItems;
     }
 
-    /**
-     * Cap nhat license cho item trong gio hang
-     */
     @Transactional
     public CartItemResponse updateCartItemLicense(String email, Integer cartItemId, UpdateCartItemLicenseRequest request) {
         User user = Optional.ofNullable(userRepository.findByEmail(email))
@@ -200,76 +188,6 @@ public class CartService {
         item.setLicense(newTrackLicense.getLicense());
         CartItem saved = cartItemRepository.save(item);
         return toResponse(saved, newTrackLicense.getPrice(), false);
-    }
-
-    /**
-     * Thanh toan don gian: tao don hang tu gio, danh dau da thanh toan, sau do xoa gio.
-     */
-    @Transactional
-    public CheckoutResponse checkout(String email, CheckoutRequest request) {
-        User user = Optional.ofNullable(userRepository.findByEmail(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Cart cart = cartRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new RuntimeException("Cart is empty"));
-
-        List<CartItem> items = cart.getItems();
-        if (items == null || items.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
-        }
-
-        double totalAmount = 0.0;
-        List<OrderDetail> orderDetails = new ArrayList<>();
-
-        for (CartItem item : items) {
-            AudioTrackLicenseId pairId = new AudioTrackLicenseId(
-                    item.getAudioTrack().getId(),
-                    item.getLicense().getId()
-            );
-            AudioTrackLicense trackLicense = audioTrackLicenseRepository.findById(pairId)
-                    .orElseThrow(() -> new RuntimeException("Invalid license data for cart item"));
-
-            double itemPrice = Optional.ofNullable(trackLicense.getPrice()).orElse(0.0);
-            totalAmount += itemPrice;
-
-            orderDetails.add(OrderDetail.builder()
-                    .audioTrack(item.getAudioTrack())
-                    .license(item.getLicense())
-                    .price(itemPrice)
-                    .build());
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        String paymentMethod = (request != null && request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank())
-                ? request.getPaymentMethod().trim()
-                : "COD";
-
-        OrderEntity order = OrderEntity.builder()
-                .user(user)
-                .totalAmount(totalAmount)
-                .paymentStatus("COMPLETED")
-                .createdAt(now)
-                .build();
-
-        OrderEntity savedOrder = orderRepository.save(order);
-
-        for (OrderDetail detail : orderDetails) {
-            detail.setOrder(savedOrder);
-        }
-        orderDetailRepository.saveAll(orderDetails);
-
-        cartItemRepository.deleteByCart_Id(cart.getId());
-        cartRepository.deleteById(cart.getId());
-
-        return CheckoutResponse.builder()
-                .orderId(savedOrder.getId())
-                .paymentStatus(savedOrder.getPaymentStatus())
-                .paymentMethod(paymentMethod)
-                .totalItems(orderDetails.size())
-                .totalAmount(totalAmount)
-                .createdAt(now)
-                .message("Thanh toan thanh cong")
-                .build();
     }
 
     private CartItemResponse toResponse(CartItem item, Double price, boolean alreadyInCart) {

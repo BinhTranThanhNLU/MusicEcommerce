@@ -8,12 +8,15 @@ import type { ThemeModel } from "../../models/ThemeModel";
 import { getAllMoods } from "../../apis/moodApi";
 import { getAllThemes } from "../../apis/themeApi";
 import { AuthContext } from "../../context/AuthContext";
+import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
+import { getCart } from "../../apis/cartApi";
 
 const Header = () => {
   const [genres, setGenres] = useState<GenreModel[]>([]);
   const [moods, setMoods] = useState<MoodModel[]>([]);
   const [themes, setThemes] = useState<ThemeModel[]>([]);
   const [httpError, setHttpError] = useState<string | null>(null);
+  const [cartCount, setCartCount] = useState(0);
 
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
@@ -39,6 +42,24 @@ const Header = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const syncCartCount = async () => {
+      try {
+        const cart = await getCart();
+        setCartCount(cart.totalItems);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    void syncCartCount();
+    window.addEventListener(CART_ITEMS_UPDATED_EVENT, syncCartCount);
+
+    return () => {
+      window.removeEventListener(CART_ITEMS_UPDATED_EVENT, syncCartCount);
+    };
   }, []);
 
   // Hàm xử lý khi bấm nút Đăng xuất
@@ -97,7 +118,7 @@ const Header = () => {
               {/* Cart */}
               <Link to="/cart" className="header-action-btn">
                 <i className="bi bi-cart3"></i>
-                <span className="badge">3</span>
+                <span className="badge">{cartCount}</span>
               </Link>
 
               {/* Account */}

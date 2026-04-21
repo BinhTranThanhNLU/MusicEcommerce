@@ -17,6 +17,8 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ProductDetail from "./components/ProductDetailPage/ProductDetail";
 import ProductDetailPage from "./pages/product/ProductDetailPage";
+import CartPage from "./pages/cart-checkout/CartPage";
+import CheckoutPage from "./pages/cart-checkout/CheckoutPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -49,6 +51,8 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
             </Routes>
             <Footer />
             <AudioPlayer />

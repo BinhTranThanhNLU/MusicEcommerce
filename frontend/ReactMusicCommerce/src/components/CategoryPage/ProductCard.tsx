@@ -1,7 +1,10 @@
 import React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAudioPlayer } from "../../context/AudioPlayerContext";
+import Swal from "sweetalert2";
+import { addToCart } from "../../apis/cartApi";
+import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 
 interface Props {
   track: AudioTrackModel;
@@ -9,6 +12,8 @@ interface Props {
 
 const ProductCard: React.FC<Props> = ({ track }) => {
   const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const navigate = useNavigate();
+  const [isAddingToCart, setIsAddingToCart] = React.useState(false);
 
   // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
   const isCurrentTrack = currentTrack?.id === track.id;
@@ -16,6 +21,61 @@ const ProductCard: React.FC<Props> = ({ track }) => {
 
   const handlePlayToggle = () => {
     togglePlayPause(track);
+  };
+
+  const handleQuickAddToCart = async () => {
+    const defaultLicenseId = track.licenses?.[0]?.licenseId;
+
+    if (!defaultLicenseId) {
+      const result = await Swal.fire({
+        icon: "info",
+        title: "Chọn giấy phép trước khi mua",
+        text: "Track này cần chọn loại giấy phép. Chuyển tới trang chi tiết để tiếp tục.",
+        showCancelButton: true,
+        confirmButtonText: "Xem chi tiết",
+        cancelButtonText: "Để sau",
+      });
+
+      if (result.isConfirmed) {
+        navigate(`/detail-product/${track.id}`);
+      }
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      const response = await addToCart({
+        audioId: track.id,
+        licenseId: defaultLicenseId,
+      });
+
+      window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
+
+      await Swal.fire({
+        toast: true,
+        position: "top-end",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        icon: response.alreadyInCart ? "info" : "success",
+        title: response.alreadyInCart ? "Đã có sẵn trong giỏ" : "Đã thêm vào giỏ",
+        text: track.title,
+      });
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể thêm vào giỏ hàng";
+
+      await Swal.fire({
+        icon: "error",
+        title: "Thêm vào giỏ thất bại",
+        text: errorMessage,
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   return (
@@ -59,10 +119,14 @@ const ProductCard: React.FC<Props> = ({ track }) => {
         <button
           className="position-absolute bottom-0 start-0 w-100 btn btn-dark py-2 border-0"
           style={{ borderRadius: "0 0 0.5rem 0.5rem", opacity: 0.95 }}
+          type="button"
+          onClick={handleQuickAddToCart}
+          disabled={isAddingToCart}
         >
           <div className="d-flex justify-content-between px-3 align-items-center">
             <span className="small">
-              <i className="bi bi-cart-plus me-1"></i> Mua
+              <i className="bi bi-cart-plus me-1"></i>
+              {isAddingToCart ? "Đang thêm" : "Mua"}
             </span>
             <span className="fw-bold">
               {track.startingPrice?.toLocaleString()} ₫

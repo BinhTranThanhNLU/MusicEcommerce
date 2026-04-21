@@ -1,9 +1,15 @@
 import React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import { useAudioPlayer } from "../../context/AudioPlayerContext";
+import { Link, useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import { addToCart } from "../../apis/cartApi";
+import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 
 const ProductCard: React.FC<{ track: AudioTrackModel }> = ({ track }) => {
   const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const navigate = useNavigate();
+  const [isAddingToCart, setIsAddingToCart] = React.useState(false);
 
   // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
   const isCurrentTrack = currentTrack?.id === track.id;
@@ -11,6 +17,61 @@ const ProductCard: React.FC<{ track: AudioTrackModel }> = ({ track }) => {
 
   const handlePlayToggle = () => {
     togglePlayPause(track);
+  };
+
+  const handleQuickAddToCart = async () => {
+    const defaultLicenseId = track.licenses?.[0]?.licenseId;
+
+    if (!defaultLicenseId) {
+      const result = await Swal.fire({
+        icon: "info",
+        title: "Track cần chọn license",
+        text: "Bạn cần chọn loại giấy phép trong trang chi tiết trước khi thêm vào giỏ.",
+        showCancelButton: true,
+        confirmButtonText: "Đi tới chi tiết",
+        cancelButtonText: "Đóng",
+      });
+
+      if (result.isConfirmed) {
+        navigate(`/detail-product/${track.id}`);
+      }
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      const response = await addToCart({
+        audioId: track.id,
+        licenseId: defaultLicenseId,
+      });
+
+      window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
+
+      await Swal.fire({
+        toast: true,
+        position: "top-end",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        icon: response.alreadyInCart ? "info" : "success",
+        title: response.alreadyInCart ? "Đã có sẵn trong giỏ" : "Đã thêm vào giỏ",
+        text: track.title,
+      });
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể thêm vào giỏ hàng";
+
+      await Swal.fire({
+        icon: "error",
+        title: "Thêm vào giỏ thất bại",
+        text: errorMessage,
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   return (
@@ -55,10 +116,17 @@ const ProductCard: React.FC<{ track: AudioTrackModel }> = ({ track }) => {
           <button
             className="cart-btn position-absolute bottom-0 start-0 w-100 btn btn-dark py-2"
             style={{ borderRadius: "0 0 0.5rem 0.5rem" }}
+            type="button"
+            onClick={handleQuickAddToCart}
+            disabled={isAddingToCart}
           >
             <i className="bi bi-cart-plus me-2"></i>
             {/* Giá tiền cho giấy phép cơ bản  */}
-            <span>{track.startingPrice?.toLocaleString()}₫</span>
+            <span>
+              {isAddingToCart
+                ? "Đang thêm..."
+                : `${track.startingPrice?.toLocaleString()}₫`}
+            </span>
           </button>
         </div>
 
@@ -72,9 +140,12 @@ const ProductCard: React.FC<{ track: AudioTrackModel }> = ({ track }) => {
 
           {/* Tên bài hát */}
           <h5 className="product-name mb-1">
-            <a href="#" className="text-decoration-none text-dark fw-bold">
+            <Link
+              to={`/detail-product/${track.id}`}
+              className="text-decoration-none text-dark fw-bold"
+            >
               {track.title}
-            </a>
+            </Link>
           </h5>
 
           {/* Tên Nghệ sĩ*/}

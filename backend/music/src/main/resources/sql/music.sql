@@ -393,6 +393,7 @@ CREATE TABLE `cart`  (
   `cart_id` int(11) NOT NULL AUTO_INCREMENT,
   `user_id` int(11) NOT NULL,
   PRIMARY KEY (`cart_id`) USING BTREE,
+  UNIQUE INDEX `uk_cart_user`(`user_id`) USING BTREE,
   INDEX `user_id`(`user_id`) USING BTREE,
   CONSTRAINT `cart_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`user_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_vietnamese_ci ROW_FORMAT = Dynamic;
@@ -411,6 +412,7 @@ CREATE TABLE `cart_item`  (
   `audio_id` int(11) NOT NULL,
   `license_id` int(11) NOT NULL,
   PRIMARY KEY (`cart_item_id`) USING BTREE,
+  UNIQUE INDEX `uk_cart_item`(`cart_id`, `audio_id`, `license_id`) USING BTREE,
   INDEX `cart_id`(`cart_id`) USING BTREE,
   INDEX `audio_id`(`audio_id`) USING BTREE,
   INDEX `license_id`(`license_id`) USING BTREE,

@@ -1,52 +1,75 @@
+import { Link } from "react-router-dom";
+import type { CartItemDetailResponse } from "../../responsemodel/CartItemDetailResponse";
 import CartItem from "./CartItem";
 
-const CartList = () => {
+interface CartListProps {
+  items: CartItemDetailResponse[];
+  onRemoveItem: (cartItemId: number) => void | Promise<void>;
+  onClearCart: () => void | Promise<void>;
+  isMutating?: boolean;
+}
+
+const CartList = ({ items, onRemoveItem, onClearCart, isMutating = false }: CartListProps) => {
   return (
     <div className="cart-items">
-      <div className="cart-header d-none d-lg-block">
-        <div className="row align-items-center">
-          <div className="col-lg-6">
-            <h5>Sản phẩm</h5>
-          </div>
-          <div className="col-lg-2 text-center">
-            <h5>Giá tiền</h5>
-          </div>
-          <div className="col-lg-2 text-center">
-            <h5>Số lượng</h5>
-          </div>
-          <div className="col-lg-2 text-center">
-            <h5>Tổng</h5>
-          </div>
-        </div>
+      <div className="cart-list-note">
+        <i className="bi bi-info-circle"></i>
+        Vui lòng kiểm tra kỹ loại Giấy phép (Cá nhân / Thương mại) trước khi thanh toán.
       </div>
 
-      <CartItem />
-      <CartItem />
-      <CartItem />
+      {items.length > 0 ? (
+        <>
+          <div className="cart-header d-none d-lg-block">
+            <div className="row align-items-center">
+              <div className="col-lg-6">
+                <h5>Sản phẩm âm nhạc</h5>
+              </div>
+              <div className="col-lg-3 text-center">
+                <h5>Giấy phép</h5>
+              </div>
+              <div className="col-lg-3 text-center">
+                <h5>Thành tiền</h5>
+              </div>
+            </div>
+          </div>
 
-      <div className="cart-actions">
-        <div className="row">
-          <div className="col-lg-6 mb-3 mb-lg-0">
-            <div className="coupon-form">
-              <div className="input-group">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Coupon code"
-                />
-                <button className="btn btn-outline-accent" type="button">
-                  Áp dụng mã giảm giá
+          {items.map((item) => (
+            <CartItem
+              key={`${item.audioId}-${item.licenseId}`}
+              item={item}
+              onRemoveItem={onRemoveItem}
+              isMutating={isMutating}
+            />
+          ))}
+
+          <div className="cart-actions mt-4">
+            <div className="row">
+              <div className="col-12 d-flex justify-content-end">
+                <button
+                  className="btn btn-outline-danger"
+                  type="button"
+                  onClick={onClearCart}
+                  disabled={isMutating}
+                >
+                  <i className="bi bi-trash"></i> {isMutating ? "Đang xử lý..." : "Xóa toàn bộ giỏ hàng"}
                 </button>
               </div>
             </div>
           </div>
-          <div className="col-lg-6 text-md-end">
-            <button className="btn btn-outline-remove">
-              <i className="bi bi-trash"></i> Xóa cart
-            </button>
-          </div>
+        </>
+      ) : (
+        <div className="text-center py-5 px-3 border rounded-4 bg-light">
+          <i className="bi bi-bag-heart fs-1 text-secondary d-block mb-3"></i>
+          <h4 className="mb-2">Giỏ hàng đang trống</h4>
+          <p className="text-muted mb-4">
+            Hãy mở một track, chọn giấy phép và bấm thêm vào giỏ để lưu đơn mua nhạc bản quyền của bạn.
+          </p>
+          <Link to="/" className="btn btn-accent">
+            <i className="bi bi-music-note-list me-2"></i>
+            Khám phá nhạc ngay
+          </Link>
         </div>
-      </div>
+      )}
     </div>
   );
 };

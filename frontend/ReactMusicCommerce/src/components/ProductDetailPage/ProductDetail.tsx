@@ -3,6 +3,9 @@ import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import DigitalBenefitsList from "./DigitalBenefitsList";
 import { useState } from "react";
 import { useAudioPlayer } from "../../context/AudioPlayerContext";
+import Swal from "sweetalert2";
+import { addToCart } from "../../apis/cartApi";
+import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 
 interface ProductDetailProps {
   track: AudioTrackModel;
@@ -10,6 +13,7 @@ interface ProductDetailProps {
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
   const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
   const isCurrentTrack = currentTrack?.id === track.id;
@@ -20,6 +24,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
     track.licenses && track.licenses.length > 0
       ? track.licenses[0].licenseId
       : 0,
+  );
+
+  const selectedLicense = track.licenses?.find(
+    (license) => license.licenseId === selectedLicenseId,
   );
 
   // Hàm format tiền tệ VNĐ
@@ -35,6 +43,52 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  const handleAddToCart = async () => {
+    if (!selectedLicense) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Chọn giấy phép trước",
+        text: "Vui lòng chọn một loại giấy phép trước khi thêm vào giỏ.",
+      });
+      return;
+    }
+
+    setIsAddingToCart(true);
+
+    try {
+      const response = await addToCart({
+        audioId: track.id,
+        licenseId: selectedLicense.licenseId,
+      });
+
+      window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
+
+      await Swal.fire({
+        toast: true,
+        position: "top-end",
+        timer: 2200,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        icon: response.alreadyInCart ? "info" : "success",
+        title: response.alreadyInCart ? "Sản phẩm đã có trong giỏ" : "Đã thêm vào giỏ",
+        text: `${response.audioTitle} - ${response.licenseType}`,
+      });
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Không thể thêm sản phẩm vào giỏ. Vui lòng thử lại.";
+
+      await Swal.fire({
+        icon: "error",
+        title: "Thêm vào giỏ thất bại",
+        text: errorMessage,
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   return (
@@ -137,8 +191,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
 
         {/* Purchase Options */}
         <div className="purchase-section d-flex gap-3 mb-4">
-          <button className="btn btn-outline-primary py-2 px-4 flex-grow-1">
-            <i className="bi bi-cart-plus me-2"></i> Thêm vào giỏ
+          <button
+            className="btn btn-outline-primary py-2 px-4 flex-grow-1"
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || !selectedLicense}
+          >
+            <i className="bi bi-cart-plus me-2"></i>
+            {isAddingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
           </button>
           <button className="btn btn-primary py-2 px-4 flex-grow-1">
             <i className="bi bi-lightning me-2"></i> Mua ngay

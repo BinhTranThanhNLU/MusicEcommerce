@@ -157,19 +157,31 @@ const Header = () => {
                         </p>
                       </div>
                       <div className="dropdown-body">
+                        {/* Mục 1: Dẫn thẳng vào tab quan trọng nhất là Thư viện nhạc */}
                         <Link
                           className="dropdown-item d-flex align-items-center"
-                          to="/account/profile"
+                          to="/account"
                         >
-                          <i className="bi bi-person-circle me-2"></i>
-                          <span>Hồ sơ của tôi</span>
+                          <i className="bi bi-music-note-list me-2"></i>
+                          <span>Thư viện nhạc cá nhân</span>
                         </Link>
+
+                        {/* Mục 2: Dẫn vào lịch sử mua hàng */}
                         <Link
                           className="dropdown-item d-flex align-items-center"
-                          to="/account/orders"
+                          to="/account?tab=orders"
                         >
-                          <i className="bi bi-bag-check me-2"></i>
-                          <span>Đơn hàng & Nhạc đã mua</span>
+                          <i className="bi bi-receipt me-2"></i>
+                          <span>Lịch sử giao dịch</span>
+                        </Link>
+
+                        {/* Mục 3: Cài đặt thông tin */}
+                        <Link
+                          className="dropdown-item d-flex align-items-center"
+                          to="/account?tab=settings"
+                        >
+                          <i className="bi bi-gear me-2"></i>
+                          <span>Cài đặt tài khoản</span>
                         </Link>
 
                         {/* Nếu là nghệ sĩ thì hiện thêm link Kênh nghệ sĩ */}

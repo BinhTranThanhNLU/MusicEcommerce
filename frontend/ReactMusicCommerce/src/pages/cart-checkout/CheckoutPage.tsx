@@ -4,9 +4,9 @@ import { getCart } from "../../apis/cartApi";
 import { checkoutOrder } from "../../apis/orderApi";
 import CheckoutForm, {
   type CheckoutFormValues,
-} from "../../components/CheckoutPage/CheckoutForm";
-import SummaryOrder from "../../components/CheckoutPage/SummaryOrder";
-import TermAndPrivacy from "../../components/CheckoutPage/TermAndPrivacy";
+} from "../../components/CheckoutComponent/CheckoutForm";
+import SummaryOrder from "../../components/CheckoutComponent/SummaryOrder";
+import TermAndPrivacy from "../../components/CheckoutComponent/TermAndPrivacy";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import PageTitle from "../../components/utils/PageTitle";
 import { SpinningLoading } from "../../components/utils/SpinningLoading";

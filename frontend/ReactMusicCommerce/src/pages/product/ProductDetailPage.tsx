@@ -1,8 +1,8 @@
 import { useParams } from "react-router-dom";
 import PageTitle from "../../components/utils/PageTitle";
-import InformationTab from "../../components/ProductDetailPage/InformationTab";
-import ProductDetail from "../../components/ProductDetailPage/ProductDetail";
-import ProductGallery from "../../components/ProductDetailPage/ProductGallery";
+import InformationTab from "../../components/ProductDetailComponent/InformationTab";
+import ProductDetail from "../../components/ProductDetailComponent/ProductDetail";
+import ProductGallery from "../../components/ProductDetailComponent/ProductGallery";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import { useEffect, useState } from "react";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";

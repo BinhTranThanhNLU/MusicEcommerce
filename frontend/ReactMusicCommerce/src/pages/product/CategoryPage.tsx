@@ -1,12 +1,12 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import CategoryHeaderSection from "../../components/CategoryPage/CategoryHeaderSection";
-import PricingRangeWidget from "../../components/CategoryPage/PricingRangeWidget";
-import ProductCategoryWidget from "../../components/CategoryPage/ProductCategoryWidget";
-import ProductListSection from "../../components/CategoryPage/ProductListSection";
+import CategoryHeaderSection from "../../components/CategoryComponent/CategoryHeaderSection";
+import PricingRangeWidget from "../../components/CategoryComponent/PricingRangeWidget";
+import ProductCategoryWidget from "../../components/CategoryComponent/ProductCategoryWidget";
+import ProductListSection from "../../components/CategoryComponent/ProductListSection";
 import PageTitle from "../../components/utils/PageTitle";
 import Pagination from "../../components/utils/Pagination";
 import { useEffect, useMemo, useState } from "react";
-import ArtistFilterWidget from "../../components/CategoryPage/ArtistFilterWidget";
+import ArtistFilterWidget from "../../components/CategoryComponent/ArtistFilterWidget";
 import type { ArtistModel } from "../../models/ArtistModel";
 import { getAllArtists } from "../../apis/artistApi";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";

@@ -1,6 +1,6 @@
 import Pagination from "../../components/utils/Pagination";
-import SearchProductList from "../../components/SearchResultPage/SearchProductList";
-import SearchResultHeader from "../../components/SearchResultPage/SearchResultHeader";
+import SearchProductList from "../../components/SearchResultComponent/SearchProductList";
+import SearchResultHeader from "../../components/SearchResultComponent/SearchResultHeader";
 
 const SearchResultPage = () => {
   return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import CartList from "../../components/CartPage/CartList";
-import CartSummary from "../../components/CartPage/CartSummary";
+import CartList from "../../components/CartComponent/CartList";
+import CartSummary from "../../components/CartComponent/CartSummary";
 import PageTitle from "../../components/utils/PageTitle";
 import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import { SpinningLoading } from "../../components/utils/SpinningLoading";

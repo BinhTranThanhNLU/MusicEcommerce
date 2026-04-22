@@ -1,5 +1,7 @@
 package com.springboot.music.controller;
 
+import com.springboot.music.dto.LibraryItemDTO;
+import com.springboot.music.repository.UserRepository;
 import com.springboot.music.requestmodel.CheckoutRequest;
 import com.springboot.music.responsemodel.CheckoutResponse;
 import com.springboot.music.service.OrderService;
@@ -10,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(origins = "http://localhost:5173")
@@ -18,9 +21,11 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final UserRepository userRepository;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, UserRepository userRepository) {
         this.orderService = orderService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/checkout")
@@ -40,4 +45,15 @@ public class OrderController {
                 .location(URI.create(redirectUrl))
                 .build();
     }
+
+//    @GetMapping("/library")
+//    public ResponseEntity<List<LibraryItemDTO>> getUserLibrary(Authentication authentication) {
+//        String email = authentication.getName();
+//        var user = userRepository.findByEmail(email);
+//        if (user == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//        }
+//        List<LibraryItemDTO> libraryItems = orderService.getUserLibrary(user.getId());
+//        return ResponseEntity.ok(libraryItems);
+//    }
 }

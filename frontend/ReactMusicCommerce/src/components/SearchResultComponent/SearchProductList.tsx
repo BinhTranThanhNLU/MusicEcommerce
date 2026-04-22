@@ -1,4 +1,4 @@
-import ProductCard from "../HomePage/ProductCard";
+import ProductCard from "../HomeComponent/ProductCard";
 import SearchProductCard from "./SearchProductCard";
 
 const SearchProductList = () => {

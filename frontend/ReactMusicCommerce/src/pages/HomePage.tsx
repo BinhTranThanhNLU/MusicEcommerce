@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import CategorySellerSection from "../components/HomePage/CategorySellerSection";
-import HeroSection from "../components/HomePage/HeroSection";
-import PromoCardSection from "../components/HomePage/PromoCardSection";
+import CategorySellerSection from "../components/HomeComponent/CategorySellerSection";
+import HeroSection from "../components/HomeComponent/HeroSection";
+import PromoCardSection from "../components/HomeComponent/PromoCardSection";
 import type { AudioTrackModel } from "../models/AudioTrackModel";
 import { ErrorMessage } from "../components/utils/ErrorMessage";
 import { SpinningLoading } from "../components/utils/SpinningLoading";

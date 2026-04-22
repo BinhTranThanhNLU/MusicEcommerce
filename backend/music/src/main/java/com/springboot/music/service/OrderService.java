@@ -233,33 +233,4 @@ public class OrderService {
     private record CheckoutContext(OrderEntity order, double totalAmount, int totalItems, LocalDateTime now) {
     }
 
-//    public List<LibraryItemDTO> getUserLibrary(Integer userId) {
-//        List<OrderDetail> orderDetails = orderDetailRepository.findByUserIdAndOrderCompleted(userId);
-//        List<LibraryItemDTO> libraryItems = new ArrayList<>();
-//
-//        for (OrderDetail detail : orderDetails) {
-//            AudioTrack audioTrack = detail.getAudioTrack();
-//            User artist = audioTrack.getArtist();
-//            License license = detail.getLicense();
-//
-//            LibraryItemDTO item = LibraryItemDTO.builder()
-//                    .audioId(audioTrack.getId())
-//                    .title(audioTrack.getTitle())
-//                    .audioType(audioTrack.getAudioType())
-//                    .artistName(artist != null ? artist.getName() : "Unknown Artist")
-//                    .coverImage(audioTrack.getCoverImage())
-//                    .licenseType(license.getLicenseType())
-//                    .originalFileUrl(audioTrack.getOriginalFileUrl())
-//                    .watermarkedFileUrl(audioTrack.getWatermarkedFileUrl())
-//                    .duration(audioTrack.getDuration())
-//                    .purchasedAt(detail.getOrder().getCreatedAt())
-//                    .orderId(detail.getOrder().getId())
-//                    .orderDetailId(detail.getId())
-//                    .build();
-//
-//            libraryItems.add(item);
-//        }
-//
-//        return libraryItems;
-//    }
 }

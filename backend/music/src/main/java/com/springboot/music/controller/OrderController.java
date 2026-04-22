@@ -46,14 +46,4 @@ public class OrderController {
                 .build();
     }
 
-//    @GetMapping("/library")
-//    public ResponseEntity<List<LibraryItemDTO>> getUserLibrary(Authentication authentication) {
-//        String email = authentication.getName();
-//        var user = userRepository.findByEmail(email);
-//        if (user == null) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-//        }
-//        List<LibraryItemDTO> libraryItems = orderService.getUserLibrary(user.getId());
-//        return ResponseEntity.ok(libraryItems);
-//    }
 }

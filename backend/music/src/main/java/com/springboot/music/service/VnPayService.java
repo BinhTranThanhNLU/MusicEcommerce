@@ -27,65 +27,6 @@ public class VnPayService {
     @Value("${app.frontend.checkout-url:http://localhost:5173/cart}")
     private String frontendCheckoutUrl;
 
-//    public String createPaymentUrl(OrderEntity order, HttpServletRequest request) {
-//        requireConfig();
-//
-//        Map<String, String> params = new TreeMap<>();
-//        params.put("vnp_Version", "2.1.0");
-//        params.put("vnp_Command", "pay");
-//        params.put("vnp_TmnCode", tmnCode);
-//        params.put("vnp_Amount", String.valueOf(Math.round(order.getTotalAmount() * 100)));
-//        params.put("vnp_CurrCode", "VND");
-//        params.put("vnp_TxnRef", String.valueOf(order.getId()));
-//        params.put("vnp_OrderInfo", "Thanh toan don hang #" + order.getId());
-//        params.put("vnp_OrderType", "other");
-//        params.put("vnp_Locale", "vn");
-//        params.put("vnp_ReturnUrl", buildBackendReturnUrl(request));
-//        params.put("vnp_IpAddr", getClientIp(request));
-//        params.put("vnp_CreateDate", new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
-//        params.put("vnp_ExpireDate", new SimpleDateFormat("yyyyMMddHHmmss").format(new Date(System.currentTimeMillis() + 15L * 60L * 1000L)));
-//
-//        String query = buildQueryString(params);
-//        String secureHash = hmacSHA512(hashSecret, query);
-//        return payUrl + "?" + query + "&vnp_SecureHashType=HmacSHA512&vnp_SecureHash=" + secureHash;
-//    }
-
-//    public String createPaymentUrl(OrderEntity order, HttpServletRequest request) {
-//        requireConfig();
-//
-//        // 1. Cấu hình cứng múi giờ GMT+7 cho VNPay
-//        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("GMT+7"));
-//        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-//        formatter.setTimeZone(TimeZone.getTimeZone("GMT+7"));
-//        String vnp_CreateDate = formatter.format(cld.getTime());
-//        cld.add(Calendar.MINUTE, 15);
-//        String vnp_ExpireDate = formatter.format(cld.getTime());
-//
-//        Map<String, String> params = new TreeMap<>();
-//        params.put("vnp_Version", "2.1.0");
-//        params.put("vnp_Command", "pay");
-//        params.put("vnp_TmnCode", tmnCode);
-//        params.put("vnp_Amount", String.valueOf(Math.round(order.getTotalAmount() * 100)));
-//        params.put("vnp_CurrCode", "VND");
-//        params.put("vnp_TxnRef", String.valueOf(order.getId()));
-//
-//        // 2. Bỏ dấu thăng (#) đi để tránh lỗi sanitize của VNPay
-//        params.put("vnp_OrderInfo", "Thanh toan don hang " + order.getId());
-//
-//        params.put("vnp_OrderType", "other");
-//        params.put("vnp_Locale", "vn");
-//        params.put("vnp_ReturnUrl", buildBackendReturnUrl(request));
-//        params.put("vnp_IpAddr", getClientIp(request));
-//        params.put("vnp_CreateDate", vnp_CreateDate);
-//        params.put("vnp_ExpireDate", vnp_ExpireDate);
-//
-//        String query = buildQueryString(params);
-//        String secureHash = hmacSHA512(hashSecret, query);
-//
-//        // 3. Xóa vnp_SecureHashType vì v2.1.0 không còn dùng
-//        return payUrl + "?" + query + "&vnp_SecureHash=" + secureHash;
-//    }
-
     public String createPaymentUrl(OrderEntity order, HttpServletRequest request) {
         requireConfig();
 
@@ -181,34 +122,6 @@ public class VnPayService {
         String expectedHash = hmacSHA512(hashSecret, hashData.toString());
         return expectedHash.equalsIgnoreCase(receivedHash);
     }
-
-//    public boolean verifyReturn(Map<String, String> params) {
-//        if (params == null || params.isEmpty()) {
-//            return false;
-//        }
-//
-//        String receivedHash = params.get("vnp_SecureHash");
-//        if (receivedHash == null || receivedHash.isBlank()) {
-//            return false;
-//        }
-//
-//        Map<String, String> cleanParams = new TreeMap<>();
-//        for (Map.Entry<String, String> entry : params.entrySet()) {
-//            String key = entry.getKey();
-//            if (key == null) {
-//                continue;
-//            }
-//            if ("vnp_SecureHash".equalsIgnoreCase(key) || "vnp_SecureHashType".equalsIgnoreCase(key)) {
-//                continue;
-//            }
-//            String value = entry.getValue();
-//            cleanParams.put(key, value == null ? "" : value);
-//        }
-//
-//        String query = buildQueryString(cleanParams);
-//        String expectedHash = hmacSHA512(hashSecret, query);
-//        return expectedHash.equalsIgnoreCase(receivedHash);
-//    }
 
     public String getFrontendCheckoutUrl() {
         return frontendCheckoutUrl;

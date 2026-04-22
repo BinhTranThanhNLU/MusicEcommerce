@@ -7,6 +7,8 @@ export interface LibraryItemResponse {
   licenseType: string;
   originalFileUrl: string | null;
   watermarkedFileUrl: string | null;
+  certificateDownloadUrl: string | null;
+  certificateAvailable: boolean | null;
   duration: number | null;
   purchasedAt: string | null;
   orderId: number;

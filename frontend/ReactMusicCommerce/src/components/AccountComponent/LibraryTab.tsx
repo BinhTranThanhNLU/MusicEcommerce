@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getUserLibrary } from "../../apis/userApi";
+import { downloadCertificate, getUserLibrary } from "../../apis/userApi";
 import type { LibraryItemResponse } from "../../responsemodel/LibraryItemResponse";
 
 const FALLBACK_COVER_IMAGE = "/assets/img/product/product-1.webp";
@@ -49,6 +49,8 @@ const LibraryTab = () => {
   const [libraryItems, setLibraryItems] = useState<LibraryItemResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [downloadingCertificateId, setDownloadingCertificateId] = useState<number | null>(null);
+  const [certificateErrorMessage, setCertificateErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -85,6 +87,38 @@ const LibraryTab = () => {
 
   const hasItems = useMemo(() => libraryItems.length > 0, [libraryItems]);
 
+  const handleDownloadCertificate = async (item: LibraryItemResponse) => {
+    if (!item.certificateAvailable || !item.certificateDownloadUrl) {
+      return;
+    }
+
+    try {
+      setCertificateErrorMessage(null);
+      setDownloadingCertificateId(item.orderDetailId);
+
+      const { blob, fileName } = await downloadCertificate(item.certificateDownloadUrl);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Tải giấy chứng nhận thất bại. Vui lòng thử lại.";
+      setCertificateErrorMessage(message);
+      console.error("Failed to download certificate:", error);
+    } finally {
+      setDownloadingCertificateId(null);
+    }
+  };
+
   return (
     <div className="tab-pane fade show active" id="library">
       <div className="section-header" data-aos="fade-up">
@@ -118,6 +152,12 @@ const LibraryTab = () => {
         </div>
       ) : (
         <div className="library-grid">
+          {certificateErrorMessage ? (
+            <div className="alert alert-warning" role="alert">
+              {certificateErrorMessage}
+            </div>
+          ) : null}
+
           {libraryItems.map((item, index) => (
             <div
               key={item.orderDetailId ?? `${item.audioId}-${index}`}
@@ -179,8 +219,20 @@ const LibraryTab = () => {
                   >
                     <i className="bi bi-download"></i> Tải gốc (.WAV/.MP3)
                   </a>
-                  <button className="btn btn-outline-secondary btn-sm" type="button" disabled>
-                    <i className="bi bi-file-earmark-pdf"></i> Giấy chứng nhận
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    disabled={
+                      !item.certificateAvailable ||
+                      !item.certificateDownloadUrl ||
+                      downloadingCertificateId === item.orderDetailId
+                    }
+                    onClick={() => handleDownloadCertificate(item)}
+                  >
+                    <i className="bi bi-file-earmark-pdf"></i>{" "}
+                    {downloadingCertificateId === item.orderDetailId
+                      ? "Đang tải PDF..."
+                      : "Giấy chứng nhận"}
                   </button>
                 </div>
               </div>

@@ -18,6 +18,8 @@ public class LibraryItemDTO {
     private String licenseType;
     private String originalFileUrl;
     private String watermarkedFileUrl;
+    private String certificateDownloadUrl;
+    private Boolean certificateAvailable;
     private Integer duration;
     private LocalDateTime purchasedAt;
     private Integer orderId;

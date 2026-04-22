@@ -38,6 +38,8 @@ public class UserService {
                     .licenseType(license.getLicenseType())
                     .originalFileUrl(audioTrack.getOriginalFileUrl())
                     .watermarkedFileUrl(audioTrack.getWatermarkedFileUrl())
+                    .certificateDownloadUrl("/users/library/" + detail.getId() + "/certificate")
+                    .certificateAvailable(true)
                     .duration(audioTrack.getDuration())
                     .purchasedAt(detail.getOrder().getCreatedAt())
                     .orderId(detail.getOrder().getId())

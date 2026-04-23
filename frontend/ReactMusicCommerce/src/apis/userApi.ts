@@ -1,6 +1,18 @@
 import axiosClient from "./axiosClient";
 import axios from "axios";
+import type { UserModel } from "../models/UserModel";
+import type { AccountOrderResponse } from "../responsemodel/AccountOrderResponse";
 import type { LibraryItemResponse } from "../responsemodel/LibraryItemResponse";
+
+export const getCurrentUser = async (): Promise<UserModel> => {
+  const response = await axiosClient.get<UserModel>("/users/me");
+  return response.data;
+};
+
+export const getUserOrders = async (): Promise<AccountOrderResponse[]> => {
+  const response = await axiosClient.get<AccountOrderResponse[]>("/users/orders");
+  return response.data;
+};
 
 export const getUserLibrary = async (): Promise<LibraryItemResponse[]> => {
   const response = await axiosClient.get<LibraryItemResponse[]>("/users/library");

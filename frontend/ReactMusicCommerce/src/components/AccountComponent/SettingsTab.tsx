@@ -1,4 +1,10 @@
-const SettingsTab = () => {
+import type { UserModel } from "../../models/UserModel";
+
+interface SettingsTabProps {
+  user: UserModel | null;
+}
+
+const SettingsTab = ({ user }: SettingsTabProps) => {
   return (
     <div className="tab-pane fade" id="settings">
       <div className="section-header" data-aos="fade-up">
@@ -9,7 +15,7 @@ const SettingsTab = () => {
         {/* Thông tin cá nhân */}
         <div className="settings-section mb-5" data-aos="fade-up">
           <h4 className="mb-4">Thông tin hồ sơ</h4>
-          <form className="php-email-form settings-form">
+          <form className="php-email-form settings-form" key={user?.id ?? "guest"}>
             <div className="row g-3">
               <div className="col-md-6">
                 <label htmlFor="fullName" className="form-label">
@@ -19,7 +25,7 @@ const SettingsTab = () => {
                   type="text"
                   className="form-control"
                   id="fullName"
-                  defaultValue="Trần Thanh Bình"
+                  defaultValue={user?.name ?? ""}
                   required
                 />
               </div>
@@ -31,19 +37,21 @@ const SettingsTab = () => {
                   type="email"
                   className="form-control"
                   id="email"
-                  defaultValue="binh.tran@student.edu.vn"
+                  defaultValue={user?.email ?? ""}
+                  readOnly
                   required
                 />
               </div>
-              <div className="col-md-6">
-                <label htmlFor="phone" className="form-label">
-                  Số điện thoại
+              <div className="col-md-12">
+                <label htmlFor="avatarUrl" className="form-label">
+                  Ảnh đại diện
                 </label>
                 <input
-                  type="tel"
+                  type="text"
                   className="form-control"
-                  id="phone"
-                  defaultValue="0347318239"
+                  id="avatarUrl"
+                  defaultValue={user?.avatarUrl ?? ""}
+                  placeholder="Đường dẫn ảnh đại diện"
                 />
               </div>
             </div>

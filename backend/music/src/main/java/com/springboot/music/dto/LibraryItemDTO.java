@@ -21,6 +21,10 @@ public class LibraryItemDTO {
     private String musicDownloadUrl;
     private String certificateDownloadUrl;
     private Boolean certificateAvailable;
+    private Integer reviewId;
+    private Integer reviewRating;
+    private String reviewComment;
+    private Boolean reviewSubmitted;
     private Integer duration;
     private LocalDateTime purchasedAt;
     private Integer orderId;

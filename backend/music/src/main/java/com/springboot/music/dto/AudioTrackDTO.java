@@ -20,6 +20,8 @@ public class AudioTrackDTO {
     private String watermarkedFileUrl;
     private Integer playCount;
     private Double startingPrice;
+    private Double averageRating;
+    private Long reviewCount;
     private LocalDateTime uploadDate;
 
     private ArtistDTO artist;

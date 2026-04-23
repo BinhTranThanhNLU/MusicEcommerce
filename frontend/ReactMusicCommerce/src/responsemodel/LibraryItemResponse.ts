@@ -10,6 +10,10 @@ export interface LibraryItemResponse {
   musicDownloadUrl: string | null;
   certificateDownloadUrl: string | null;
   certificateAvailable: boolean | null;
+  reviewId: number | null;
+  reviewRating: number | null;
+  reviewComment: string | null;
+  reviewSubmitted: boolean | null;
   duration: number | null;
   purchasedAt: string | null;
   orderId: number;

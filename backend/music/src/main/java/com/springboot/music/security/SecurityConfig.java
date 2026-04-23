@@ -2,6 +2,7 @@ package com.springboot.music.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,13 +28,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì dùng JWT
                 .cors(cors -> cors.configure(http))    // Cấu hình CORS cho React gọi API không bị lỗi
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/audio-tracks/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
                         .requestMatchers("/artists/**").permitAll()
                         .requestMatchers("/genres/**").permitAll()
                         .requestMatchers("/moods/**").permitAll()

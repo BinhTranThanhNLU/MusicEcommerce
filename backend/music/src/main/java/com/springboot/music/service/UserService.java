@@ -5,12 +5,14 @@ import com.springboot.music.dto.AccountOrderItemDTO;
 import com.springboot.music.dto.LibraryItemDTO;
 import com.springboot.music.dto.UserDTO;
 import com.springboot.music.entity.AudioTrack;
+import com.springboot.music.entity.AudioTrackReview;
 import com.springboot.music.entity.License;
 import com.springboot.music.entity.OrderDetail;
 import com.springboot.music.entity.OrderEntity;
 import com.springboot.music.entity.PaymentTransaction;
 import com.springboot.music.entity.User;
 import com.springboot.music.mapper.UserMapper;
+import com.springboot.music.repository.AudioTrackReviewRepository;
 import com.springboot.music.repository.OrderDetailRepository;
 import com.springboot.music.repository.OrderRepository;
 import com.springboot.music.repository.PaymentTransactionRepository;
@@ -34,17 +36,20 @@ public class UserService {
     private final OrderDetailRepository orderDetailRepository;
     private final OrderRepository orderRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
+    private final AudioTrackReviewRepository audioTrackReviewRepository;
     private final UserMapper userMapper;
 
     public UserService(UserRepository userRepository,
                        OrderDetailRepository orderDetailRepository,
                        OrderRepository orderRepository,
                        PaymentTransactionRepository paymentTransactionRepository,
+                       AudioTrackReviewRepository audioTrackReviewRepository,
                        UserMapper userMapper) {
         this.userRepository = userRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.orderRepository = orderRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
+        this.audioTrackReviewRepository = audioTrackReviewRepository;
         this.userMapper = userMapper;
     }
 
@@ -96,11 +101,20 @@ public class UserService {
                     .musicDownloadUrl("/users/library/" + detail.getId() + "/download")
                     .certificateDownloadUrl("/users/library/" + detail.getId() + "/certificate")
                     .certificateAvailable(true)
+                    .reviewSubmitted(false)
                     .duration(audioTrack.getDuration())
                     .purchasedAt(detail.getOrder().getCreatedAt())
                     .orderId(detail.getOrder().getId())
                     .orderDetailId(detail.getId())
                     .build();
+
+            AudioTrackReview review = resolveReview(userId, audioTrack.getId());
+            if (review != null) {
+                item.setReviewId(review.getId());
+                item.setReviewRating(review.getRating());
+                item.setReviewComment(review.getComment());
+                item.setReviewSubmitted(true);
+            }
 
             libraryItems.add(item);
         }
@@ -122,6 +136,7 @@ public class UserService {
                     AudioTrack audioTrack = detail.getAudioTrack();
                     License license = detail.getLicense();
                     User artist = audioTrack != null ? audioTrack.getArtist() : null;
+                    AudioTrackReview review = audioTrack != null ? resolveReview(userId, audioTrack.getId()) : null;
 
                     items.add(AccountOrderItemDTO.builder()
                             .orderDetailId(detail.getId())
@@ -135,6 +150,10 @@ public class UserService {
                             .duration(audioTrack != null ? audioTrack.getDuration() : null)
                             .musicDownloadUrl("/users/library/" + detail.getId() + "/download")
                             .certificateDownloadUrl("/users/library/" + detail.getId() + "/certificate")
+                            .reviewId(review != null ? review.getId() : null)
+                            .reviewRating(review != null ? review.getRating() : null)
+                            .reviewComment(review != null ? review.getComment() : null)
+                            .reviewSubmitted(review != null)
                             .build());
                 }
             }
@@ -213,6 +232,10 @@ public class UserService {
     }
 
     public record DownloadableMusic(String fileUrl, String fileName) {
+    }
+
+    private AudioTrackReview resolveReview(Integer userId, Integer audioId) {
+        return audioTrackReviewRepository.findByAudioTrack_IdAndUser_Id(audioId, userId).orElse(null);
     }
 
     private User findUserByEmail(String email) {

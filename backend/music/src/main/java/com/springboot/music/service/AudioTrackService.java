@@ -4,12 +4,12 @@ import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.mapper.AudioTrackMapper;
 import com.springboot.music.repository.AudioTrackRepository;
+import com.springboot.music.repository.AudioTrackReviewRepository;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.specification.AudioTrackSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,16 +21,22 @@ public class AudioTrackService {
 
     private final AudioTrackRepository audioTrackRepository;
     private final AudioTrackMapper audioTrackMapper;
+    private final AudioTrackReviewRepository audioTrackReviewRepository;
 
-    public AudioTrackService(AudioTrackRepository audioTrackRepository, AudioTrackMapper audioTrackMapper) {
+    public AudioTrackService(AudioTrackRepository audioTrackRepository,
+                             AudioTrackMapper audioTrackMapper,
+                             AudioTrackReviewRepository audioTrackReviewRepository) {
         this.audioTrackRepository = audioTrackRepository;
         this.audioTrackMapper = audioTrackMapper;
+        this.audioTrackReviewRepository = audioTrackReviewRepository;
     }
 
     @Transactional(readOnly = true)
     public List<AudioTrackDTO> getAllAudioTracks() {
         List<AudioTrack> tracks = audioTrackRepository.findAll();
-        return audioTrackMapper.toDtoList(tracks);
+        List<AudioTrackDTO> dtos = audioTrackMapper.toDtoList(tracks);
+        enrichReviewStats(dtos);
+        return dtos;
     }
 
     @Transactional(readOnly = true)
@@ -65,6 +71,7 @@ public class AudioTrackService {
 
     private AudioTrackPageResponse createPageResponse(Page<AudioTrack> audioTrackPage) {
         List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
+        enrichReviewStats(audioTracks);
         return new AudioTrackPageResponse(
                 audioTracks,
                 audioTrackPage.getNumber(),
@@ -76,7 +83,9 @@ public class AudioTrackService {
     public AudioTrackDTO getAudioTrackById(int id) {
         AudioTrack audioTrack = audioTrackRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Audio track not found with id: " + id));
-        return audioTrackMapper.toDto(audioTrack);
+        AudioTrackDTO dto = audioTrackMapper.toDto(audioTrack);
+        enrichReviewStats(List.of(dto));
+        return dto;
     }
 
     @Transactional(readOnly = true)
@@ -88,6 +97,24 @@ public class AudioTrackService {
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
+    }
+
+    private void enrichReviewStats(List<AudioTrackDTO> audioTracks) {
+        for (AudioTrackDTO dto : audioTracks) {
+            if (dto == null || dto.getId() == null) {
+                continue;
+            }
+
+            Double averageRating = audioTrackReviewRepository.getAverageRatingByAudioTrackId(dto.getId());
+            long reviewCount = audioTrackReviewRepository.countByAudioTrack_Id(dto.getId());
+
+            dto.setAverageRating(averageRating == null ? 0.0 : roundOneDecimal(averageRating));
+            dto.setReviewCount(reviewCount);
+        }
+    }
+
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
 }

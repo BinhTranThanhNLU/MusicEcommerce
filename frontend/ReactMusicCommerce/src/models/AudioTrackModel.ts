@@ -11,6 +11,8 @@ export interface AudioTrackModel {
   watermarkedFileUrl: string;
   playCount: number;
   startingPrice: number;
+  averageRating: number | null;
+  reviewCount: number | null;
   uploadDate: string | null;
 
   artist: ArtistModel;

@@ -30,6 +30,18 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             FROM OrderDetail od
             JOIN FETCH od.order o
             JOIN FETCH od.audioTrack at
+            WHERE o.user.id = :userId
+              AND at.id = :audioId
+              AND o.paymentStatus = 'COMPLETED'
+            """)
+    Optional<OrderDetail> findCompletedPurchaseForUserAndAudio(@Param("userId") Integer userId,
+                                                               @Param("audioId") Integer audioId);
+
+    @Query("""
+            SELECT od
+            FROM OrderDetail od
+            JOIN FETCH od.order o
+            JOIN FETCH od.audioTrack at
             LEFT JOIN FETCH at.artist artist
             JOIN FETCH od.license license
             LEFT JOIN FETCH at.copyrightInfo copyrightInfo

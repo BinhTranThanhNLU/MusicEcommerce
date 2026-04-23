@@ -10,6 +10,10 @@ export interface AccountOrderItemResponse {
   duration: number | null;
   musicDownloadUrl: string | null;
   certificateDownloadUrl: string | null;
+  reviewId: number | null;
+  reviewRating: number | null;
+  reviewComment: string | null;
+  reviewSubmitted: boolean | null;
 }
 
 export interface AccountOrderResponse {

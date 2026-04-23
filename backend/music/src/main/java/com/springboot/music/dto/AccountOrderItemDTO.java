@@ -24,5 +24,9 @@ public class AccountOrderItemDTO {
     private Integer duration;
     private String musicDownloadUrl;
     private String certificateDownloadUrl;
+    private Integer reviewId;
+    private Integer reviewRating;
+    private String reviewComment;
+    private Boolean reviewSubmitted;
 }
 

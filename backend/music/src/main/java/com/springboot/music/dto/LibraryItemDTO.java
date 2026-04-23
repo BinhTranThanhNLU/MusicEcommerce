@@ -18,6 +18,7 @@ public class LibraryItemDTO {
     private String licenseType;
     private String originalFileUrl;
     private String watermarkedFileUrl;
+    private String musicDownloadUrl;
     private String certificateDownloadUrl;
     private Boolean certificateAvailable;
     private Integer duration;
@@ -25,4 +26,3 @@ public class LibraryItemDTO {
     private Integer orderId;
     private Integer orderDetailId;
 }
-

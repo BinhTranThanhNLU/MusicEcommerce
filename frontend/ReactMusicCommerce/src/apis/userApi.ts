@@ -38,6 +38,11 @@ export interface CertificateDownloadResponse {
   fileName: string;
 }
 
+export interface MusicDownloadResponse {
+  blob: Blob;
+  fileName: string;
+}
+
 const parseErrorBlobMessage = async (errorBlob?: Blob) => {
   if (!errorBlob) {
     return null;
@@ -86,5 +91,46 @@ export const downloadCertificate = async (
     }
 
     throw new Error("Không thể tải giấy chứng nhận từ máy chủ.");
+  }
+};
+
+const sanitizeFileName = (rawFileName: string) => {
+  const cleaned = rawFileName
+    .trim()
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "");
+
+  return cleaned || "music-track";
+};
+
+export const downloadMusic = async (
+  musicDownloadUrl: string,
+  fallbackTitle?: string,
+): Promise<MusicDownloadResponse> => {
+  try {
+    const response = await axiosClient.get<Blob>(musicDownloadUrl, {
+      responseType: "blob",
+    });
+
+    const headerValue = response.headers["content-disposition"] as string | undefined;
+    const fileName = getFileNameFromContentDisposition(headerValue)
+      ?? `${sanitizeFileName(fallbackTitle ?? "music-track")}.mp3`;
+
+    return {
+      blob: response.data,
+      fileName,
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const messageFromBody = await parseErrorBlobMessage(error.response?.data as Blob | undefined);
+      const status = error.response?.status;
+      const normalizedMessage = messageFromBody
+        ? `(${status ?? "ERR"}) ${messageFromBody}`
+        : `(${status ?? "ERR"}) Không thể tải nhạc từ máy chủ.`;
+      throw new Error(normalizedMessage);
+    }
+
+    throw new Error("Không thể tải nhạc từ máy chủ.");
   }
 };

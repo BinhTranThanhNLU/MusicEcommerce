@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -43,6 +45,30 @@ public class UserController {
         }
         List<LibraryItemDTO> libraryItems = userService.getUserLibrary(user.getId());
         return ResponseEntity.ok(libraryItems);
+    }
+
+    @GetMapping("/library/{orderDetailId}/download")
+    public ResponseEntity<Void> downloadMusic(
+            @PathVariable Integer orderDetailId,
+            @RequestParam(name = "variant", required = false) String variant,
+            Authentication authentication) {
+        String email = authentication.getName();
+        var user = userRepository.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UserService.DownloadableMusic downloadableMusic = userService.resolveDownload(user.getId(), orderDetailId, variant);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create(downloadableMusic.fileUrl()));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(downloadableMusic.fileName(), StandardCharsets.UTF_8)
+                .build());
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .headers(headers)
+                .build();
     }
 
     @GetMapping("/library/{orderDetailId}/certificate")

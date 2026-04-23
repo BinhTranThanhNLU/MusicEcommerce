@@ -17,6 +17,19 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             FROM OrderDetail od
             JOIN FETCH od.order o
             JOIN FETCH od.audioTrack at
+            JOIN FETCH od.license license
+            WHERE od.id = :orderDetailId
+              AND o.user.id = :userId
+              AND o.paymentStatus = 'COMPLETED'
+            """)
+    Optional<OrderDetail> findDownloadItemForUser(@Param("orderDetailId") Integer orderDetailId,
+                                                  @Param("userId") Integer userId);
+
+    @Query("""
+            SELECT od
+            FROM OrderDetail od
+            JOIN FETCH od.order o
+            JOIN FETCH od.audioTrack at
             LEFT JOIN FETCH at.artist artist
             JOIN FETCH od.license license
             LEFT JOIN FETCH at.copyrightInfo copyrightInfo
@@ -27,4 +40,3 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
     Optional<OrderDetail> findCertificateItemForUser(@Param("orderDetailId") Integer orderDetailId,
                                                      @Param("userId") Integer userId);
 }
-

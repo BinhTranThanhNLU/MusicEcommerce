@@ -7,6 +7,7 @@ export interface LibraryItemResponse {
   licenseType: string;
   originalFileUrl: string | null;
   watermarkedFileUrl: string | null;
+  musicDownloadUrl: string | null;
   certificateDownloadUrl: string | null;
   certificateAvailable: boolean | null;
   duration: number | null;

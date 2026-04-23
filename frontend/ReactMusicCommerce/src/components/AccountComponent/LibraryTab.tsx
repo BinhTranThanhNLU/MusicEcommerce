@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { downloadCertificate, getUserLibrary } from "../../apis/userApi";
+import { downloadCertificate, downloadMusic, getUserLibrary } from "../../apis/userApi";
 import type { LibraryItemResponse } from "../../responsemodel/LibraryItemResponse";
 
 const FALLBACK_COVER_IMAGE = "/assets/img/product/product-1.webp";
@@ -49,7 +49,9 @@ const LibraryTab = () => {
   const [libraryItems, setLibraryItems] = useState<LibraryItemResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [downloadingMusicId, setDownloadingMusicId] = useState<number | null>(null);
   const [downloadingCertificateId, setDownloadingCertificateId] = useState<number | null>(null);
+  const [musicErrorMessage, setMusicErrorMessage] = useState<string | null>(null);
   const [certificateErrorMessage, setCertificateErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,6 +121,38 @@ const LibraryTab = () => {
     }
   };
 
+  const handleDownloadMusic = async (item: LibraryItemResponse) => {
+    if (!item.musicDownloadUrl) {
+      return;
+    }
+
+    try {
+      setMusicErrorMessage(null);
+      setDownloadingMusicId(item.orderDetailId);
+
+      const { blob, fileName } = await downloadMusic(item.musicDownloadUrl, item.title);
+      const objectUrl = URL.createObjectURL(blob);
+
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Tải nhạc thất bại. Vui lòng thử lại.";
+      setMusicErrorMessage(message);
+      console.error("Failed to download music:", error);
+    } finally {
+      setDownloadingMusicId(null);
+    }
+  };
+
   return (
     <div className="tab-pane fade show active" id="library">
       <div className="section-header" data-aos="fade-up">
@@ -152,6 +186,12 @@ const LibraryTab = () => {
         </div>
       ) : (
         <div className="library-grid">
+          {musicErrorMessage ? (
+            <div className="alert alert-warning" role="alert">
+              {musicErrorMessage}
+            </div>
+          ) : null}
+
           {certificateErrorMessage ? (
             <div className="alert alert-warning" role="alert">
               {certificateErrorMessage}
@@ -211,14 +251,17 @@ const LibraryTab = () => {
                   >
                     <i className="bi bi-play-fill"></i> Phát nhạc
                   </a>
-                  <a
-                    className={`btn btn-dark btn-sm ${!item.originalFileUrl ? "disabled" : ""}`}
-                    href={resolveMediaUrl(item.originalFileUrl)}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    className="btn btn-dark btn-sm"
+                    type="button"
+                    disabled={!item.musicDownloadUrl || downloadingMusicId === item.orderDetailId}
+                    onClick={() => handleDownloadMusic(item)}
                   >
-                    <i className="bi bi-download"></i> Tải gốc (.WAV/.MP3)
-                  </a>
+                    <i className="bi bi-download"></i>{" "}
+                    {downloadingMusicId === item.orderDetailId
+                      ? "Đang tải nhạc..."
+                      : "Tải nhạc xuống"}
+                  </button>
                   <button
                     className="btn btn-outline-secondary btn-sm"
                     type="button"

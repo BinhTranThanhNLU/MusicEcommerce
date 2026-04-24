@@ -12,12 +12,13 @@ interface ProductDetailProps {
 }
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
-  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { currentTrack, isPlaying, togglePlayPause, getDisplayPlayCount } = useAudioPlayer();
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
   const isCurrentTrack = currentTrack?.id === track.id;
   const trackIsPlaying = isCurrentTrack && isPlaying;
+  const displayPlayCount = getDisplayPlayCount(track.id, track.playCount);
   
   // Gán mặc định giấy phép đầu tiên được chọn
   const [selectedLicenseId, setSelectedLicenseId] = useState<number>(
@@ -103,7 +104,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ track }) => {
             <i className="bi bi-star-fill"></i>
             <i className="bi bi-star-half"></i>
             <span className="text-muted ms-2 small">
-              ({track.playCount} lượt nghe)
+              ({displayPlayCount} lượt nghe)
             </span>
           </div>
         </div>

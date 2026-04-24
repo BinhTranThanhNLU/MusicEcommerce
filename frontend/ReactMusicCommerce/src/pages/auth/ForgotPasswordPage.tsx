@@ -46,7 +46,7 @@ const ForgotPasswordPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Quên mật khẩu" current="Quên mật khẩu"/>
 
       <section id="register" className="register section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

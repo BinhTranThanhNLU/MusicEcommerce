@@ -1,11 +1,17 @@
 import type React from "react";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import { useAudioPlayer } from "../../context/AudioPlayerContext";
 
 interface ProductGalleryProps {
   track: AudioTrackModel;
 }
 
 const ProductGallery: React.FC<ProductGalleryProps> = ({ track }) => {
+  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+
+  const isCurrentTrack = currentTrack?.id === track.id;
+  const trackIsPlaying = isCurrentTrack && isPlaying;
+
   // Hàm format giây thành phút:giây (VD: 225s -> 3:45)
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -32,22 +38,25 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ track }) => {
         <div className="audio-player-container bg-light p-3 rounded">
           <div className="d-flex align-items-center mb-2">
             <button
-              className="btn btn-primary rounded-circle play-btn me-3"
+              type="button"
+              className={`btn rounded-circle play-btn me-3 ${
+                trackIsPlaying ? "btn-danger" : "btn-primary"
+              }`}
+              onClick={() => togglePlayPause(track)}
               style={{ width: "50px", height: "50px" }}
             >
-              <i className="bi bi-play-fill fs-4"></i>
+              <i
+                className={`bi fs-4 ${
+                  trackIsPlaying ? "bi-pause-fill" : "bi-play-fill"
+                }`}
+              ></i>
             </button>
             <div className="w-100">
               <div className="d-flex justify-content-between mb-1">
                 <small className="text-muted">0:00</small>
-                <small className="text-muted">
-                  {formatDuration(track.duration)}
-                </small>
+                <small className="text-muted">{formatDuration(track.duration)}</small>
               </div>
-              <div
-                className="progress"
-                style={{ height: "5px", cursor: "pointer" }}
-              >
+              <div className="progress" style={{ height: "5px", cursor: "default" }}>
                 <div
                   className="progress-bar"
                   role="progressbar"

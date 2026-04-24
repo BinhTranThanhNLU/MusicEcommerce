@@ -1,5 +1,6 @@
 import type { AudioTrackModel } from "../models/AudioTrackModel";
 import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
+import type { AudioTrackPlayCountResponse } from "../responsemodel/AudioTrackPlayCountResponse";
 import axiosClient from "./axiosClient";
 
 export const getAllAudioTracks = async (): Promise<AudioTrackModel[]> => {
@@ -29,5 +30,12 @@ export const getAudioTrackById = async (id: number): Promise<AudioTrackModel> =>
 
 export const getTracksByArtist = async (artistId: number, params?: any): Promise<AudioTrackPageResponse> => {
   const response = await axiosClient.get(`/audio-tracks/artist/${artistId}`, { params });
+  return response.data;
+};
+
+export const incrementPreviewPlayCount = async (
+  audioId: number,
+): Promise<AudioTrackPlayCountResponse> => {
+  const response = await axiosClient.post(`/audio-tracks/${audioId}/preview-play`);
   return response.data;
 };

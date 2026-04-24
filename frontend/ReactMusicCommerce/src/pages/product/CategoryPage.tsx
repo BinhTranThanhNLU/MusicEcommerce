@@ -62,7 +62,7 @@ const CategoryPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Chi tiết sản phẩm" current="Chi tiết sản phẩm"/>
 
       <div className="container">
         <div className="row">

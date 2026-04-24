@@ -6,13 +6,16 @@ import com.springboot.music.mapper.AudioTrackMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.AudioTrackReviewRepository;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
+import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.specification.AudioTrackSpecification;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -115,6 +118,24 @@ public class AudioTrackService {
 
     private double roundOneDecimal(double value) {
         return Math.round(value * 10.0) / 10.0;
+    }
+
+    @Transactional
+    public AudioTrackPlayCountResponse incrementPreviewPlayCount(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+        }
+
+        int updatedRows = audioTrackRepository.incrementPlayCount(audioId);
+        if (updatedRows == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai");
+        }
+
+        Integer playCount = audioTrackRepository.findPlayCountById(audioId);
+        return AudioTrackPlayCountResponse.builder()
+                .audioId(audioId)
+                .playCount(playCount == null ? 0 : playCount)
+                .build();
     }
 
 }

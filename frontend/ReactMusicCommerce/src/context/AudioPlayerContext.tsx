@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from "react";
 import type { AudioTrackModel } from "../models/AudioTrackModel";
+import { incrementPreviewPlayCount } from "../apis/audioTrackApi";
 
 interface AudioPlayerContextType {
   currentTrack: AudioTrackModel | null;
@@ -7,6 +8,7 @@ interface AudioPlayerContextType {
   currentTime: number;
   duration: number;
   volume: number;
+  getDisplayPlayCount: (audioId: number, fallbackPlayCount?: number) => number;
   
   // Hành động
   play: (track: AudioTrackModel) => void;
@@ -31,6 +33,41 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(0.7);
+  const [playCountMap, setPlayCountMap] = useState<Record<number, number>>({});
+
+  const getDisplayPlayCount = (audioId: number, fallbackPlayCount = 0) => {
+    const mappedValue = playCountMap[audioId];
+    if (typeof mappedValue === "number") {
+      return mappedValue;
+    }
+
+    if (currentTrack?.id === audioId) {
+      return currentTrack.playCount ?? fallbackPlayCount;
+    }
+
+    return fallbackPlayCount;
+  };
+
+  const syncPreviewPlayCount = (audioId: number) => {
+    void incrementPreviewPlayCount(audioId)
+      .then((response) => {
+        setPlayCountMap((prev) => ({
+          ...prev,
+          [response.audioId]: response.playCount,
+        }));
+
+        setCurrentTrack((prev) => {
+          if (!prev || prev.id !== response.audioId) return prev;
+          return {
+            ...prev,
+            playCount: response.playCount,
+          };
+        });
+      })
+      .catch((err) => {
+        console.error("Lỗi tăng lượt nghe preview:", err);
+      });
+  };
 
   // Cập nhật thời gian phát
   useEffect(() => {
@@ -67,8 +104,20 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     // Nếu là bài hát khác, tải source mới
     if (!currentTrack || currentTrack.id !== track.id) {
       setCurrentTrack(track);
+      setPlayCountMap((prev) => {
+        if (typeof prev[track.id] === "number") {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [track.id]: track.playCount ?? 0,
+        };
+      });
       audio.src = track.watermarkedFileUrl || "";
       audio.load();
+
+      syncPreviewPlayCount(track.id);
     }
 
     audio.play().catch((err) => {
@@ -100,6 +149,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       if (currentTrack?.id === track.id && isPlaying) {
         pause();
       } else if (currentTrack?.id === track.id && !isPlaying) {
+        syncPreviewPlayCount(track.id);
         resume();
       } else {
         play(track);
@@ -147,6 +197,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         currentTime,
         duration,
         volume,
+        getDisplayPlayCount,
         play,
         pause,
         resume,

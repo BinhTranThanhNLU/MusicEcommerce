@@ -79,7 +79,7 @@ const RegisterPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Đăng ký" current="Đăng ký"/>
 
       <section id="register" className="register section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

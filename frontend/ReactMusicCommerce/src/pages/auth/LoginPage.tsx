@@ -67,7 +67,7 @@ const LoginPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Đăng nhập" current="Đăng nhập"/>
 
       <section id="login" className="login section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

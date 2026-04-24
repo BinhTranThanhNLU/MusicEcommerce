@@ -50,7 +50,7 @@ const ProductDetailPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Chi tiết sản phẩm" current="Chi tiết sản phẩm"/>
 
       <section id="product-details" className="product-details section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

@@ -77,7 +77,7 @@ const ResetPasswordPage = () => {
 
   return (
     <main className="main">
-      <PageTitle />
+      <PageTitle title="Thay đổi mật khẩu" current="Thay đổi mật khẩu"/>
 
       <section id="reset-password" className="register section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

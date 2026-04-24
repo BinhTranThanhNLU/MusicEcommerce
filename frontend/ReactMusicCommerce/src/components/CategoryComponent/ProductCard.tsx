@@ -11,13 +11,14 @@ interface Props {
 }
 
 const ProductCard: React.FC<Props> = ({ track }) => {
-  const { currentTrack, isPlaying, togglePlayPause } = useAudioPlayer();
+  const { currentTrack, isPlaying, togglePlayPause, getDisplayPlayCount } = useAudioPlayer();
   const navigate = useNavigate();
   const [isAddingToCart, setIsAddingToCart] = React.useState(false);
 
   // Kiểm tra xem bài hát hiện tại có phải là bài hát này không
   const isCurrentTrack = currentTrack?.id === track.id;
   const trackIsPlaying = isCurrentTrack && isPlaying;
+  const displayPlayCount = getDisplayPlayCount(track.id, track.playCount);
 
   const handlePlayToggle = () => {
     togglePlayPause(track);
@@ -162,7 +163,7 @@ const ProductCard: React.FC<Props> = ({ track }) => {
             title="Lượt nghe"
           >
             <i className="bi bi-headphones me-1"></i>
-            <span>{track.playCount?.toLocaleString() || 0}</span>
+            <span>{displayPlayCount?.toLocaleString() || 0}</span>
           </div>
 
           {/* Nút yêu thích */}

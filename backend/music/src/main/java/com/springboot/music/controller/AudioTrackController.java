@@ -2,6 +2,7 @@ package com.springboot.music.controller;
 
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
+import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.service.AudioTrackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -92,6 +93,11 @@ public class AudioTrackController {
 
         AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, page, size, minPrice, maxPrice, types, sort);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/preview-play")
+    public ResponseEntity<AudioTrackPlayCountResponse> incrementPreviewPlayCount(@PathVariable Integer id) {
+        return ResponseEntity.ok(audioTrackService.incrementPreviewPlayCount(id));
     }
 
 }

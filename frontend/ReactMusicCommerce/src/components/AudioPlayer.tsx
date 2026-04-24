@@ -13,7 +13,10 @@ const AudioPlayer: React.FC = () => {
     resume,
     seek,
     setVolume,
+    stop,
   } = useAudioPlayer();
+
+  const previousVolumeRef = React.useRef(0.7);
 
   if (!currentTrack) {
     return null;
@@ -35,83 +38,120 @@ const AudioPlayer: React.FC = () => {
 
   // Xử lý âm lượng
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(parseFloat(e.target.value));
+    const nextVolume = parseFloat(e.target.value);
+    setVolume(nextVolume);
+
+    if (nextVolume > 0) {
+      previousVolumeRef.current = nextVolume;
+    }
   };
 
+  const handleToggleMute = () => {
+    if (volume === 0) {
+      setVolume(previousVolumeRef.current || 0.7);
+      return;
+    }
+
+    previousVolumeRef.current = volume;
+    setVolume(0);
+  };
+
+  const progressPercent =
+    duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
+  const volumePercent = Math.round(volume * 100);
+  const genrePreview = currentTrack.tags?.genres?.slice(0, 2).join(" • ");
+
   return (
-    <div className="audio-player fixed-bottom bg-dark text-white p-3 shadow-lg">
-      <div className="container-fluid">
-        <div className="row align-items-center g-3">
-          {/* Thông tin bài hát */}
-          <div className="col-md-3 d-flex align-items-center gap-2">
-            <img
-              src={currentTrack.coverImage}
-              alt={currentTrack.title}
-              className="rounded"
-              style={{ width: "50px", height: "50px", objectFit: "cover" }}
-            />
-            <div className="text-truncate">
-              <div className="small text-truncate fw-bold">
-                {currentTrack.title}
-              </div>
-              <div className="text-muted small text-truncate">
-                {currentTrack.artist?.name}
-              </div>
+    <div className="audio-player fixed-bottom" role="region" aria-label="Audio player">
+      <div className="audio-player__inner container-fluid">
+        <div className="audio-player__left">
+          <img
+            src={currentTrack.coverImage}
+            alt={currentTrack.title}
+            className="audio-player__cover"
+          />
+
+          <div className="audio-player__meta">
+            <p className="audio-player__title" title={currentTrack.title}>
+              {currentTrack.title}
+            </p>
+            <p className="audio-player__artist" title={currentTrack.artist?.name}>
+              {currentTrack.artist?.name}
+            </p>
+            <div className="audio-player__chips">
+              <span className="audio-player__chip">
+                <i className={`bi ${isPlaying ? "bi-broadcast" : "bi-pause-circle"}`}></i>
+                {isPlaying ? "Now Playing" : "Paused"}
+              </span>
+              {genrePreview && <span className="audio-player__chip">{genrePreview}</span>}
             </div>
           </div>
+        </div>
 
-          {/* Controls & Progress */}
-          <div className="col-md-6">
-            <div className="d-flex align-items-center gap-2 mb-2">
-              {/* Play/Pause Button */}
-              <button
-                className="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center"
-                onClick={() => (isPlaying ? pause() : resume())}
-                style={{ width: "40px", height: "40px" }}
-              >
-                <i
-                  className={`bi ${isPlaying ? "bi-pause-fill" : "bi-play-fill"}`}
-                ></i>
-              </button>
+        <div className="audio-player__center">
+          <div className="audio-player__controls">
+            <button
+              className="audio-player__control audio-player__control--primary"
+              onClick={() => (isPlaying ? pause() : resume())}
+              aria-label={isPlaying ? "Pause" : "Play"}
+            >
+              <i className={`bi ${isPlaying ? "bi-pause-fill" : "bi-play-fill"}`}></i>
+            </button>
 
-              {/* Thời gian hiện tại */}
-              <small className="text-muted" style={{ minWidth: "45px" }}>
-                {formatTime(currentTime)}
-              </small>
-
-              {/* Progress Bar */}
-              <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={currentTime}
-                onChange={handleSeek}
-                className="form-range flex-grow-1"
-                style={{ height: "5px" }}
-              />
-
-              {/* Thời gian tổng */}
-              <small className="text-muted" style={{ minWidth: "45px" }}>
-                {formatTime(duration)}
-              </small>
-            </div>
+            <button
+              className="audio-player__control"
+              onClick={stop}
+              aria-label="Stop"
+            >
+              <i className="bi bi-stop-fill"></i>
+            </button>
           </div>
 
-          {/* Volume Control */}
-          <div className="col-md-3 d-flex align-items-center justify-content-end gap-2">
-            <i className="bi bi-volume-down text-muted"></i>
+          <div className="audio-player__progress-wrap">
+            <span className="audio-player__time">{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="form-range"
-              style={{ width: "100px", height: "5px" }}
+              max={duration || 0}
+              value={currentTime}
+              onChange={handleSeek}
+              className="audio-player__range"
+              aria-label="Seek"
             />
-            <i className="bi bi-volume-up text-muted"></i>
+            <span className="audio-player__time">{formatTime(duration)}</span>
           </div>
+
+          <div className="audio-player__progress-info">Đã nghe: {Math.round(progressPercent)}%</div>
+        </div>
+
+        <div className="audio-player__right">
+          <button
+            className="audio-player__control"
+            onClick={handleToggleMute}
+            aria-label={volume === 0 ? "Unmute" : "Mute"}
+          >
+            <i
+              className={`bi ${
+                volume === 0
+                  ? "bi-volume-mute-fill"
+                  : volume < 0.5
+                    ? "bi-volume-down-fill"
+                    : "bi-volume-up-fill"
+              }`}
+            ></i>
+          </button>
+
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="audio-player__range audio-player__range--volume"
+            aria-label="Volume"
+          />
+          <span className="audio-player__volume-text">{volumePercent}%</span>
         </div>
       </div>
     </div>

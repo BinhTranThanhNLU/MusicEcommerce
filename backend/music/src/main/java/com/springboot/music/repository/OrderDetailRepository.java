@@ -38,6 +38,16 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
                                                                @Param("audioId") Integer audioId);
 
     @Query("""
+            SELECT CASE WHEN COUNT(od) > 0 THEN true ELSE false END
+            FROM OrderDetail od
+            WHERE od.order.user.id = :userId
+              AND od.audioTrack.id = :audioId
+              AND od.order.paymentStatus = 'COMPLETED'
+            """)
+    boolean existsCompletedPurchaseForUserAndAudio(@Param("userId") Integer userId,
+                                                   @Param("audioId") Integer audioId);
+
+    @Query("""
             SELECT od
             FROM OrderDetail od
             JOIN FETCH od.order o

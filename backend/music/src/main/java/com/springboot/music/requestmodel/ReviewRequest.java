@@ -23,4 +23,3 @@ public class ReviewRequest {
     @Size(max = 2000, message = "Comment khong duoc vuot qua 2000 ky tu")
     private String comment;
 }
-

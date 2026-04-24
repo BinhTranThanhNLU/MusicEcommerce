@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReviewService {
@@ -37,15 +39,28 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public AudioTrackReviewResponse getReviewsByAudioTrack(Integer audioId) {
-        AudioTrack audioTrack = findAudioTrack(audioId);
+    public AudioTrackReviewResponse getReviewsByAudioTrack(Integer audioId, String email) {
+        findAudioTrack(audioId);
         List<AudioTrackReviewDTO> reviews = audioTrackReviewRepository.findByAudioTrackIdWithUser(audioId).stream()
                 .map(this::toDto)
                 .toList();
 
+        AudioTrackReviewDTO myReview = null;
+        boolean canReview = false;
+
+        if (email != null && !email.isBlank()) {
+            User user = findUserByEmail(email);
+            myReview = audioTrackReviewRepository.findByAudioTrack_IdAndUser_Id(audioId, user.getId())
+                    .map(review -> toDto(review, true))
+                    .orElse(null);
+            canReview = orderDetailRepository.existsCompletedPurchaseForUserAndAudio(user.getId(), audioId);
+        }
+
         return AudioTrackReviewResponse.builder()
                 .summary(buildSummary(audioId))
                 .reviews(reviews)
+                .myReview(myReview)
+                .canReview(canReview)
                 .build();
     }
 
@@ -87,9 +102,19 @@ public class ReviewService {
     private ReviewSummaryDTO buildSummary(Integer audioId) {
         Long count = audioTrackReviewRepository.countByAudioTrack_Id(audioId);
         Double average = audioTrackReviewRepository.getAverageRatingByAudioTrackId(audioId);
+
+        Map<Integer, Long> byStar = new HashMap<>();
+        audioTrackReviewRepository.countByAudioTrackIdGroupedByRating(audioId)
+                .forEach(item -> byStar.put(item.getRating(), item.getTotal()));
+
         return ReviewSummaryDTO.builder()
                 .averageRating(average == null ? 0.0 : roundOneDecimal(average))
                 .reviewCount(count)
+                .fiveStarCount(byStar.getOrDefault(5, 0L))
+                .fourStarCount(byStar.getOrDefault(4, 0L))
+                .threeStarCount(byStar.getOrDefault(3, 0L))
+                .twoStarCount(byStar.getOrDefault(2, 0L))
+                .oneStarCount(byStar.getOrDefault(1, 0L))
                 .build();
     }
 

@@ -8,6 +8,8 @@ interface InformationTabProps {
 }
 
 const InformationTab: React.FC<InformationTabProps> = ({ track }) => {
+  const reviewCount = track.reviewCount ?? 0;
+
   return (
     <div className="row mt-5" data-aos="fade-up" data-aos-delay="300">
       <div className="col-12">
@@ -27,13 +29,13 @@ const InformationTab: React.FC<InformationTabProps> = ({ track }) => {
               data-bs-target="#ecommerce-product-details-5-customer-reviews"
               type="button"
             >
-              Đánh giá (127)
+              Đánh giá ({reviewCount})
             </button>
           </nav>
 
           <div className="tab-content">
             <OverviewTab track={track} />
-            <ReviewTab />
+            <ReviewTab audioId={track.id} />
           </div>
         </div>
       </div>

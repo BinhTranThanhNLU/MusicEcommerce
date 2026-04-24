@@ -30,8 +30,10 @@ public class ReviewController {
     }
 
     @GetMapping("/audio-tracks/{audioId}")
-    public ResponseEntity<AudioTrackReviewResponse> getReviewsByAudioTrack(@PathVariable Integer audioId) {
-        return ResponseEntity.ok(reviewService.getReviewsByAudioTrack(audioId));
+    public ResponseEntity<AudioTrackReviewResponse> getReviewsByAudioTrack(@PathVariable Integer audioId,
+                                                                           Authentication authentication) {
+        String email = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(reviewService.getReviewsByAudioTrack(audioId, email));
     }
 
     @GetMapping("/me")

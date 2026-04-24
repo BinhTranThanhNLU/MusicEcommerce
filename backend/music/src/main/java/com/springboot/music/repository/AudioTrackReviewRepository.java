@@ -10,6 +10,12 @@ import java.util.Optional;
 
 public interface AudioTrackReviewRepository extends JpaRepository<AudioTrackReview, Integer> {
 
+    interface RatingCountView {
+        Integer getRating();
+
+        Long getTotal();
+    }
+
     @Query("""
             SELECT r
             FROM AudioTrackReview r
@@ -36,5 +42,14 @@ public interface AudioTrackReviewRepository extends JpaRepository<AudioTrackRevi
 
     @Query("SELECT COALESCE(AVG(r.rating), 0) FROM AudioTrackReview r WHERE r.audioTrack.id = :audioId")
     Double getAverageRatingByAudioTrackId(@Param("audioId") Integer audioId);
+
+    @Query("""
+            SELECT r.rating AS rating, COUNT(r) AS total
+            FROM AudioTrackReview r
+            WHERE r.audioTrack.id = :audioId
+            GROUP BY r.rating
+            """)
+    List<RatingCountView> countByAudioTrackIdGroupedByRating(@Param("audioId") Integer audioId);
 }
+
 

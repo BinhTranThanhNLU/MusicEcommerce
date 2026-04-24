@@ -1,6 +1,11 @@
 export interface ReviewSummaryResponse {
   averageRating: number;
   reviewCount: number;
+  fiveStarCount: number;
+  fourStarCount: number;
+  threeStarCount: number;
+  twoStarCount: number;
+  oneStarCount: number;
 }
 
 export interface AudioTrackReviewItemResponse {
@@ -21,4 +26,6 @@ export interface AudioTrackReviewItemResponse {
 export interface AudioTrackReviewResponse {
   summary: ReviewSummaryResponse;
   reviews: AudioTrackReviewItemResponse[];
+  myReview: AudioTrackReviewItemResponse | null;
+  canReview: boolean;
 }

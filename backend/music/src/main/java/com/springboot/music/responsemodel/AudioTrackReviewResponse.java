@@ -19,5 +19,8 @@ public class AudioTrackReviewResponse {
 
     private ReviewSummaryDTO summary;
     private List<AudioTrackReviewDTO> reviews;
+    private AudioTrackReviewDTO myReview;
+    private Boolean canReview;
 }
+
 

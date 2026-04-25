@@ -5778,15 +5778,13 @@ section,
 }
 
 .checkout .checkout-section .section-content .payment-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .checkout .checkout-section .section-content .payment-options .payment-option {
-  flex: 1;
-  min-width: 120px;
   position: relative;
 }
 
@@ -5813,15 +5811,16 @@ section,
 .checkout .checkout-section .section-content .payment-options .payment-option label {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   padding: 16px;
   border: 2px solid color-mix(in srgb, var(--default-color), transparent 85%);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.25s ease;
-  text-align: center;
+  text-align: left;
   height: 100%;
+  min-height: 132px;
 }
 
 .checkout .checkout-section .section-content .payment-options .payment-option label:hover {
@@ -5829,15 +5828,43 @@ section,
 }
 
 .checkout .checkout-section .section-content .payment-options .payment-option label .payment-icon {
-  font-size: 1.8rem;
-  margin-bottom: 8px;
+  font-size: 1.55rem;
+  margin-bottom: 0;
   color: color-mix(in srgb, var(--default-color), transparent 30%);
   transition: color 0.25s ease;
 }
 
+.checkout .checkout-section .section-content .payment-options .payment-option label .payment-head {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.checkout .checkout-section .section-content .payment-options .payment-option label .payment-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  background-color: color-mix(in srgb, var(--accent-color), transparent 88%);
+  border: 1px solid color-mix(in srgb, var(--accent-color), transparent 70%);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
 .checkout .checkout-section .section-content .payment-options .payment-option label .payment-label {
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--heading-color);
+}
+
+.checkout .checkout-section .section-content .payment-options .payment-option label .payment-desc {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--default-color), transparent 26%);
 }
 
 .checkout .checkout-section .section-content .payment-options .payment-option.active label {
@@ -5849,19 +5876,41 @@ section,
   color: var(--accent-color);
 }
 
+.checkout .checkout-section .section-content .payment-options .payment-option.active label .payment-badge {
+  color: #0f766e;
+  background-color: rgba(15, 118, 110, 0.11);
+  border-color: rgba(15, 118, 110, 0.28);
+}
+
+.checkout .checkout-section .section-content .payment-options .payment-option.is-disabled label {
+  opacity: 0.66;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.checkout .checkout-section .section-content .payment-options .payment-option.is-disabled label:hover {
+  border-color: color-mix(in srgb, var(--default-color), transparent 85%);
+}
+
 @media (max-width: 575.98px) {
+  .checkout .checkout-section .section-content .payment-options {
+    grid-template-columns: 1fr;
+  }
+
   .checkout .checkout-section .section-content .payment-options .payment-option {
     min-width: 100%;
   }
 
   .checkout .checkout-section .section-content .payment-options .payment-option label {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 12px;
+    min-height: 0;
   }
 
   .checkout .checkout-section .section-content .payment-options .payment-option label .payment-icon {
     margin-bottom: 0;
+  }
+
+  .checkout .checkout-section .section-content .payment-options .payment-option label .payment-head {
+    margin-bottom: 8px;
   }
 }
 

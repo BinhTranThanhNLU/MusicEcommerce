@@ -29,31 +29,63 @@ const CheckoutPage = () => {
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const paymentState = params.get("payment");
+    const handlePaymentResult = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const paymentState = params.get("payment");
 
-    if (!paymentState) {
-      return;
-    }
+      if (!paymentState) {
+        return;
+      }
 
-    const orderId = params.get("orderId") || "";
-    const message = params.get("message") || "";
+      const orderId = params.get("orderId") || "";
+      const message = params.get("message") || "";
 
-    void Swal.fire({
-      icon: paymentState === "success" ? "success" : "error",
-      title:
-        paymentState === "success"
-          ? "Thanh toán VNPay thành công"
-          : "Thanh toán VNPay thất bại",
-      html: `
-        <div style="text-align:left">
-          ${orderId ? `<p><strong>Mã đơn hàng:</strong> #${orderId}</p>` : ""}
-          ${message ? `<p>${message}</p>` : ""}
-        </div>
-      `,
-    });
+      if (paymentState === "success") {
+        window.dispatchEvent(new Event(CART_ITEMS_UPDATED_EVENT));
 
-    window.history.replaceState({}, document.title, window.location.pathname);
+        const result = await Swal.fire({
+          icon: "success",
+          title: "Thanh toán VNPay thành công",
+          html: `
+            <div style="text-align:left">
+              ${orderId ? `<p><strong>Mã đơn hàng:</strong> #${orderId}</p>` : ""}
+              ${message ? `<p>${message}</p>` : ""}
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: "Vào thư viện nhạc cá nhân",
+          cancelButtonText: "Tiếp tục mua sắm",
+          reverseButtons: true,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
+
+        if (result.isConfirmed) {
+          window.location.href = "/account#library";
+          return;
+        }
+
+        if (result.dismiss === Swal.DismissReason.cancel) {
+          window.location.href = "/home";
+          return;
+        }
+      } else {
+        await Swal.fire({
+          icon: "error",
+          title: "Thanh toán VNPay thất bại",
+          html: `
+            <div style="text-align:left">
+              ${orderId ? `<p><strong>Mã đơn hàng:</strong> #${orderId}</p>` : ""}
+              ${message ? `<p>${message}</p>` : ""}
+            </div>
+          `,
+        });
+      }
+
+      window.history.replaceState({}, document.title, window.location.pathname);
+    };
+
+    void handlePaymentResult();
   }, []);
 
   useEffect(() => {

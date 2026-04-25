@@ -42,7 +42,7 @@ const CartList = ({
 
           {items.map((item) => (
             <CartItem
-              key={`${item.audioId}-${item.licenseId}`}
+              key={item.cartItemId}
               item={item}
               onRemoveItem={onRemoveItem}
               onUpdateItemLicense={onUpdateItemLicense}

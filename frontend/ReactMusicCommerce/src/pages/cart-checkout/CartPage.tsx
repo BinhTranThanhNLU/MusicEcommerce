@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CartList from "../../components/CartComponent/CartList";
 import CartSummary from "../../components/CartComponent/CartSummary";
 import PageTitle from "../../components/utils/PageTitle";
@@ -22,29 +22,37 @@ const CartPage = () => {
   const [isUpdatingCart, setIsUpdatingCart] = useState(false);
   const [httpError, setHttpError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const syncCart = async () => {
+  const syncCart = useCallback(async (showPageLoading = false) => {
+    if (showPageLoading) {
       setIsLoading(true);
-      setHttpError(null);
+    }
+    setHttpError(null);
 
-      try {
-        const response = await getCart();
-        setCart(response);
-      } catch (error: any) {
-        setHttpError(error?.response?.data || error?.message || "Không tải được giỏ hàng.");
-        setCart(null);
-      } finally {
+    try {
+      const response = await getCart();
+      setCart(response);
+    } catch (error: any) {
+      setHttpError(error?.response?.data || error?.message || "Không tải được giỏ hàng.");
+      setCart(null);
+    } finally {
+      if (showPageLoading) {
         setIsLoading(false);
       }
+    }
+  }, []);
+
+  useEffect(() => {
+    const onCartUpdated = () => {
+      void syncCart(false);
     };
 
-    syncCart();
-    window.addEventListener(CART_ITEMS_UPDATED_EVENT, syncCart);
+    void syncCart(true);
+    window.addEventListener(CART_ITEMS_UPDATED_EVENT, onCartUpdated);
 
     return () => {
-      window.removeEventListener(CART_ITEMS_UPDATED_EVENT, syncCart);
+      window.removeEventListener(CART_ITEMS_UPDATED_EVENT, onCartUpdated);
     };
-  }, []);
+  }, [syncCart]);
 
   const handleRemoveItem = async (cartItemId: number) => {
     setIsUpdatingCart(true);

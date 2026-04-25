@@ -28,7 +28,34 @@ const paymentOptions = [
   {
     id: "VNPAY",
     icon: "bi bi-qr-code",
-    label: "Cổng thanh toán VNPay",
+    label: "VNPay",
+    description: "Quét QR, ATM nội địa, Visa/Mastercard",
+    badge: "Khuyến nghị",
+    enabled: true,
+  },
+  {
+    id: "MOMO",
+    icon: "bi bi-wallet2",
+    label: "Ví MoMo",
+    description: "Thanh toán nhanh bằng ví điện tử",
+    badge: "Sắp hỗ trợ",
+    enabled: false,
+  },
+  {
+    id: "ZALOPAY",
+    icon: "bi bi-phone",
+    label: "ZaloPay",
+    description: "Thanh toán qua ứng dụng ZaloPay",
+    badge: "Sắp hỗ trợ",
+    enabled: false,
+  },
+  {
+    id: "PAYPAL",
+    icon: "bi bi-credit-card-2-front",
+    label: "PayPal",
+    description: "Phù hợp cho thanh toán quốc tế",
+    badge: "Sắp hỗ trợ",
+    enabled: false,
   },
 ];
 
@@ -122,24 +149,32 @@ const CheckoutForm = ({
               {paymentOptions.map((option) => {
                 const elementId = `payment-${option.id.toLowerCase()}`;
                 const isActive = values.paymentMethod === option.id;
+                const isDisabled = !option.enabled;
 
                 return (
                   <div
                     key={option.id}
-                    className={`payment-option ${isActive ? "active" : ""}`.trim()}
+                    className={`payment-option ${isActive ? "active" : ""} ${isDisabled ? "is-disabled" : ""}`.trim()}
                   >
                     <input
                       type="radio"
                       name="payment-method"
                       id={elementId}
                       checked={isActive}
+                      disabled={isDisabled}
                       onChange={() => onPaymentMethodChange(option.id)}
                     />
                     <label htmlFor={elementId}>
-                      <span className="payment-icon">
-                        <i className={option.icon}></i>
+                      <span className="payment-head">
+                        <span className="payment-icon">
+                          <i className={option.icon}></i>
+                        </span>
+                        {option.badge && (
+                          <span className="payment-badge">{option.badge}</span>
+                        )}
                       </span>
                       <span className="payment-label">{option.label}</span>
+                      <span className="payment-desc">{option.description}</span>
                     </label>
                   </div>
                 );
@@ -150,7 +185,8 @@ const CheckoutForm = ({
             <div className="payment-details" id="vnpay-details">
               <p className="payment-info">
                 Bạn sẽ được chuyển hướng đến cổng thanh toán VNPay an toàn để
-                hoàn tất giao dịch.
+                hoàn tất giao dịch. Các phương thức khác sẽ được mở trong các
+                phiên bản tiếp theo.
               </p>
             </div>
           </div>

@@ -1,5 +1,7 @@
 import axios from "axios";
 
+let isHandlingUnauthorized = false;
+
 const axiosClient = axios.create({
     baseURL: "http://localhost:8080/api",
     headers: {
@@ -17,6 +19,25 @@ axiosClient.interceptors.request.use(
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+axiosClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error?.response?.status;
+        const hasToken = Boolean(localStorage.getItem("token"));
+
+        if (status === 401 && hasToken && !isHandlingUnauthorized) {
+            isHandlingUnauthorized = true;
+
+            localStorage.removeItem("user");
+            localStorage.removeItem("token");
+
+            window.location.replace("/home");
+        }
+
         return Promise.reject(error);
     }
 );

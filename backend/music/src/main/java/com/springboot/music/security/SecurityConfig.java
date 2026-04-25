@@ -17,9 +17,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthFilter,
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint
+    ) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
     }
 
     @Bean
@@ -46,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/cart/**", "/orders/checkout").authenticated()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 // Không lưu session (Stateless) vì mỗi request đều có JWT rồi
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // Chèn cái trạm gác cổng JWT của mình vào trước trạm gác mặc định của Spring

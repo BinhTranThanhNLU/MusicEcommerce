@@ -11,13 +11,13 @@ public class PasswordGeneratorTest {
         // Tạo encoder giống hệt cái ông đã @Bean trong SecurityConfig
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-        String rawPassword = "Binh0402@"; // Pass ông muốn tạo
+        String rawPassword = "Hieuthuhai0402@"; // Pass ông muốn tạo
         String encodedPassword = passwordEncoder.encode(rawPassword);
 
-        System.out.println("=====================================================");
-        System.out.println("Mật khẩu gốc: " + rawPassword);
         System.out.println("Mật khẩu đã băm (Copy chuỗi bên dưới paste vào DB):");
         System.out.println(encodedPassword);
         System.out.println("=====================================================");
+        System.out.println("=====================================================");
+        System.out.println("Mật khẩu gốc: " + rawPassword);
     }
 }

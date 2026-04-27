@@ -5,9 +5,11 @@ import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.mapper.AudioTrackMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.AudioTrackReviewRepository;
+import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.specification.AudioTrackSpecification;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -136,6 +138,110 @@ public class AudioTrackService {
                 .audioId(audioId)
                 .playCount(playCount == null ? 0 : playCount)
                 .build();
+    }
+
+    @Transactional
+    public AudioTrackDTO updateAudioTrack(Integer audioId, UpdateAudioTrackRequest request) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+        }
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Du lieu cap nhat khong duoc de trong");
+        }
+
+        AudioTrack audioTrack = audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
+
+        boolean hasAnyField = false;
+
+        if (request.getTitle() != null) {
+            hasAnyField = true;
+            String title = request.getTitle().trim();
+            if (title.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title khong duoc de trong");
+            }
+            audioTrack.setTitle(title);
+        }
+
+        if (request.getAudioType() != null) {
+            hasAnyField = true;
+            String audioType = request.getAudioType().trim();
+            if (audioType.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio type khong duoc de trong");
+            }
+            audioTrack.setAudioType(audioType);
+        }
+
+        if (request.getDescription() != null) {
+            hasAnyField = true;
+            String description = request.getDescription().trim();
+            audioTrack.setDescription(description.isBlank() ? null : description);
+        }
+
+        if (request.getLyrics() != null) {
+            hasAnyField = true;
+            String lyrics = request.getLyrics().trim();
+            audioTrack.setLyrics(lyrics.isBlank() ? null : lyrics);
+        }
+
+        if (request.getDuration() != null) {
+            hasAnyField = true;
+            if (request.getDuration() <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phai lon hon 0");
+            }
+            audioTrack.setDuration(request.getDuration());
+        }
+
+        if (request.getOriginalFileUrl() != null) {
+            hasAnyField = true;
+            String originalFileUrl = request.getOriginalFileUrl().trim();
+            audioTrack.setOriginalFileUrl(originalFileUrl.isBlank() ? null : originalFileUrl);
+        }
+
+        if (request.getWatermarkedFileUrl() != null) {
+            hasAnyField = true;
+            String watermarkedFileUrl = request.getWatermarkedFileUrl().trim();
+            audioTrack.setWatermarkedFileUrl(watermarkedFileUrl.isBlank() ? null : watermarkedFileUrl);
+        }
+
+        if (request.getCoverImage() != null) {
+            hasAnyField = true;
+            String coverImage = request.getCoverImage().trim();
+            audioTrack.setCoverImage(coverImage.isBlank() ? null : coverImage);
+        }
+
+        if (request.getStatus() != null) {
+            hasAnyField = true;
+            String status = request.getStatus().trim();
+            audioTrack.setStatus(status.isBlank() ? null : status);
+        }
+
+        if (!hasAnyField) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 truong de cap nhat");
+        }
+
+        AudioTrack savedTrack = audioTrackRepository.save(audioTrack);
+        AudioTrackDTO dto = audioTrackMapper.toDto(savedTrack);
+        enrichReviewStats(List.of(dto));
+        return dto;
+    }
+
+    @Transactional
+    public void deleteAudioTrack(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+        }
+
+        AudioTrack audioTrack = audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
+
+        try {
+            audioTrackRepository.delete(audioTrack);
+            audioTrackRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Khong the xoa audio track vi du lieu dang duoc su dung", ex);
+        }
     }
 
 }

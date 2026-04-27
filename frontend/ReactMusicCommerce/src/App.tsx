@@ -24,6 +24,8 @@ import ArtistUploadPage from "./pages/artist/ArtistUploadPage";
 import ArtistLicensesPage from "./pages/artist/ArtistLicensesPage";
 import ArtistRevenuePage from "./pages/artist/ArtistRevenuePage";
 import { AuthContext } from "./context/AuthContext";
+import ViewDetailTrack from "./components/ArtistTrackComponent/ViewDetailTrack";
+import UpdateTrack from "./components/ArtistTrackComponent/UpdateTrack";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -81,6 +83,8 @@ function App() {
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<ArtistDashboardPage />} />
                   <Route path="tracks" element={<ArtistTracksPage />} />
+                  <Route path="tracks/view/:id" element={<ViewDetailTrack />} />
+                  <Route path="tracks/update/:id" element={<UpdateTrack />} />
                   <Route path="upload" element={<ArtistUploadPage />} />
                   <Route path="licenses" element={<ArtistLicensesPage />} />
                   <Route path="revenue" element={<ArtistRevenuePage />} />

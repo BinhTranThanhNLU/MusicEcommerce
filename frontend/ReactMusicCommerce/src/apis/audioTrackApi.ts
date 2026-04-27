@@ -1,4 +1,5 @@
 import type { AudioTrackModel } from "../models/AudioTrackModel";
+import type { UpdateAudioTrackRequest } from "../requestmodel/UpdateAudioTrackRequest";
 import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
 import type { AudioTrackPlayCountResponse } from "../responsemodel/AudioTrackPlayCountResponse";
 import axiosClient from "./axiosClient";
@@ -25,6 +26,19 @@ export const getTracksByTheme = async (idTheme: number, params: any): Promise<Au
 
 export const getAudioTrackById = async (id: number): Promise<AudioTrackModel> => {
   const response = await axiosClient.get(`/audio-tracks/${id}`);
+  return response.data;
+};
+
+export const updateAudioTrack = async (
+  id: number,
+  request: UpdateAudioTrackRequest,
+): Promise<AudioTrackModel> => {
+  const response = await axiosClient.put(`/audio-tracks/${id}`, request);
+  return response.data;
+};
+
+export const deleteAudioTrack = async (id: number): Promise<string> => {
+  const response = await axiosClient.delete(`/audio-tracks/${id}`);
   return response.data;
 };
 

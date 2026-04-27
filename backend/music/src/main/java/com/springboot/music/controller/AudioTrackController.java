@@ -1,11 +1,13 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.dto.AudioTrackDTO;
+import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.service.AudioTrackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -98,6 +100,19 @@ public class AudioTrackController {
     @PostMapping("/{id}/preview-play")
     public ResponseEntity<AudioTrackPlayCountResponse> incrementPreviewPlayCount(@PathVariable Integer id) {
         return ResponseEntity.ok(audioTrackService.incrementPreviewPlayCount(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AudioTrackDTO> updateAudioTrack(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateAudioTrackRequest request) {
+        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteAudioTrack(@PathVariable Integer id) {
+        audioTrackService.deleteAudioTrack(id);
+        return ResponseEntity.ok("Audio track deleted successfully");
     }
 
 }

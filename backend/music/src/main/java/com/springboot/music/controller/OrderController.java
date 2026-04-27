@@ -1,6 +1,5 @@
 package com.springboot.music.controller;
 
-import com.springboot.music.dto.LibraryItemDTO;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.requestmodel.CheckoutRequest;
 import com.springboot.music.responsemodel.CheckoutResponse;
@@ -12,7 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(origins = "http://localhost:5173")

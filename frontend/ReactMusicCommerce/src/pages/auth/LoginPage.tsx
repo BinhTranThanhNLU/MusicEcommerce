@@ -6,6 +6,52 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { loginWithEmail, loginWithGoogleToken } from "../../apis/authApi";
 import { GoogleLogin } from "@react-oauth/google";
+import axios from "axios";
+
+interface BackendErrorResponse {
+  error?: string;
+  message?: string;
+  status?: number;
+  path?: string;
+  timestamp?: string;
+}
+
+const resolveAuthErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    const data = error.response?.data as BackendErrorResponse | string | undefined;
+
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data && typeof data === "object") {
+      if (typeof data.message === "string" && data.message.trim()) {
+        return data.message;
+      }
+
+      if (typeof data.error === "string" && data.error.trim()) {
+        return data.error;
+      }
+    }
+
+    if (status === 401) {
+      return "Email hoặc mật khẩu không chính xác.";
+    }
+
+    if (status && status >= 500) {
+      return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.";
+    }
+
+    return fallback;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -31,8 +77,10 @@ const LoginPage = () => {
         authContext.loginContext(response.user, response.token);
       }
       navigate("/"); // Chuyển về trang chủ
-    } catch (error: any) {
-      setHttpError(error.message || "Đăng nhập thất bại. Vui lòng thử lại!");
+    } catch (error: unknown) {
+      setHttpError(
+        resolveAuthErrorMessage(error, "Đăng nhập thất bại. Vui lòng thử lại!"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -53,9 +101,12 @@ const LoginPage = () => {
         authContext.loginContext(response.user, response.token);
       }
       navigate("/");
-    } catch (error: any) {
+    } catch (error: unknown) {
       setHttpError(
-        error.message || "Đăng nhập Google thất bại. Vui lòng thử lại!",
+        resolveAuthErrorMessage(
+          error,
+          "Đăng nhập Google thất bại. Vui lòng thử lại!",
+        ),
       );
     } finally {
       setIsLoading(false);
@@ -63,7 +114,6 @@ const LoginPage = () => {
   };
 
   if (isLoading) return <SpinningLoading />;
-  if (httpError) return <ErrorMessage message={httpError} />;
 
   return (
     <main className="main">
@@ -131,6 +181,8 @@ const LoginPage = () => {
                         Quên mật khẩu?
                       </Link>
                     </div>
+
+                    {httpError && <ErrorMessage message={httpError} />}
 
                     <button
                       type="submit"

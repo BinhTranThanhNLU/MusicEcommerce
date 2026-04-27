@@ -70,7 +70,7 @@ public class OrderService {
             throw new RuntimeException("Phương thức thanh toán chưa được hỗ trợ: " + paymentMethod);
         }
         if (PAYMENT_METHOD_MOMO.equals(paymentMethod)) {
-            throw new RuntimeException("MoMo chưa được tích hợp. Hiện tại chỉ hỗ trợ VNPay hoặc COD.");
+            throw new RuntimeException("MoMo chưa được tích hợp. Hiện tại chỉ hỗ trợ VNPay.");
         }
 
         boolean isVnPay = PAYMENT_METHOD_VNPAY.equals(paymentMethod);

@@ -4,6 +4,26 @@ import { useState } from "react";
 import type { RegisterRequest } from "../../requestmodel/RegisterRequest";
 import { registerUser } from "../../apis/authApi";
 import Swal from "sweetalert2";
+import { parseApiError } from "../../utils/apiError";
+
+interface RegisterFormFieldErrors {
+  fullName?: string;
+  email?: string;
+  role?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+
+const mapRegisterFieldErrors = (
+  backendFieldErrors: Record<string, string>,
+): RegisterFormFieldErrors => {
+  return {
+    fullName: backendFieldErrors.name,
+    email: backendFieldErrors.email,
+    role: backendFieldErrors.role,
+    password: backendFieldErrors.password,
+  };
+};
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -17,6 +37,7 @@ const RegisterPage = () => {
   });
 
   const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<RegisterFormFieldErrors>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -27,18 +48,29 @@ const RegisterPage = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (name in next) {
+        delete next[name as keyof RegisterFormFieldErrors];
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
 
     if (formData.password !== formData.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp!");
+      setFieldErrors({ confirmPassword: "Mật khẩu xác nhận không khớp!" });
       return;
     }
 
@@ -68,10 +100,15 @@ const RegisterPage = () => {
           navigate("/login");
         }
       });
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data || "Đăng ký thất bại. Vui lòng thử lại!";
-      setError(errorMessage);
+    } catch (err: unknown) {
+      const parsed = parseApiError(err, "Đăng ký thất bại. Vui lòng thử lại!");
+      const mappedFieldErrors = mapRegisterFieldErrors(parsed.fieldErrors);
+      const hasFieldErrors = Object.values(mappedFieldErrors).some(
+        (value) => typeof value === "string" && value.trim().length > 0,
+      );
+
+      setFieldErrors(mappedFieldErrors);
+      setError(hasFieldErrors ? "" : parsed.message);
     } finally {
       setIsLoading(false);
     }
@@ -99,40 +136,46 @@ const RegisterPage = () => {
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
                       <div className="form-floating mb-3">
                         <input
                           type="text"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.fullName ? "is-invalid" : ""}`}
                           id="fullName"
                           name="fullName"
                           placeholder="Họ và Tên"
-                          required
                           autoComplete="name"
                           value={formData.fullName}
                           onChange={handleChange}
                         />
                         <label htmlFor="fullName">Họ và Tên</label>
+                        {fieldErrors.fullName && (
+                          <div className="invalid-feedback">
+                            {fieldErrors.fullName}
+                          </div>
+                        )}
                       </div>
 
                       <div className="form-floating mb-3">
                         <input
                           type="email"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.email ? "is-invalid" : ""}`}
                           id="email"
                           name="email"
                           placeholder="Email"
-                          required
                           autoComplete="email"
                           value={formData.email}
                           onChange={handleChange}
                         />
                         <label htmlFor="email">Email</label>
+                        {fieldErrors.email && (
+                          <div className="invalid-feedback">{fieldErrors.email}</div>
+                        )}
                       </div>
 
                       <div className="form-floating mb-3">
                         <select
-                          className="form-select"
+                          className={`form-select ${fieldErrors.role ? "is-invalid" : ""}`}
                           id="role"
                           name="role"
                           aria-label="Chọn vai trò của bạn"
@@ -144,6 +187,9 @@ const RegisterPage = () => {
                           <option value="artist">Nghệ sĩ (Artist)</option>
                         </select>
                         <label htmlFor="role">Bạn là ai?</label>
+                        {fieldErrors.role && (
+                          <div className="invalid-feedback">{fieldErrors.role}</div>
+                        )}
                       </div>
 
                       <div className="row mb-3">
@@ -151,17 +197,20 @@ const RegisterPage = () => {
                           <div className="form-floating">
                             <input
                               type={showPassword ? "text" : "password"}
-                              className="form-control"
+                              className={`form-control ${fieldErrors.password ? "is-invalid" : ""}`}
                               id="password"
                               name="password"
                               placeholder="Password"
-                              required
-                              minLength={8}
                               autoComplete="new-password"
                               value={formData.password}
                               onChange={handleChange}
                             />
                             <label htmlFor="password">Password</label>
+                            {fieldErrors.password && (
+                              <div className="invalid-feedback d-block">
+                                {fieldErrors.password}
+                              </div>
+                            )}
                             <i
                               className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"} position-absolute top-50 end-0 translate-middle-y pe-3`}
                               style={{
@@ -178,12 +227,10 @@ const RegisterPage = () => {
                           <div className="form-floating">
                             <input
                               type={showConfirmPassword ? "text" : "password"}
-                              className="form-control"
+                              className={`form-control ${fieldErrors.confirmPassword ? "is-invalid" : ""}`}
                               id="confirmPassword"
                               name="confirmPassword"
                               placeholder="Confirm Password"
-                              required
-                              minLength={8}
                               autoComplete="new-password"
                               value={formData.confirmPassword}
                               onChange={handleChange}
@@ -191,6 +238,11 @@ const RegisterPage = () => {
                             <label htmlFor="confirmPassword">
                               Xác nhận Password
                             </label>
+                            {fieldErrors.confirmPassword && (
+                              <div className="invalid-feedback d-block">
+                                {fieldErrors.confirmPassword}
+                              </div>
+                            )}
                             <i
                               className={`bi ${showConfirmPassword ? "bi-eye-slash" : "bi-eye"} position-absolute top-50 end-0 translate-middle-y pe-3`}
                               style={{

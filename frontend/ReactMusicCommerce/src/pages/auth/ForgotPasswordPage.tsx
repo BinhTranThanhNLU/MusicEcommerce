@@ -3,6 +3,7 @@ import PageTitle from "../../components/utils/PageTitle";
 import { forgotPassword } from "../../apis/authApi";
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
+import { parseApiError } from "../../utils/apiError";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState<string>("");
@@ -30,9 +31,13 @@ const ForgotPasswordPage = () => {
 
       // Xóa rỗng ô input sau khi gửi thành công
       setEmail("");
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data || "Có lỗi xảy ra. Vui lòng thử lại sau!";
+    } catch (err: unknown) {
+      const parsed = parseApiError(
+        err,
+        "Có lỗi xảy ra. Vui lòng thử lại sau!",
+      );
+      const errorMessage = parsed.fieldErrors.email || parsed.message;
+
       Swal.fire({
         icon: "error",
         title: "Thất bại",

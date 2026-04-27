@@ -7,6 +7,9 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.springboot.music.dto.UserDTO;
 import com.springboot.music.entity.Role;
 import com.springboot.music.entity.User;
+import com.springboot.music.exception.EmailAlreadyExistsException;
+import com.springboot.music.exception.InvalidCredentialsException;
+import com.springboot.music.exception.InvalidRoleException;
 import com.springboot.music.mapper.UserMapper;
 import com.springboot.music.repository.RoleRepository;
 import com.springboot.music.repository.UserRepository;
@@ -50,11 +53,11 @@ public class AuthService {
         User user = userRepository.findByEmail(email);
 
         if(user == null) {
-            throw new RuntimeException("User not found");
+            throw new InvalidCredentialsException("Sai email hoặc mật khẩu");
         }
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new InvalidCredentialsException("Sai email hoặc mật khẩu");
         }
 
         String token = jwtService.generateToken(user.getEmail());
@@ -118,7 +121,7 @@ public class AuthService {
                 throw new RuntimeException("Invalid ID token.");
             }
         } catch (Exception e) {
-            throw new RuntimeException("Google authentication failed: " + e.getMessage());
+            throw new RuntimeException("Xác thực Google thất bại: " + e.getMessage());
         }
     }
 
@@ -126,7 +129,7 @@ public class AuthService {
     public void register(RegisterRequest request) {
         // 1. Kiểm tra email đã tồn tại chưa
         if (userRepository.findByEmail(request.getEmail()) != null) {
-            throw new RuntimeException("Email is already registered");
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
         }
 
         // 2. Xác định Role (Chỉ cho phép user hoặc artist)
@@ -137,7 +140,7 @@ public class AuthService {
 
         Role userRole = roleRepository.findByName(requestedRole);
         if (userRole == null) {
-            throw new RuntimeException("Role '" + requestedRole + "' not found in database");
+            throw new InvalidRoleException("Role '" + requestedRole + "' not found in database");
         }
 
         // 3. Tạo User mới
@@ -179,17 +182,17 @@ public class AuthService {
         try {
             email = jwtService.extractEmail(token);
         } catch (Exception e) {
-            throw new RuntimeException("Invalid or expired password reset token");
+            throw new RuntimeException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
         }
 
         if (!jwtService.isResetPasswordTokenValid(token, email)) {
-            throw new RuntimeException("Invalid or expired password reset token");
+            throw new RuntimeException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạnn");
         }
 
         // 2. Tìm user
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("Không tìm thấy người dùng");
         }
 
         // 3. Cập nhật mật khẩu mới

@@ -1,16 +1,8 @@
 import "../../assets/css/artistDashboard.css";
-import ArtistSidebar from "../../components/layouts/ArtistSidebar";
-import ArtistHeader from "../../components/layouts/ArtistHeader";
 
 const ArtistLicensesPage = () => {
   return (
-    <div className="artist-dashboard d-flex">
-      <ArtistSidebar />
-
-      <main className="main-content flex-grow-1 bg-light min-vh-100">
-        <ArtistHeader />
-
-        <div className="container-fluid py-4 px-lg-4">
+    <div className="container-fluid py-4 px-lg-4">
           {/* ================= TIÊU ĐỀ ================= */}
           <div className="d-flex justify-content-between align-items-end mb-4">
             <div>
@@ -211,8 +203,6 @@ const ArtistLicensesPage = () => {
             </div>
           </div>
 
-        </div>
-      </main>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
-import { useAudioPlayer } from "../context/AudioPlayerContext";
-import "../assets/css/audioPlayer.css";
+import { useAudioPlayer } from "../../context/AudioPlayerContext";
+import "../../assets/css/audioPlayer.css";
 
 const AudioPlayer: React.FC = () => {
   const {

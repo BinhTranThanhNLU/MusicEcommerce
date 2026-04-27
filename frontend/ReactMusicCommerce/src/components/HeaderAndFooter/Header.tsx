@@ -72,8 +72,6 @@ const Header = () => {
 
   if (httpError) return <ErrorMessage message={httpError} />;
 
-  if (httpError) return <ErrorMessage message={httpError} />;
-
   return (
     <header id="header" className="header sticky-top">
       {/* Main Header */}
@@ -188,7 +186,7 @@ const Header = () => {
                         {user.role === "artist" && (
                           <Link
                             className="dropdown-item d-flex align-items-center text-primary"
-                            to="/artist-portal"
+                            to="/artist/dashboard"
                           >
                             <i className="bi bi-mic me-2"></i>
                             <span>Quản lý Kênh Nghệ Sĩ</span>

@@ -3,10 +3,26 @@
 .artist-dashboard {
   min-height: 100vh;
   overflow-x: hidden;
+  color: var(--default-color);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--background-color), var(--default-color) 2%) 0%,
+    color-mix(in srgb, var(--background-color), var(--default-color) 5%) 100%
+  );
+}
+
+.artist-dashboard h1,
+.artist-dashboard h2,
+.artist-dashboard h3,
+.artist-dashboard h4,
+.artist-dashboard h5,
+.artist-dashboard h6 {
+  color: var(--heading-color);
+  font-family: var(--heading-font);
 }
 
 /* Sidebar Styling */
-.sidebar {
+.artist-dashboard .sidebar {
   width: 260px;
   height: 100vh;
   position: sticky;
@@ -15,65 +31,120 @@
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  background: var(--surface-color);
+  border-right: 1px solid color-mix(in srgb, var(--default-color), transparent 91%);
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--default-color), transparent 96%);
+}
+
+.artist-dashboard .sidebar .logo {
+  color: var(--heading-color);
+  font-family: var(--heading-font);
 }
 
 /* Khi sidebar bị đóng (trên mobile hoặc do user toggle) */
-.sidebar.closed {
+.artist-dashboard .sidebar.closed {
   margin-left: -260px; /* Ẩn sidebar đi */
 }
 
 /* Responsive behavior */
 @media (max-width: 991.98px) {
-  .sidebar {
+  .artist-dashboard .sidebar {
     position: fixed; /* Nổi lên trên content ở màn hình nhỏ */
   }
-  .sidebar.open {
+  .artist-dashboard .sidebar.open {
     margin-left: 0;
   }
-  .sidebar.closed {
+  .artist-dashboard .sidebar.closed {
     margin-left: -260px;
   }
 }
 
 /* Tinh chỉnh nav link trong sidebar */
-.sidebar-menu .nav-link {
+.artist-dashboard .sidebar-menu .nav-link {
+  color: color-mix(in srgb, var(--default-color), transparent 10%);
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
   transition: all 0.2s ease;
 }
 
-.sidebar-menu .nav-link:hover {
-  background-color: #f8f9fa; /* Màu nền khi hover */
+.artist-dashboard .sidebar-menu .nav-link:hover {
+  background-color: color-mix(in srgb, var(--accent-color), transparent 96%);
+  border-color: color-mix(in srgb, var(--accent-color), transparent 90%);
   color: var(--accent-color) !important;
 }
 
-.sidebar-menu .nav-link.active {
-  background-color: #f0f4f8 !important; /* Màu nền cho mục đang chọn */
+.artist-dashboard .sidebar-menu .nav-link.active {
+  background-color: color-mix(in srgb, var(--accent-color), transparent 94%) !important;
+  border-color: color-mix(in srgb, var(--accent-color), transparent 87%);
   color: var(--accent-color) !important;
   font-weight: 600 !important;
 }
 
-.sidebar-menu .nav-link.active i {
+.artist-dashboard .sidebar-menu .nav-link.active i {
   color: var(--accent-color) !important;
 }
 
-/* Header Styling */
-.header {
-  height: 70px;
-  z-index: 999;
+.artist-dashboard .main-content {
+  background: transparent;
 }
 
-.header .search-bar .input-group-text,
-.header .search-bar .form-control {
-    background-color: #f4f6f8 !important; /* Màu nền search bar giống ảnh mẫu */
-    border-radius: 8px;
+/* Header Styling */
+.artist-dashboard .header {
+  height: 70px;
+  z-index: 999;
+  background: var(--surface-color) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--default-color), transparent 91%);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--default-color), transparent 96%) !important;
 }
-.header .search-bar .input-group-text {
+
+.artist-dashboard .header .search-bar .input-group-text,
+.artist-dashboard .header .search-bar .form-control {
+    background-color: color-mix(in srgb, var(--default-color), transparent 95%) !important;
+    border-radius: 8px;
+    border-color: color-mix(in srgb, var(--default-color), transparent 90%) !important;
+    color: var(--default-color);
+}
+.artist-dashboard .header .search-bar .input-group-text {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
-.header .search-bar .form-control {
+.artist-dashboard .header .search-bar .form-control {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
-.header .search-bar .form-control:focus {
+.artist-dashboard .header .search-bar .form-control:focus {
     box-shadow: none;
+    border-color: color-mix(in srgb, var(--accent-color), transparent 65%) !important;
+}
+
+.artist-dashboard .card {
+  border: 1px solid color-mix(in srgb, var(--default-color), transparent 92%) !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--default-color), transparent 96%) !important;
+}
+
+.artist-dashboard .table {
+  --bs-table-bg: var(--surface-color);
+  --bs-table-border-color: color-mix(in srgb, var(--default-color), transparent 90%);
+}
+
+.artist-dashboard .table-light,
+.artist-dashboard .table thead {
+  background-color: color-mix(in srgb, var(--default-color), transparent 97%) !important;
+}
+
+.artist-dashboard .card .text-muted,
+.artist-dashboard .small.text-muted {
+  color: color-mix(in srgb, var(--default-color), transparent 24%) !important;
+}
+
+.artist-dashboard .btn-primary,
+.artist-dashboard .btn-dark {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.artist-dashboard .btn-primary:hover,
+.artist-dashboard .btn-dark:hover {
+  background-color: color-mix(in srgb, var(--accent-color), #000 15%);
+  border-color: color-mix(in srgb, var(--accent-color), #000 15%);
 }

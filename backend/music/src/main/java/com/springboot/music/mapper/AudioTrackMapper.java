@@ -18,6 +18,7 @@ public interface AudioTrackMapper {
     // 1. từ Entity sang DTO
     @Mapping(target = "startingPrice", expression = "java(calculateStartingPrice(audioTrack.getLicenses()))")
     @Mapping(target = "tags", expression = "java(mapTags(audioTrack.getGenres(), audioTrack.getMoods()))")
+    @Mapping(target = "authorName", expression = "java(mapAuthorName(audioTrack.getCopyrightInfo()))")
     AudioTrackDTO toDto(AudioTrack audioTrack);
 
     // 2. Từ Entity List sang DTO List
@@ -57,6 +58,10 @@ public interface AudioTrackMapper {
                 .genres(genreNames)
                 .moods(moodNames)
                 .build();
+    }
+
+    default String mapAuthorName(CopyrightInfo copyrightInfo) {
+        return copyrightInfo != null ? copyrightInfo.getOwnerName() : null;
     }
 
 }

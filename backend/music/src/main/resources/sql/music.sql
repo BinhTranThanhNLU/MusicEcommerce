@@ -42,6 +42,22 @@ CREATE TABLE `audio_track`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 26 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_vietnamese_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for copyright_info
+-- ----------------------------
+DROP TABLE IF EXISTS `copyright_info`;
+CREATE TABLE `copyright_info`  (
+  `copyright_id` int(11) NOT NULL AUTO_INCREMENT,
+  `audio_id` int(11) NOT NULL,
+  `owner_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT NULL,
+  `isrc_code` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT NULL,
+  `certificate_file_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT NULL,
+  `registered_at` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`copyright_id`) USING BTREE,
+  UNIQUE INDEX `uk_copyright_info_audio_id`(`audio_id`) USING BTREE,
+  CONSTRAINT `copyright_info_ibfk_1` FOREIGN KEY (`audio_id`) REFERENCES `audio_track` (`audio_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_vietnamese_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Records of audio_track
 -- ----------------------------
 INSERT INTO `audio_track` VALUES (1, 'You & Me', 1, 'Instrumental', 'Bản nhạc này được cấp phép theo giấy phép Creative Commons CC BY, cho phép bạn sử dụng hoàn toàn miễn phí trong các dự án của mình (bao gồm cả dự án thương mại), miễn là bạn ghi rõ tên tác giả. Xem thêm Câu hỏi thường gặp tại đây.\n\nNếu bạn muốn sử dụng nhạc của tôi mà không cần ghi tên tác giả, vui lòng mua giấy phép tại đây.\n\nNghe trực tuyến và mua album trên các nền tảng yêu thích của bạn.\n\nNếu bạn thích hoặc sử dụng nhạc của tôi và thấy giá trị trong những gì tôi làm, hãy cân nhắc quyên góp.\n\nNếu bạn đã sử dụng nhạc của tôi, hãy để lại bình luận hoặc email cho tôi. Tôi rất muốn xem dự án của bạn! :)', NULL, 148, 'https://firebasestorage.googleapis.com/v0/b/musicecommerce.firebasestorage.app/o/original_file_url%2FPamela%20Yuen%20-%20You%20%26%20Me.mp3?alt=media&token=76b037e7-97bc-42bb-a9e1-828a271eb61a', '', 'https://i1.sndcdn.com/artworks-XckRSUsvy3wMYU9w-xrjNsA-t1080x1080.jpg', 'Pending', 0, 'Pending', '2026-04-07 20:08:19');

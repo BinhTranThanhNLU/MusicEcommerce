@@ -34,3 +34,4 @@ build/
 
 ### Secret Key ###
 application-secret.properties
+src/main/resources/firebase/*.json

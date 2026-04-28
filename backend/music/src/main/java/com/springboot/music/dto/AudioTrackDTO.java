@@ -23,6 +23,7 @@ public class AudioTrackDTO {
     private Double averageRating;
     private Long reviewCount;
     private LocalDateTime uploadDate;
+    private String authorName;
 
     private ArtistDTO artist;
     private TrackTagsDTO tags;

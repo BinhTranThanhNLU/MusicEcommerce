@@ -1,6 +1,7 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.dto.AudioTrackDTO;
+import com.springboot.music.requestmodel.CreateAudioTrackRequest;
 import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
@@ -8,7 +9,9 @@ import com.springboot.music.service.AudioTrackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +33,15 @@ public class AudioTrackController {
     public ResponseEntity<List<AudioTrackDTO>> getAllAudioTracks() {
         List<AudioTrackDTO> responseList = audioTrackService.getAllAudioTracks();
         return ResponseEntity.ok(responseList);
+    }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
+    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
+            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
+            @RequestPart("originalFile") MultipartFile originalFile,
+            @RequestPart("coverImage") MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
     }
 
     @GetMapping("/genre/{id}")

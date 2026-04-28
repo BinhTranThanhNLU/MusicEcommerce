@@ -11,6 +11,7 @@ public class UpdateAudioTrackRequest {
     private String audioType;
     private String description;
     private String lyrics;
+    private String authorName;
     private Integer duration;
     private String originalFileUrl;
     private String watermarkedFileUrl;

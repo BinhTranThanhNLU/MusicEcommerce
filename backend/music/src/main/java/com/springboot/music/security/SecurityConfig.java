@@ -39,7 +39,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configure(http))    // Cấu hình CORS cho React gọi API không bị lỗi
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/audio-tracks/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/audio-tracks/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/audio-tracks/*/preview-play").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/audio-tracks/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
                         .requestMatchers("/artists/**").permitAll()
                         .requestMatchers("/genres/**").permitAll()

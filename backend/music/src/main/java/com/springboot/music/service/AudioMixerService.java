@@ -109,7 +109,7 @@ public class AudioMixerService {
         double beepVolume = watermarkVolume <= 0 ? 1.0 : watermarkVolume;
 
         String filterComplex = String.format(Locale.US,
-                "[0:a]volume=%f[a0];[1:a]volume=%f,volume=if(lt(mod(t\\,%d)\\,%f)\\,1\\,0)[wm];[a0][wm]amix=inputs=2:duration=first:dropout_transition=0[aout]",
+                "[0:a]volume=%f[a0];[1:a]volume=%f,volume='if(lt(mod(t,%d),%f),1,0)':eval=frame[wm];[a0][wm]amix=inputs=2:duration=first:dropout_transition=0[aout]",
                 baseVolume,
                 beepVolume,
                 interval,
@@ -165,7 +165,12 @@ public class AudioMixerService {
         }
         String normalized = text.trim().replaceAll("\\s+", " ");
         int maxLength = 500;
-        return normalized.length() <= maxLength ? normalized : normalized.substring(0, maxLength) + "...";
+
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        // Lấy 500 ký tự CUỐI CÙNG để hiển thị lỗi, vì thường lỗi quan trọng nằm ở cuối output của FFmpeg.
+        return "..." + normalized.substring(normalized.length() - maxLength);
     }
 }
 

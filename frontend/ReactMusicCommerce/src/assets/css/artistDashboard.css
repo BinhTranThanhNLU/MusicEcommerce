@@ -148,3 +148,31 @@
   background-color: color-mix(in srgb, var(--accent-color), #000 15%);
   border-color: color-mix(in srgb, var(--accent-color), #000 15%);
 }
+
+.artist-dashboard .artist-page-shell {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.artist-dashboard .artist-page-shell .artist-page-title {
+  letter-spacing: -0.02em;
+}
+
+.artist-dashboard .artist-page-shell .artist-page-subtitle {
+  max-width: 760px;
+}
+
+.artist-dashboard .artist-page-shell .artist-focus-card {
+  border-radius: 1.5rem;
+}
+
+.artist-dashboard .artist-page-shell .artist-summary-card {
+  min-height: 100%;
+}
+
+@media (max-width: 1199.98px) {
+  .artist-dashboard .artist-page-shell {
+    max-width: 100%;
+  }
+}

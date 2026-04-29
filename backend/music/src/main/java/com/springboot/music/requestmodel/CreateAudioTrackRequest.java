@@ -18,32 +18,32 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateAudioTrackRequest {
 
-    @NotBlank(message = "Title khong duoc de trong")
+    @NotBlank(message = "Ten khong duoc de trong")
     private String title;
 
-    @NotBlank(message = "Audio type khong duoc de trong")
+    @NotBlank(message = "Loai am thanh khong duoc de trong")
     private String audioType;
 
     private String description;
 
     private String lyrics;
 
-    @NotBlank(message = "Author khong duoc de trong")
+    @NotBlank(message = "Nghe si khong duoc de trong")
     private String authorName;
 
-    @NotNull(message = "Duration khong duoc de trong")
-    @Positive(message = "Duration phai lon hon 0")
+    @NotNull(message = "Thoi luong khong duoc de trong")
+    @Positive(message = "Thoi luong phai lon hon 0")
     private Integer duration;
 
-    @NotEmpty(message = "Can it nhat 1 genre")
+    @NotEmpty(message = "Can it nhat 1 the loai")
     private List<@NotNull(message = "Genre id khong duoc null") @Positive(message = "Genre id phai lon hon 0") Integer> genreIds;
 
-    @NotEmpty(message = "Can it nhat 1 mood")
+    @NotEmpty(message = "Can it nhat 1 cam xuc")
     private List<@NotNull(message = "Mood id khong duoc null") @Positive(message = "Mood id phai lon hon 0") Integer> moodIds;
 
     private List<@NotNull(message = "Theme id khong duoc null") @Positive(message = "Theme id phai lon hon 0") Integer> themeIds;
 
-    @NotEmpty(message = "Can it nhat 1 license price")
+    @NotEmpty(message = "Can it nhat 1 loai gia tien cho 1 giay phep")
     @Valid
     private List<LicensePriceRequest> licensePrices;
 }

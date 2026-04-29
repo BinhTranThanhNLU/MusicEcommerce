@@ -6,6 +6,7 @@ import { getAudioTrackById, updateAudioTrack } from "../../apis/audioTrackApi";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import type { UpdateAudioTrackRequest } from "../../requestmodel/UpdateAudioTrackRequest";
 import "../../assets/css/artistDashboard.css";
+import { parseApiError } from "../../utils/apiError";
 
 const FALLBACK_COVER_IMAGE = "/assets/img/product/product-1.webp";
 
@@ -76,9 +77,7 @@ const UpdateTrack = () => {
         });
       } catch (error: any) {
         setErrorMessage(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Không thể tải dữ liệu cập nhật.",
+          parseApiError(error, "Không thể tải dữ liệu cập nhật.").message,
         );
       } finally {
         setIsLoading(false);
@@ -150,10 +149,10 @@ const UpdateTrack = () => {
       await Swal.fire({
         icon: "error",
         title: "Cập nhật thất bại",
-        text:
-          error?.response?.data?.message ||
-          error?.message ||
+        text: parseApiError(
+          error,
           "Không thể cập nhật tác phẩm. Vui lòng thử lại.",
+        ).message,
       });
     } finally {
       setIsSaving(false);
@@ -162,7 +161,7 @@ const UpdateTrack = () => {
 
   if (isLoading) {
     return (
-      <div className="container-fluid py-4 px-lg-4">
+      <div className="container-fluid py-4 px-lg-4 artist-page-shell">
         <div className="card border-0 shadow-sm rounded-4">
           <div className="card-body py-5 text-center">
             <div className="spinner-border text-primary mb-3" role="status" aria-hidden="true" />
@@ -175,7 +174,7 @@ const UpdateTrack = () => {
 
   if (errorMessage || !track) {
     return (
-      <div className="container-fluid py-4 px-lg-4">
+      <div className="container-fluid py-4 px-lg-4 artist-page-shell">
         <div className="alert alert-danger border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center">
           <div>{errorMessage || "Không tìm thấy tác phẩm."}</div>
           <button className="btn btn-outline-danger" onClick={() => navigate("/artist/tracks")}>Quay lại</button>
@@ -185,13 +184,13 @@ const UpdateTrack = () => {
   }
 
   return (
-    <div className="container-fluid py-4 px-lg-4">
-      <div className="d-flex justify-content-between align-items-end mb-4">
+    <div className="container-fluid py-4 px-lg-4 artist-page-shell">
+      <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
         <div>
-          <h3 className="fw-bold mb-1" style={{ color: "var(--heading-color)", fontFamily: "var(--heading-font)" }}>
+          <h3 className="artist-page-title fw-bold mb-1" style={{ color: "var(--heading-color)", fontFamily: "var(--heading-font)" }}>
             Cập nhật tác phẩm
           </h3>
-          <p className="text-muted mb-0">Chỉnh sửa metadata, file đính kèm và trạng thái hiển thị.</p>
+          <p className="artist-page-subtitle text-muted mb-0">Chỉnh sửa metadata, file đính kèm và trạng thái hiển thị.</p>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-secondary rounded-pill px-4" type="button" onClick={() => navigate("/artist/tracks")}>Quay lại</button>
@@ -204,7 +203,7 @@ const UpdateTrack = () => {
       <form id="update-track-form" onSubmit={handleSubmit}>
         <div className="row g-4">
           <div className="col-lg-8">
-            <div className="card border-0 shadow-sm rounded-4 mb-4">
+            <div className="card border-0 shadow-sm rounded-4 mb-4 artist-focus-card">
               <div className="card-body p-4">
                 <h5 className="fw-bold mb-4">Thông tin cơ bản</h5>
                 <div className="mb-3">
@@ -241,7 +240,7 @@ const UpdateTrack = () => {
               </div>
             </div>
 
-            <div className="card border-0 shadow-sm rounded-4">
+            <div className="card border-0 shadow-sm rounded-4 artist-focus-card">
               <div className="card-body p-4">
                 <h5 className="fw-bold mb-4">Đường dẫn file và ảnh</h5>
                 <div className="mb-3">
@@ -261,7 +260,7 @@ const UpdateTrack = () => {
           </div>
 
           <div className="col-lg-4">
-            <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden artist-focus-card">
               <img src={resolveMediaUrl(form.coverImage || track.coverImage)} alt={track.title} className="w-100" style={{ aspectRatio: "1 / 1", objectFit: "cover" }} />
               <div className="card-body p-4">
                 <h5 className="fw-bold mb-2">{track.title}</h5>

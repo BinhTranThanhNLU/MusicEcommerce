@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getAudioTrackById } from "../../apis/audioTrackApi";
 import type { AudioTrackModel } from "../../models/AudioTrackModel";
 import "../../assets/css/artistDashboard.css";
+import { parseApiError } from "../../utils/apiError";
 
 const FALLBACK_COVER_IMAGE = "/assets/img/product/product-1.webp";
 
@@ -102,9 +103,7 @@ const ViewDetailTrack = () => {
         setTrack(data);
       } catch (error: any) {
         setErrorMessage(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Không thể tải chi tiết tác phẩm.",
+          parseApiError(error, "Không thể tải chi tiết tác phẩm.").message,
         );
       } finally {
         setIsLoading(false);
@@ -116,7 +115,7 @@ const ViewDetailTrack = () => {
 
   if (isLoading) {
     return (
-      <div className="container-fluid py-4 px-lg-4">
+      <div className="container-fluid py-4 px-lg-4 artist-page-shell">
         <div className="card border-0 shadow-sm rounded-4">
           <div className="card-body py-5 text-center">
             <div className="spinner-border text-primary mb-3" role="status" aria-hidden="true" />
@@ -129,7 +128,7 @@ const ViewDetailTrack = () => {
 
   if (errorMessage || !track) {
     return (
-      <div className="container-fluid py-4 px-lg-4">
+      <div className="container-fluid py-4 px-lg-4 artist-page-shell">
         <div className="alert alert-danger border-0 shadow-sm rounded-4 d-flex justify-content-between align-items-center">
           <div>{errorMessage || "Không tìm thấy tác phẩm."}</div>
           <button className="btn btn-outline-danger" onClick={() => navigate("/artist/tracks")}>Quay lại</button>
@@ -142,13 +141,13 @@ const ViewDetailTrack = () => {
   const statusTone = getStatusTone(statusText);
 
   return (
-    <div className="container-fluid py-4 px-lg-4">
-      <div className="d-flex justify-content-between align-items-end mb-4">
+    <div className="container-fluid py-4 px-lg-4 artist-page-shell">
+      <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
         <div>
-          <h3 className="fw-bold mb-1" style={{ color: "var(--heading-color)", fontFamily: "var(--heading-font)" }}>
+          <h3 className="artist-page-title fw-bold mb-1" style={{ color: "var(--heading-color)", fontFamily: "var(--heading-font)" }}>
             Chi tiết tác phẩm
           </h3>
-          <p className="text-muted mb-0">Xem toàn bộ thông tin, file đính kèm và trạng thái xuất bản.</p>
+          <p className="artist-page-subtitle text-muted mb-0">Xem toàn bộ thông tin, file đính kèm và trạng thái xuất bản.</p>
         </div>
         <div className="d-flex gap-2">
           <button className="btn btn-outline-secondary rounded-pill px-4" onClick={() => navigate("/artist/tracks")}>
@@ -162,7 +161,7 @@ const ViewDetailTrack = () => {
 
       <div className="row g-4">
         <div className="col-lg-4">
-          <div className="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+          <div className="card border-0 shadow-sm rounded-4 overflow-hidden h-100 artist-focus-card">
             <img
               src={resolveMediaUrl(track.coverImage)}
               alt={track.title}
@@ -197,7 +196,7 @@ const ViewDetailTrack = () => {
         <div className="col-lg-8">
           <div className="row g-4 mb-4">
             <div className="col-md-3">
-              <div className="card border-0 shadow-sm rounded-4 h-100">
+              <div className="card border-0 shadow-sm rounded-4 h-100 artist-summary-card">
                 <div className="card-body text-center py-4">
                   <div className="display-6 fw-bold text-primary">{track.playCount ?? 0}</div>
                   <div className="text-muted small">Lượt nghe thử</div>
@@ -205,7 +204,7 @@ const ViewDetailTrack = () => {
               </div>
             </div>
             <div className="col-md-3">
-              <div className="card border-0 shadow-sm rounded-4 h-100">
+              <div className="card border-0 shadow-sm rounded-4 h-100 artist-summary-card">
                 <div className="card-body text-center py-4">
                   <div className="display-6 fw-bold text-warning">{track.reviewCount ?? 0}</div>
                   <div className="text-muted small">Lượt đánh giá</div>
@@ -213,7 +212,7 @@ const ViewDetailTrack = () => {
               </div>
             </div>
             <div className="col-md-3">
-              <div className="card border-0 shadow-sm rounded-4 h-100">
+              <div className="card border-0 shadow-sm rounded-4 h-100 artist-summary-card">
                 <div className="card-body text-center py-4">
                   <div className="display-6 fw-bold text-success">{track.averageRating?.toFixed(1) ?? "-"}</div>
                   <div className="text-muted small">Điểm trung bình</div>
@@ -221,7 +220,7 @@ const ViewDetailTrack = () => {
               </div>
             </div>
             <div className="col-md-3">
-              <div className="card border-0 shadow-sm rounded-4 h-100">
+              <div className="card border-0 shadow-sm rounded-4 h-100 artist-summary-card">
                 <div className="card-body text-center py-4">
                   <div className="display-6 fw-bold text-dark">{formatDuration(track.duration)}</div>
                   <div className="text-muted small">Thời lượng</div>

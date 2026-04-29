@@ -25,7 +25,29 @@ const isGenericValidationMessage = (message?: string) => {
   }
 
   const normalized = message.toLowerCase();
-  return normalized.includes("validation failed for one or more");
+  return (
+    normalized.includes("validation failed for one or more") ||
+    normalized.includes("failed to convert") ||
+    normalized.includes("could not read document")
+  );
+};
+
+const getFirstMeaningfulValue = (value: unknown): string | undefined => {
+  if (isNonEmptyString(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(getFirstMeaningfulValue).find(isNonEmptyString);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map(getFirstMeaningfulValue)
+      .find(isNonEmptyString);
+  }
+
+  return undefined;
 };
 
 export const parseApiError = (
@@ -51,10 +73,12 @@ export const parseApiError = (
           : {};
 
       const firstFieldError = Object.values(fieldErrors).find(isNonEmptyString);
+      const nestedMessage = getFirstMeaningfulValue(data);
 
       const preferredMessage =
         (isNonEmptyString(data.message) && data.message)
         || (isNonEmptyString(data.error) && data.error)
+        || nestedMessage
         || fallbackMessage;
 
       const message = isGenericValidationMessage(preferredMessage) && firstFieldError

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.net.URLEncoder;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
@@ -49,6 +50,30 @@ public class AudioFileStorageService {
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Khong the doc file preview de upload", ex);
+        }
+    }
+
+    public void deleteFileFromFirebase(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return;
+        }
+
+        Bucket bucket = bucketProvider.getIfAvailable();
+        if (bucket == null) {
+            // Firebase Storage chưa bật, bỏ qua xóa
+            return;
+        }
+
+        try {
+            String objectName = extractObjectNameFromPublicUrl(publicUrl);
+            if (objectName == null || objectName.isBlank()) {
+                return;
+            }
+
+            bucket.getStorage().delete(bucket.getName(), objectName);
+        } catch (Exception ex) {
+            // Non-fatal: bỏ qua lỗi xóa file cũ để không gây ảnh hưởng tới flow chính
+            System.err.println("Cảnh báo: Không thể xóa file khỏi Firebase Storage: " + ex.getMessage());
         }
     }
 
@@ -143,5 +168,23 @@ public class AudioFileStorageService {
                 + "/o/" + encodedObjectName
                 + "?alt=media&token=" + downloadToken;
     }
-}
 
+    private String extractObjectNameFromPublicUrl(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) {
+            return null;
+        }
+
+        try {
+            // URL format: https://firebasestorage.googleapis.com/v0/b/BUCKET_NAME/o/ENCODED_OBJECT_NAME?alt=media&token=TOKEN
+            String[] parts = publicUrl.split("/o/");
+            if (parts.length < 2) {
+                return null;
+            }
+
+            String encodedPart = parts[1].split("\\?")[0];
+            return URLDecoder.decode(encodedPart, StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+}

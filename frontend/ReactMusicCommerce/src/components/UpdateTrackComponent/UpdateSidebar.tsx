@@ -1,19 +1,20 @@
 import React from "react";
-import type { UpdateAudioTrackRequest } from "../../../requestmodel/UpdateAudioTrackRequest";
-import type { AudioTrackModel } from "../../../models/AudioTrackModel";
+import type { UpdateAudioTrackRequest } from "../../requestmodel/UpdateAudioTrackRequest";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
 
 interface Props {
   form: UpdateAudioTrackRequest;
   track: AudioTrackModel;
+  coverPreview: string | null;
   resolveMediaUrl: (path: string | null | undefined) => string;
 }
 
-const UpdateSidebar: React.FC<Props> = ({ form, track, resolveMediaUrl }) => {
+const UpdateSidebar: React.FC<Props> = ({ form, track, coverPreview, resolveMediaUrl }) => {
   return (
     <>
       <div className="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden artist-focus-card">
         <img
-          src={resolveMediaUrl(form.coverImage || track.coverImage)}
+          src={coverPreview || resolveMediaUrl(form.coverImage || track.coverImage)}
           alt={track.title}
           className="w-100"
           style={{ aspectRatio: "1 / 1", objectFit: "cover" }}

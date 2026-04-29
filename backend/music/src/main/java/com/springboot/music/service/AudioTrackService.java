@@ -26,6 +26,7 @@ import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.specification.AudioTrackSpecification;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -410,93 +411,115 @@ public class AudioTrackService {
     }
 
     @Transactional
-    public AudioTrackDTO updateAudioTrack(Integer audioId, UpdateAudioTrackRequest request) {
+    public AudioTrackDTO updateAudioTrack(Integer audioId, String updateRequestJson,
+                                          MultipartFile newOriginalFile,
+                                          MultipartFile newCoverImageFile) {
         if (audioId == null || audioId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
-        }
-        if (request == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Du lieu cap nhat khong duoc de trong");
         }
 
         AudioTrack audioTrack = audioTrackRepository.findById(audioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
 
+        UpdateAudioTrackRequest request = parseUpdateRequest(updateRequestJson);
         boolean hasAnyField = false;
 
-        if (request.getTitle() != null) {
+        // Xử lý original audio file nếu có file mới
+        if (newOriginalFile != null && !newOriginalFile.isEmpty()) {
             hasAnyField = true;
-            String title = request.getTitle().trim();
-            if (title.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title khong duoc de trong");
+            validateUploadFile(newOriginalFile, true);
+            String oldOriginalFileUrl = audioTrack.getOriginalFileUrl();
+            String oldWatermarkedFileUrl = audioTrack.getWatermarkedFileUrl();
+
+            String newOriginalFileUrl = audioFileStorageService.storeOriginalAudio(newOriginalFile);
+            String newWatermarkedFileUrl = createAndStorePreviewFile(newOriginalFile);
+
+            audioTrack.setOriginalFileUrl(newOriginalFileUrl);
+            audioTrack.setWatermarkedFileUrl(newWatermarkedFileUrl);
+
+            // Xóa file cũ trong background (non-fatal)
+            if (oldOriginalFileUrl != null) {
+                audioFileStorageService.deleteFileFromFirebase(oldOriginalFileUrl);
             }
-            audioTrack.setTitle(title);
-        }
-
-        if (request.getAudioType() != null) {
-            hasAnyField = true;
-            String audioType = request.getAudioType().trim();
-            if (audioType.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio type khong duoc de trong");
+            if (oldWatermarkedFileUrl != null) {
+                audioFileStorageService.deleteFileFromFirebase(oldWatermarkedFileUrl);
             }
-            audioTrack.setAudioType(audioType);
         }
 
-        if (request.getDescription() != null) {
+        // Xử lý cover image nếu có file mới
+        if (newCoverImageFile != null && !newCoverImageFile.isEmpty()) {
             hasAnyField = true;
-            String description = request.getDescription().trim();
-            audioTrack.setDescription(description.isBlank() ? null : description);
+            validateUploadFile(newCoverImageFile, false);
+            String oldCoverImageUrl = audioTrack.getCoverImage();
+
+            String newCoverImageUrl = audioFileStorageService.storeCoverImage(newCoverImageFile);
+            audioTrack.setCoverImage(newCoverImageUrl);
+
+            // Xóa ảnh cũ trong background (non-fatal)
+            if (oldCoverImageUrl != null) {
+                audioFileStorageService.deleteFileFromFirebase(oldCoverImageUrl);
+            }
         }
 
-        if (request.getLyrics() != null) {
-            hasAnyField = true;
-            String lyrics = request.getLyrics().trim();
-            audioTrack.setLyrics(lyrics.isBlank() ? null : lyrics);
-        }
-
-        if (request.getAuthorName() != null) {
-            hasAnyField = true;
-            String authorName = request.getAuthorName().trim();
-            if (authorName.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author khong duoc de trong");
+        // Xử lý các field text từ request
+        if (request != null) {
+            if (request.getTitle() != null) {
+                hasAnyField = true;
+                String title = request.getTitle().trim();
+                if (title.isBlank()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title khong duoc de trong");
+                }
+                audioTrack.setTitle(title);
             }
 
-            CopyrightInfo copyrightInfo = copyrightInfoRepository.findByAudioTrack_Id(audioId)
-                    .orElseGet(() -> CopyrightInfo.builder().audioTrack(audioTrack).build());
-            copyrightInfo.setOwnerName(authorName);
-            copyrightInfoRepository.save(copyrightInfo);
-            audioTrack.setCopyrightInfo(copyrightInfo);
-        }
-
-        if (request.getDuration() != null) {
-            hasAnyField = true;
-            if (request.getDuration() <= 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phai lon hon 0");
+            if (request.getAudioType() != null) {
+                hasAnyField = true;
+                String audioType = request.getAudioType().trim();
+                if (audioType.isBlank()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio type khong duoc de trong");
+                }
+                audioTrack.setAudioType(audioType);
             }
-            audioTrack.setDuration(request.getDuration());
-        }
 
-        if (request.getOriginalFileUrl() != null) {
-            hasAnyField = true;
-            String originalFileUrl = request.getOriginalFileUrl().trim();
-            audioTrack.setOriginalFileUrl(originalFileUrl.isBlank() ? null : originalFileUrl);
-        }
+            if (request.getDescription() != null) {
+                hasAnyField = true;
+                String description = request.getDescription().trim();
+                audioTrack.setDescription(description.isBlank() ? null : description);
+            }
 
-        if (request.getWatermarkedFileUrl() != null) {
-            hasAnyField = true;
-            String watermarkedFileUrl = request.getWatermarkedFileUrl().trim();
-            audioTrack.setWatermarkedFileUrl(watermarkedFileUrl.isBlank() ? null : watermarkedFileUrl);
-        }
+            if (request.getLyrics() != null) {
+                hasAnyField = true;
+                String lyrics = request.getLyrics().trim();
+                audioTrack.setLyrics(lyrics.isBlank() ? null : lyrics);
+            }
 
-        if (request.getCoverImage() != null) {
-            hasAnyField = true;
-            String coverImage = request.getCoverImage().trim();
-            audioTrack.setCoverImage(coverImage.isBlank() ? null : coverImage);
-        }
+            if (request.getAuthorName() != null) {
+                hasAnyField = true;
+                String authorName = request.getAuthorName().trim();
+                if (authorName.isBlank()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author khong duoc de trong");
+                }
 
-        if (request.getStatus() != null) {
-            hasAnyField = true;
-            String status = request.getStatus().trim();
-            audioTrack.setStatus(status.isBlank() ? null : status);
+                CopyrightInfo copyrightInfo = copyrightInfoRepository.findByAudioTrack_Id(audioId)
+                        .orElseGet(() -> CopyrightInfo.builder().audioTrack(audioTrack).build());
+                copyrightInfo.setOwnerName(authorName);
+                copyrightInfoRepository.save(copyrightInfo);
+                audioTrack.setCopyrightInfo(copyrightInfo);
+            }
+
+            if (request.getDuration() != null) {
+                hasAnyField = true;
+                if (request.getDuration() <= 0) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phai lon hon 0");
+                }
+                audioTrack.setDuration(request.getDuration());
+            }
+
+            if (request.getStatus() != null) {
+                hasAnyField = true;
+                String status = request.getStatus().trim();
+                audioTrack.setStatus(status.isBlank() ? null : status);
+            }
         }
 
         if (!hasAnyField) {
@@ -507,6 +530,20 @@ public class AudioTrackService {
         AudioTrackDTO dto = audioTrackMapper.toDto(savedTrack);
         enrichReviewStats(List.of(dto));
         return dto;
+    }
+
+    private UpdateAudioTrackRequest parseUpdateRequest(String updateRequestJson) {
+        if (updateRequestJson == null || updateRequestJson.isBlank()) {
+            return null;
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(updateRequestJson, UpdateAudioTrackRequest.class);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Update request JSON khong hop le: " + ex.getMessage(), ex);
+        }
     }
 
     @Transactional

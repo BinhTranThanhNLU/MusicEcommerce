@@ -34,8 +34,28 @@ export const getAudioTrackById = async (id: number): Promise<AudioTrackModel> =>
 export const updateAudioTrack = async (
   id: number,
   request: UpdateAudioTrackRequest,
+  originalFile?: File | null,
+  coverImage?: File | null,
 ): Promise<AudioTrackModel> => {
-  const response = await axiosClient.put(`/audio-tracks/${id}`, request);
+  const formData = new FormData();
+  formData.append(
+    "updateRequest",
+    new Blob([JSON.stringify(request)], { type: "application/json" }),
+  );
+
+  if (originalFile) {
+    formData.append("originalFile", originalFile);
+  }
+
+  if (coverImage) {
+    formData.append("coverImage", coverImage);
+  }
+
+  const response = await axiosClient.put(`/audio-tracks/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 

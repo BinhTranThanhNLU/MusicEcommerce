@@ -4,8 +4,8 @@ export interface UpdateAudioTrackRequest {
   description: string;
   lyrics: string;
   duration: number | null;
-  originalFileUrl: string;
-  watermarkedFileUrl: string;
-  coverImage: string;
+  originalFileUrl?: string;
+  watermarkedFileUrl?: string;
+  coverImage?: string;
   status: string;
 }

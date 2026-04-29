@@ -30,6 +30,9 @@ const UpdateTrackPage = () => {
 
   const [track, setTrack] = useState<AudioTrackModel | null>(null);
   const [form, setForm] = useState<UpdateAudioTrackRequest>(emptyForm);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -52,6 +55,9 @@ const UpdateTrackPage = () => {
           watermarkedFileUrl: data.watermarkedFileUrl ?? "", coverImage: data.coverImage ?? "",
           status: data.status ?? (data.uploadDate ? "Approved" : "Pending"),
         });
+        setOriginalFile(null);
+        setCoverImageFile(null);
+        setCoverPreview(resolveMediaUrl(data.coverImage));
       } catch (error: any) {
         setErrorMessage(parseApiError(error, "Không thể tải dữ liệu cập nhật.").message);
       } finally {
@@ -66,6 +72,25 @@ const UpdateTrackPage = () => {
     setForm((current) => ({ ...current, [name]: name === "duration" ? (value ? Number(value) : null) : value }));
   };
 
+  const handleOriginalFileChange = (file: File | null) => {
+    setOriginalFile(file);
+  };
+
+  const handleCoverImageChange = (file: File | null) => {
+    setCoverImageFile(file);
+
+    if (!file) {
+      setCoverPreview(track ? resolveMediaUrl(track.coverImage) : null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCoverPreview(typeof event.target?.result === "string" ? event.target.result : null);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trackId = Number(id);
@@ -78,11 +103,21 @@ const UpdateTrackPage = () => {
 
     try {
       setIsSaving(true);
-      const updatedTrack = await updateAudioTrack(trackId, {
-        ...form, title: form.title.trim(), audioType: form.audioType.trim(), description: form.description.trim(),
-        lyrics: form.lyrics.trim(), originalFileUrl: form.originalFileUrl.trim(),
-        watermarkedFileUrl: form.watermarkedFileUrl.trim(), coverImage: form.coverImage.trim(), status: form.status.trim(),
-      });
+      const updateRequest: UpdateAudioTrackRequest = {
+        ...form,
+        title: form.title.trim(),
+        audioType: form.audioType.trim(),
+        description: form.description.trim(),
+        lyrics: form.lyrics.trim(),
+        status: form.status.trim(),
+      };
+
+      const updatedTrack = await updateAudioTrack(
+        trackId,
+        updateRequest,
+        originalFile,
+        coverImageFile,
+      );
 
       await Swal.fire({ icon: "success", title: "Cập nhật thành công", text: `Đã cập nhật "${updatedTrack.title}".`, timer: 1800, showConfirmButton: false });
       navigate(`/artist/tracks/view/${updatedTrack.id}`);
@@ -104,7 +139,7 @@ const UpdateTrackPage = () => {
           <p className="artist-page-subtitle text-muted mb-0">Chỉnh sửa metadata, file đính kèm và trạng thái hiển thị.</p>
         </div>
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary rounded-pill px-4" onClick={() => navigate("/artist/tracks")}>Quay lại</button>
+          <button className="btn btn-outline-secondary rounded-pill px-4" type="button" onClick={() => navigate("/artist/tracks")}>Quay lại</button>
           <button className="btn rounded-pill px-4 shadow-sm text-white" style={{ backgroundColor: "var(--accent-color)" }} type="submit" form="update-track-form" disabled={isSaving}>
             {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
@@ -115,10 +150,23 @@ const UpdateTrackPage = () => {
         <div className="row g-4">
           <div className="col-lg-8">
             <UpdateBasicInfoForm form={form} handleChange={handleChange} />
-            <UpdateMediaManager form={form} trackCover={track?.coverImage} resolveMediaUrl={resolveMediaUrl} />
+            <UpdateMediaManager
+              form={form}
+              trackCover={track?.coverImage}
+              coverPreview={coverPreview}
+              originalFile={originalFile}
+              resolveMediaUrl={resolveMediaUrl}
+              onOriginalFileChange={handleOriginalFileChange}
+              onCoverImageChange={handleCoverImageChange}
+            />
           </div>
           <div className="col-lg-4">
-            <UpdateSidebar form={form} track={track} resolveMediaUrl={resolveMediaUrl} />
+            <UpdateSidebar
+              form={form}
+              track={track}
+              coverPreview={coverPreview}
+              resolveMediaUrl={resolveMediaUrl}
+            />
           </div>
         </div>
       </form>

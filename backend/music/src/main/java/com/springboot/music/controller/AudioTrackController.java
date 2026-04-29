@@ -114,11 +114,14 @@ public class AudioTrackController {
         return ResponseEntity.ok(audioTrackService.incrementPreviewPlayCount(id));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update audio track", description = "Cap nhat audio track voi ho tro multipart form data. Cac field text va image/audio file (optional).")
     public ResponseEntity<AudioTrackDTO> updateAudioTrack(
             @PathVariable Integer id,
-            @Valid @RequestBody UpdateAudioTrackRequest request) {
-        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, request));
+            @RequestPart(name = "updateRequest", required = true) String updateRequestJson,
+            @RequestPart(name = "originalFile", required = false) MultipartFile originalFile,
+            @RequestPart(name = "coverImage", required = false) MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, updateRequestJson, originalFile, coverImage));
     }
 
     @DeleteMapping("/{id}")

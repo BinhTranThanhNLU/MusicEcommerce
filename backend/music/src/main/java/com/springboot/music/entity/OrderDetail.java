@@ -3,6 +3,8 @@ package com.springboot.music.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "order_detail")
 @Getter
@@ -31,5 +33,14 @@ public class OrderDetail {
 
     @Column(name = "price", nullable = false)
     private Double price;
+
+    @Column(name = "watermark_id", length = 100)
+    private String watermarkId;
+
+    @Column(name = "expired_at")
+    private LocalDateTime expiredAt;
+
+    @Column(name = "license_status", length = 50)
+    private String licenseStatus;
 }
 

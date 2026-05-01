@@ -8,10 +8,10 @@ public class PasswordGeneratorTest {
 
     @Test
     public void generatePasswordHash() {
-        // Tạo encoder giống hệt cái ông đã @Bean trong SecurityConfig
+
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-        String rawPassword = "Hieuthuhai0402@"; // Pass ông muốn tạo
+        String rawPassword = "Hieuthuhai0402@";
         String encodedPassword = passwordEncoder.encode(rawPassword);
 
         System.out.println("Mật khẩu đã băm (Copy chuỗi bên dưới paste vào DB):");

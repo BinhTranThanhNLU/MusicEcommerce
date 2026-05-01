@@ -199,7 +199,7 @@ public class UserService {
                     "Tai nguyen am thanh hien chua san sang de tai xuong");
         }
 
-        return new DownloadableMusic(targetUrl, buildDownloadFileName(audioTrack));
+        return new DownloadableMusic(targetUrl, buildDownloadFileName(audioTrack), detail.getWatermarkId());
     }
 
     private String normalizeVariant(String variant) {
@@ -231,7 +231,7 @@ public class UserService {
         return safeTitle + ".mp3";
     }
 
-    public record DownloadableMusic(String fileUrl, String fileName) {
+    public record DownloadableMusic(String fileUrl, String fileName, String watermarkId) {
     }
 
     private AudioTrackReview resolveReview(Integer userId, Integer audioId) {

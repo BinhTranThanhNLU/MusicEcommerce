@@ -5,6 +5,7 @@ import com.springboot.music.dto.LibraryItemDTO;
 import com.springboot.music.dto.UserDTO;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.service.CertificateService;
+import com.springboot.music.service.DigitalWatermarkService;
 import com.springboot.music.service.UserService;
 import com.springboot.music.requestmodel.UpdateProfileRequest;
 import org.springframework.http.ContentDisposition;
@@ -34,11 +35,13 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final CertificateService certificateService;
+    private final DigitalWatermarkService digitalWatermarkService;
 
-    public UserController(UserService userService, UserRepository userRepository, CertificateService certificateService) {
+    public UserController(UserService userService, UserRepository userRepository, CertificateService certificateService, DigitalWatermarkService digitalWatermarkService) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.certificateService = certificateService;
+        this.digitalWatermarkService = digitalWatermarkService;
     }
 
     @GetMapping("/me")
@@ -79,7 +82,7 @@ public class UserController {
     }
 
     @GetMapping("/library/{orderDetailId}/download")
-    public ResponseEntity<Void> downloadMusic(
+    public ResponseEntity<byte[]> downloadMusic(
             @PathVariable Integer orderDetailId,
             @RequestParam(name = "variant", required = false) String variant,
             Authentication authentication) {
@@ -89,17 +92,26 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
+        // 1. Lấy thông tin URL và Watermark ID từ service
         UserService.DownloadableMusic downloadableMusic = userService.resolveDownload(user.getId(), orderDetailId, variant);
 
+        // 2. Gọi hàm nhúng Watermark (Gắn ID vào thẳng file nhạc)
+        byte[] fileContent = digitalWatermarkService.injectWatermark(
+                downloadableMusic.fileUrl(),
+                downloadableMusic.watermarkId(),
+                user.getEmail()
+        );
+
+        // 3. Trả file MP3 về cho trình duyệt để tự động tải xuống
         HttpHeaders headers = new HttpHeaders();
-        headers.setLocation(URI.create(downloadableMusic.fileUrl()));
-        headers.setContentDisposition(ContentDisposition.attachment()
-                .filename(downloadableMusic.fileName(), StandardCharsets.UTF_8)
+        headers.setContentType(org.springframework.http.MediaType.valueOf("audio/mpeg"));
+        headers.setContentDisposition(org.springframework.http.ContentDisposition.attachment()
+                .filename(downloadableMusic.fileName(), java.nio.charset.StandardCharsets.UTF_8)
                 .build());
 
-        return ResponseEntity.status(HttpStatus.FOUND)
+        return ResponseEntity.ok()
                 .headers(headers)
-                .build();
+                .body(fileContent);
     }
 
     @GetMapping("/library/{orderDetailId}/certificate")

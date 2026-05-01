@@ -166,6 +166,8 @@ public class OrderService {
         double totalAmount = 0.0;
         List<OrderDetail> orderDetails = new ArrayList<>();
 
+        LocalDateTime now = LocalDateTime.now();
+
         for (CartItem item : items) {
             AudioTrackLicenseId pairId = new AudioTrackLicenseId(
                     item.getAudioTrack().getId(),
@@ -177,14 +179,27 @@ public class OrderService {
             double itemPrice = Optional.ofNullable(trackLicense.getPrice()).orElse(0.0);
             totalAmount += itemPrice;
 
+            // Tự động sinh một mã Watermark ID ngẫu nhiên và duy nhất (Ví dụ: WMK-A1B2C3D4)
+            String generatedWatermarkId = "WMK-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+            // Logic tính ngày hết hạn
+            LocalDateTime expiredAt = null; // Mặc định là null (Vĩnh viễn)
+            String licenseType = item.getLicense().getLicenseType();
+
+            if ("Commercial License".equalsIgnoreCase(licenseType)) {
+                expiredAt = now.plusYears(1); // Nếu là Thương mại thì cộng thêm 1 năm
+            }
+
             orderDetails.add(OrderDetail.builder()
                     .audioTrack(item.getAudioTrack())
                     .license(item.getLicense())
                     .price(itemPrice)
+                    .licenseStatus("ACTIVE") // Mặc định khi mua xong là ACTIVE
+                    .watermarkId(generatedWatermarkId)
+                    .expiredAt(expiredAt)
                     .build());
         }
 
-        LocalDateTime now = LocalDateTime.now();
         OrderEntity order = orderRepository.save(OrderEntity.builder()
                 .user(user)
                 .totalAmount(totalAmount)

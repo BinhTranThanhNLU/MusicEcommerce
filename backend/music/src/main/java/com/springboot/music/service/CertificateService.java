@@ -360,5 +360,24 @@ public class CertificateService {
 
     public record GeneratedCertificate(byte[] content, String filename) {
     }
+
+    @Transactional(readOnly = true)
+    public GeneratedCertificate generateCertificateForArtist(User artist, Integer orderDetailId) {
+        // Kiểm tra quyền của Artist
+        OrderDetail detail = orderDetailRepository.findCertificateItemForArtist(orderDetailId, artist.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Bạn không có quyền truy cập chứng nhận này hoặc chứng nhận không tồn tại"));
+
+        try {
+            // Lấy thông tin người mua (Buyer) để truyền vào hàm in PDF
+            User buyer = detail.getOrder().getUser();
+            byte[] pdfBytes = buildCertificatePdf(buyer, detail);
+            String fileName = "ArtistCopy-" + buildFileName(detail.getAudioTrack());
+            return new GeneratedCertificate(pdfBytes, fileName);
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Không thể tạo file chứng nhận PDF", ex);
+        }
+    }
 }
 

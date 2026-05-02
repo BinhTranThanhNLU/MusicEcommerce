@@ -1,6 +1,14 @@
 import React from "react";
 
-const RevenueStats = () => {
+interface Props {
+  availableBalance: number;
+  pendingBalance: number;
+  totalRevenue: number;
+}
+
+const formatVND = (value: number) => new Intl.NumberFormat("vi-VN").format(value) + " ₫";
+
+const RevenueStats: React.FC<Props> = ({ availableBalance, pendingBalance, totalRevenue }) => {
   return (
     <div className="row g-4 mb-4">
       {/* Card Số dư khả dụng */}
@@ -17,7 +25,7 @@ const RevenueStats = () => {
               <i className="bi bi-wallet2 fs-2 opacity-50"></i>
             </div>
             <div>
-              <h1 className="fw-bold display-5 mb-2">12.500.000 ₫</h1>
+              <h1 className="fw-bold display-5 mb-2">{formatVND(availableBalance)}</h1>
               <p className="mb-0 opacity-75 small">
                 Đã trừ 10% phí nền tảng (Platform Fee)
               </p>
@@ -40,7 +48,7 @@ const RevenueStats = () => {
                     Đang chờ xử lý
                   </span>
                 </div>
-                <h4 className="fw-bold mb-0">500.000 ₫</h4>
+                <h4 className="fw-bold mb-0">{formatVND(pendingBalance)}</h4>
                 <small className="text-muted mt-1">
                   Sẽ cộng vào số dư sau 24h
                 </small>
@@ -60,7 +68,7 @@ const RevenueStats = () => {
                     Tổng thu nhập
                   </span>
                 </div>
-                <h4 className="fw-bold mb-0">45.800.000 ₫</h4>
+                <h4 className="fw-bold mb-0">{formatVND(totalRevenue)}</h4>
                 <small className="text-success mt-1">
                   <i className="bi bi-arrow-up-short"></i> Tăng trưởng ổn định
                 </small>

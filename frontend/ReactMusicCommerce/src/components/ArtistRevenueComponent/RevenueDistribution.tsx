@@ -1,17 +1,15 @@
 import React from "react";
+import type { data } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { RevenuePieModel } from "../../models/RevenuePieModel";
 
-const data = [
-  { name: "Cá nhân", value: 4500000, color: "#0dcaf0" },    // Màu Info
-  { name: "Thương mại", value: 25500000, color: "#dc3545" }, // Màu Danger
-  { name: "Độc quyền", value: 15800000, color: "#ffc107" },  // Màu Warning
-];
+interface Props { data: RevenuePieModel[]; }
 
 const formatVND = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 };
 
-const RevenueDistribution = () => {
+const RevenueDistribution:React.FC<Props> = ({data}) => {
   return (
     <div className="card border-0 shadow-sm rounded-4 h-100">
       <div className="card-body p-4 d-flex flex-column">

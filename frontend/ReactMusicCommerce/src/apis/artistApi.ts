@@ -1,6 +1,9 @@
+import type { ArtistDashboardSummaryModel } from "../models/ArtistDashboardSummaryModel";
 import type { ArtistLicenseStatsModel } from "../models/ArtistLicenseStatsModel";
 import type { ArtistModel } from "../models/ArtistModel";
+import type { ArtistRevenueSummaryModel } from "../models/ArtistRevenueSummaryModel";
 import type { ArtistLicensePageResponse } from "../responsemodel/ArtistLicensePageResponse";
+import type { TransactionPageResponse } from "../responsemodel/TransactionPageResponse";
 import axiosClient from "./axiosClient";
 
 export const getAllArtists = async (): Promise<ArtistModel[]> => {
@@ -57,4 +60,27 @@ export const downloadCertificateForArtist = async (orderDetailId: number): Promi
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+};
+
+// Lấy tổng quan doanh thu của nghệ sĩ
+export const getMyRevenueSummary = async (): Promise<ArtistRevenueSummaryModel> => {
+  const response = await axiosClient.get("/artists/me/revenue/summary");
+  return response.data;
+};
+
+// Lấy lịch sử giao dịch có phân trang
+export const getMyTransactions = async (
+  page: number = 0,
+  size: number = 5 // Lấy 5 dòng 1 trang cho vừa vặn layout
+): Promise<TransactionPageResponse> => {
+  const response = await axiosClient.get("/artists/me/transactions", {
+    params: { page, size },
+  });
+  return response.data;
+};
+
+// Lấy dữ liệu Dashboard tổng quan
+export const getDashboardSummary = async (): Promise<ArtistDashboardSummaryModel> => {
+  const response = await axiosClient.get("/artists/me/dashboard/summary");
+  return response.data;
 };

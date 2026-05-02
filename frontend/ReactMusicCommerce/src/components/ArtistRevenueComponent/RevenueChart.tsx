@@ -1,4 +1,5 @@
 import React from "react";
+import { data } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -8,23 +9,15 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import type { RevenueChartModel } from "../../models/RevenueChartModel";
 
-// Dữ liệu giả lập doanh thu 6 tháng gần nhất
-const data = [
-  { name: "Tháng 10", revenue: 4000000 },
-  { name: "Tháng 11", revenue: 3000000 },
-  { name: "Tháng 12", revenue: 5500000 },
-  { name: "Tháng 1", revenue: 4500000 },
-  { name: "Tháng 2", revenue: 8000000 },
-  { name: "Tháng 3", revenue: 6500000 },
-  { name: "Tháng 4", revenue: 10000000 },
-];
+interface Props { data: RevenueChartModel[]; }
 
 const formatVND = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 };
 
-const RevenueChart = () => {
+const RevenueChart:React.FC<Props> = ({data}) => {
   return (
     <div className="card border-0 shadow-sm rounded-4 mb-4">
       <div className="card-body p-4">

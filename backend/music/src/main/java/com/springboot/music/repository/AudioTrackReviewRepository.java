@@ -1,6 +1,7 @@
 package com.springboot.music.repository;
 
 import com.springboot.music.entity.AudioTrackReview;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,6 +51,21 @@ public interface AudioTrackReviewRepository extends JpaRepository<AudioTrackRevi
             GROUP BY r.rating
             """)
     List<RatingCountView> countByAudioTrackIdGroupedByRating(@Param("audioId") Integer audioId);
+
+    // Đếm tổng số đánh giá
+    @Query("SELECT COUNT(r) FROM AudioTrackReview r WHERE r.audioTrack.artist.id = :artistId")
+    Long countReviewsByArtistId(@Param("artistId") Integer artistId);
+
+    // Lấy 5 đánh giá mới nhất
+    @Query("""
+            SELECT r 
+            FROM AudioTrackReview r 
+            JOIN FETCH r.user u 
+            JOIN FETCH r.audioTrack at 
+            WHERE at.artist.id = :artistId 
+            ORDER BY r.createdAt DESC
+            """)
+    List<AudioTrackReview> findRecentReviewsByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 }
 
 

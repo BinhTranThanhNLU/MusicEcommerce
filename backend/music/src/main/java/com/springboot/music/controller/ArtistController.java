@@ -1,10 +1,13 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.dto.ArtistDTO;
+import com.springboot.music.dto.ArtistDashboardSummaryDTO;
 import com.springboot.music.dto.ArtistLicenseStatsDTO;
+import com.springboot.music.dto.ArtistRevenueSummaryDTO;
 import com.springboot.music.entity.User;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.responsemodel.ArtistLicensePageResponse;
+import com.springboot.music.responsemodel.TransactionPageResponse;
 import com.springboot.music.service.ArtistService;
 import com.springboot.music.service.CertificateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -82,5 +85,30 @@ public class ArtistController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(certificate.content());
+    }
+
+    @GetMapping("/me/revenue/summary")
+    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard Doanh thu của Nghệ sĩ")
+    public ResponseEntity<ArtistRevenueSummaryDTO> getMyRevenueSummary(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getArtistRevenueSummary(email));
+    }
+
+    @GetMapping("/me/transactions")
+    @Operation(summary = "Lấy lịch sử giao dịch của nghệ sĩ (có phân trang)")
+    public ResponseEntity<TransactionPageResponse> getMyTransactions(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getArtistTransactions(email, page, size));
+    }
+
+    @GetMapping("/me/dashboard/summary")
+    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard chính của Nghệ sĩ")
+    public ResponseEntity<ArtistDashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getDashboardSummary(email));
     }
 }

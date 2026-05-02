@@ -113,4 +113,97 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             """)
     Optional<OrderDetail> findCertificateItemForArtist(@Param("orderDetailId") Integer orderDetailId,
                                                        @Param("artistId") Integer artistId);
+
+    // Tính TỔNG DOANH THU trọn đời của Nghệ sĩ
+    @Query("""
+            SELECT SUM(od.price) 
+            FROM OrderDetail od 
+            WHERE od.audioTrack.artist.id = :artistId 
+              AND od.order.paymentStatus = 'COMPLETED'
+            """)
+    Double sumTotalRevenueByArtistId(@Param("artistId") Integer artistId);
+
+    // Gom nhóm doanh thu theo TỪNG LOẠI GIẤY PHÉP (Cho biểu đồ tròn)
+    @Query("""
+            SELECT od.license.licenseType, SUM(od.price) 
+            FROM OrderDetail od 
+            WHERE od.audioTrack.artist.id = :artistId 
+              AND od.order.paymentStatus = 'COMPLETED'
+            GROUP BY od.license.licenseType
+            """)
+    List<Object[]> sumRevenueByLicenseType(@Param("artistId") Integer artistId);
+
+    // Lấy Top bài hát mang lại nhiều tiền nhất (Dùng Pageable để lấy Top 5)
+    @Query("""
+            SELECT at.id, at.title, at.coverImage, l.licenseType, SUM(od.price) as total_revenue
+            FROM OrderDetail od
+            JOIN od.audioTrack at
+            JOIN od.license l
+            WHERE at.artist.id = :artistId 
+              AND od.order.paymentStatus = 'COMPLETED'
+            GROUP BY at.id, at.title, at.coverImage, l.licenseType
+            ORDER BY total_revenue DESC
+            """)
+    List<Object[]> findTopSellingTracks(@Param("artistId") Integer artistId, Pageable pageable);
+
+    // Lấy tất cả OrderDetail đã bán của Nghệ sĩ
+    @Query("""
+            SELECT od
+            FROM OrderDetail od
+            JOIN FETCH od.order o
+            WHERE od.audioTrack.artist.id = :artistId
+              AND o.paymentStatus = 'COMPLETED'
+            """)
+    List<OrderDetail> findAllCompletedByArtistId(@Param("artistId") Integer artistId);
+
+    // Lấy lịch sử giao dịch (bán nhạc) có phân trang
+    @Query(value = """
+            SELECT od
+            FROM OrderDetail od
+            JOIN FETCH od.order o
+            JOIN FETCH od.audioTrack at
+            JOIN FETCH od.license l
+            WHERE at.artist.id = :artistId
+              AND o.paymentStatus = 'COMPLETED'
+            """,
+            countQuery = """
+            SELECT COUNT(od)
+            FROM OrderDetail od
+            WHERE od.audioTrack.artist.id = :artistId
+              AND od.order.paymentStatus = 'COMPLETED'
+            """)
+    Page<OrderDetail> findTransactionsByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
+
+    // Tính doanh thu tháng hiện tại
+    @Query("""
+            SELECT SUM(od.price) 
+            FROM OrderDetail od 
+            WHERE od.audioTrack.artist.id = :artistId 
+              AND od.order.paymentStatus = 'COMPLETED'
+              AND MONTH(od.order.createdAt) = MONTH(CURRENT_DATE)
+              AND YEAR(od.order.createdAt) = YEAR(CURRENT_DATE)
+            """)
+    Double sumMonthlyRevenueByArtistId(@Param("artistId") Integer artistId);
+
+    // Đếm số lượng khách hàng độc lập
+    @Query("""
+            SELECT COUNT(DISTINCT od.order.user.id) 
+            FROM OrderDetail od 
+            WHERE od.audioTrack.artist.id = :artistId 
+              AND od.order.paymentStatus = 'COMPLETED'
+            """)
+    Long countDistinctCustomersByArtistId(@Param("artistId") Integer artistId);
+
+    // Lấy 5 đơn hàng mới nhất
+    @Query("""
+            SELECT od 
+            FROM OrderDetail od 
+            JOIN FETCH od.order o 
+            JOIN FETCH od.audioTrack at 
+            JOIN FETCH o.user u
+            WHERE at.artist.id = :artistId 
+              AND o.paymentStatus = 'COMPLETED'
+            ORDER BY o.createdAt DESC
+            """)
+    List<OrderDetail> findRecentOrdersByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 }

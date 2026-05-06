@@ -374,6 +374,7 @@ public class AudioTrackService {
         return createPageResponse(audioTrackPage);
     }
 
+    // Bổ sung thông tin đánh giá vào DTO
     private void enrichReviewStats(List<AudioTrackDTO> audioTracks) {
         for (AudioTrackDTO dto : audioTracks) {
             if (dto == null || dto.getId() == null) {

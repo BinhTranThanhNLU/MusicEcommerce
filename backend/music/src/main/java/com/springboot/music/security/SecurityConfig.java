@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
+                        .requestMatchers("/admin/**").hasAuthority("admin")
                         .requestMatchers("/artists/**").permitAll()
                         .requestMatchers("/genres/**").permitAll()
                         .requestMatchers("/moods/**").permitAll()

@@ -19,7 +19,10 @@ interface BackendErrorResponse {
 const resolveAuthErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
-    const data = error.response?.data as BackendErrorResponse | string | undefined;
+    const data = error.response?.data as
+      | BackendErrorResponse
+      | string
+      | undefined;
 
     if (typeof data === "string" && data.trim()) {
       return data;
@@ -76,7 +79,12 @@ const LoginPage = () => {
       if (authContext) {
         authContext.loginContext(response.user, response.token);
       }
-      navigate("/"); // Chuyển về trang chủ
+
+      if (response.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/"); // User bình thường
+      }
     } catch (error: unknown) {
       setHttpError(
         resolveAuthErrorMessage(error, "Đăng nhập thất bại. Vui lòng thử lại!"),
@@ -100,7 +108,13 @@ const LoginPage = () => {
       if (authContext) {
         authContext.loginContext(response.user, response.token);
       }
-      navigate("/");
+
+      if (response.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/"); // User bình thường
+      }
+      
     } catch (error: unknown) {
       setHttpError(
         resolveAuthErrorMessage(
@@ -117,7 +131,7 @@ const LoginPage = () => {
 
   return (
     <main className="main">
-      <PageTitle title="Đăng nhập" current="Đăng nhập"/>
+      <PageTitle title="Đăng nhập" current="Đăng nhập" />
 
       <section id="login" className="login section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">

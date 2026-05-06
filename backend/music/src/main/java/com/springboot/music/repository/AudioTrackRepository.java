@@ -2,6 +2,8 @@ package com.springboot.music.repository;
 
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,5 +27,18 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
     // Đếm số tác phẩm đang bán
     @Query("SELECT COUNT(a) FROM AudioTrack a WHERE a.artist.id = :artistId AND a.status = 'Approved'")
     Long countActiveTracksByArtistId(@Param("artistId") Integer artistId);
+
+    @Query(value = """
+            SELECT a
+            FROM AudioTrack a
+            WHERE a.artist.id = :artistId
+            ORDER BY a.uploadDate DESC
+            """,
+            countQuery = """
+            SELECT COUNT(a)
+            FROM AudioTrack a
+            WHERE a.artist.id = :artistId
+            """)
+    Page<AudioTrack> findByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 
 }

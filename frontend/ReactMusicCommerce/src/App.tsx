@@ -2,7 +2,13 @@ import { useContext, useEffect } from "react";
 import "./assets/css/style.css";
 
 import HomePage from "./pages/HomePage";
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+} from "react-router-dom";
 import CategoryPage from "./pages/product/CategoryPage";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -26,6 +32,10 @@ import ArtistRevenuePage from "./pages/artist/ArtistRevenuePage";
 import { AuthContext } from "./context/AuthContext";
 import UpdateTrackPage from "./pages/artist/UpdateTrackPage";
 import ViewTrackPage from "./pages/artist/ViewTrackPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminUserPage from "./pages/admin/AdminUserPage";
+import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -44,10 +54,30 @@ const ArtistRouteGuard = () => {
   return <Outlet />;
 };
 
+const AdminRouteGuard = () => {
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== "admin") {
+    // Nếu không phải admin mà cố tình vào URL admin, đẩy về trang chủ
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Outlet />;
+};
+
 function App() {
   //AOS
   useEffect(() => {
-    const aos = (window as Window & { AOS?: { init: (config: { duration: number; once: boolean }) => void } }).AOS;
+    const aos = (
+      window as Window & {
+        AOS?: { init: (config: { duration: number; once: boolean }) => void };
+      }
+    ).AOS;
     if (aos) {
       aos.init({
         duration: 800,
@@ -62,35 +92,57 @@ function App() {
         <AudioPlayerProvider>
           <BrowserRouter>
             <Routes>
+              {/* --- ROUTE CHO USER --- */}
               <Route element={<MainLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/genre/:id" element={<CategoryPage />} />
                 <Route path="/mood/:id" element={<CategoryPage />} />
                 <Route path="/theme/:id" element={<CategoryPage />} />
-                <Route path="/detail-product/:id" element={<ProductDetailPage />} />
+                <Route
+                  path="/detail-product/:id"
+                  element={<ProductDetailPage />}
+                />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route
+                  path="/forgot-password"
+                  element={<ForgotPasswordPage />}
+                />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/account" element={<AccountPage />} />
               </Route>
 
+              {/* --- ROUTE CHO ARTIST --- */}
               <Route element={<ArtistRouteGuard />}>
                 <Route path="/artist" element={<ArtistLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<ArtistDashboardPage />} />
                   <Route path="tracks" element={<ArtistTracksPage />} />
                   <Route path="tracks/view/:id" element={<ViewTrackPage />} />
-                  <Route path="tracks/update/:id" element={<UpdateTrackPage />} />
+                  <Route
+                    path="tracks/update/:id"
+                    element={<UpdateTrackPage />}
+                  />
                   <Route path="upload" element={<ArtistUploadPage />} />
                   <Route path="licenses" element={<ArtistLicensesPage />} />
                   <Route path="revenue" element={<ArtistRevenuePage />} />
                 </Route>
               </Route>
 
+              {/* --- ROUTE CHO ADMIN --- */}
+              <Route element={<AdminRouteGuard />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboardPage />} />
+                  <Route path="users" element={<AdminUserPage />} />
+                  <Route path="users/view/:id" element={<AdminUserDetailPage />} />
+                </Route>
+              </Route>
+
+              {/* Bắt các route lỗi hoặc linh tinh */}
               <Route
                 path="/artist-dashboard"
                 element={<Navigate to="/artist/dashboard" replace />}

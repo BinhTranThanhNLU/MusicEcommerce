@@ -79,12 +79,7 @@ const AdminUserPage = () => {
           </p>
         </div>
         <div>
-          <button
-            className="btn rounded-pill px-4 shadow-sm text-white"
-            style={{ backgroundColor: "#4f46e5" }}
-          >
-            <i className="bi bi-person-plus me-2"></i> Thêm Quản trị viên
-          </button>
+         
         </div>
       </div>
 

@@ -3,6 +3,8 @@ import type { AdminUserPageResponse } from "../responsemodel/AdminUserPageRespon
 import type { AdminUserDetailModel } from "../models/AdminUserDetailModel";
 import type { AdminUserOrderPageResponse } from "../responsemodel/AdminUserOrderPageResponse";
 import type { AdminUserTrackPageResponse } from "../responsemodel/AdminUserTrackPageResponse";
+import type { AdminOrderPageResponse } from "../responsemodel/AdminOrderPageResponse";
+import type { AdminOrderWithDetailsDTO } from "../responsemodel/AdminOrderWithDetailsDTO";
 
 export const getAdminUsers = async (
   page: number,
@@ -56,5 +58,34 @@ export const getAdminUserTracks = async (
       params: { page, size },
     },
   );
+  return response.data;
+};
+
+export const getAdminOrders = async (
+  page = 0,
+  size = 10,
+  paymentStatus?: string,
+): Promise<AdminOrderPageResponse> => {
+  const params: any = { page, size };
+  if (paymentStatus) params.paymentStatus = paymentStatus;
+
+  const response = await axiosClient.get<AdminOrderPageResponse>("/admin/orders", {
+    params,
+  });
+  return response.data;
+};
+
+export const getAdminOrderDetail = async (id: number): Promise<AdminOrderWithDetailsDTO> => {
+  const response = await axiosClient.get<AdminOrderWithDetailsDTO>(`/admin/orders/${id}`);
+  return response.data;
+};
+
+export const updateAdminOrderStatus = async (
+  id: number,
+  status: string,
+): Promise<string> => {
+  const response = await axiosClient.put<string>(`/admin/orders/${id}/status`, {
+    status,
+  });
   return response.data;
 };

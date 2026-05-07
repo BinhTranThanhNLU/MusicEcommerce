@@ -4,6 +4,9 @@ import com.springboot.music.dto.AdminUserDetailDTO;
 import com.springboot.music.responsemodel.AdminUserPageResponse;
 import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
+import com.springboot.music.dto.AdminOrderWithDetailsDTO;
+import com.springboot.music.responsemodel.AdminOrderPageResponse;
+import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import com.springboot.music.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,5 +73,28 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(adminService.getUserTracks(id, page, size));
+    }
+
+    @GetMapping("/orders")
+    @Operation(summary = "Lấy danh sách tất cả đơn hàng (có phân trang & bộ lọc)")
+    public ResponseEntity<AdminOrderPageResponse> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String paymentStatus) {
+        return ResponseEntity.ok(adminService.getAllOrders(page, size, paymentStatus));
+    }
+
+    @GetMapping("/orders/{id}")
+    @Operation(summary = "Lấy chi tiết đơn hàng theo ID")
+    public ResponseEntity<AdminOrderWithDetailsDTO> getOrderDetail(@PathVariable @Positive Integer id) {
+        return ResponseEntity.ok(adminService.getOrderDetail(id));
+    }
+
+    @PutMapping("/orders/{id}/status")
+    @Operation(summary = "Cập nhật trạng thái đơn hàng")
+    public ResponseEntity<String> updateOrderStatus(
+            @PathVariable @Positive Integer id,
+            @RequestBody UpdateOrderStatusRequest request) {
+        return ResponseEntity.ok(adminService.updateOrderStatus(id, request));
     }
 }

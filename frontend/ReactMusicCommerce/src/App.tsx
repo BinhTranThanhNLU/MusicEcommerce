@@ -36,6 +36,8 @@ import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminUserPage from "./pages/admin/AdminUserPage";
 import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
+import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -139,6 +141,8 @@ function App() {
                   <Route path="dashboard" element={<AdminDashboardPage />} />
                   <Route path="users" element={<AdminUserPage />} />
                   <Route path="users/view/:id" element={<AdminUserDetailPage />} />
+                  <Route path="orders" element={<AdminOrdersPage />} />
+                  <Route path="orders/:id" element={<AdminOrderDetailPage />} />
                 </Route>
               </Route>
 

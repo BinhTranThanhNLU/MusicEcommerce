@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 const AdminSidebar = () => {
   return (
@@ -10,8 +10,8 @@ const AdminSidebar = () => {
         className="sidebar-header p-3 d-flex align-items-center justify-content-between border-bottom"
         style={{ borderColor: "#334155" }}
       >
-        <a
-          href="/admin"
+        <Link
+          to="/admin/dashboard"
           className="logo d-flex align-items-center text-decoration-none"
         >
           <div
@@ -23,72 +23,117 @@ const AdminSidebar = () => {
           <span className="fs-5 fw-bold ms-2 text-white">
             Music <span style={{ color: "#818cf8" }}>Admin</span>
           </span>
-        </a>
+        </Link>
       </div>
 
       <ul className="sidebar-menu nav flex-column p-3 gap-1">
         <li className="nav-item mb-1">
-          <a
-            href="#"
-            className="nav-link rounded d-flex align-items-center fw-medium"
-            style={{
-              backgroundColor: "#334155",
-              color: "#f8fafc",
-              borderLeft: "4px solid #818cf8",
-            }}
+          <NavLink
+            to="/admin/dashboard"
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+            style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
-            <i
-              className="bi bi-speedometer2 me-3 fs-5"
-              style={{ color: "#818cf8" }}
-            ></i>{" "}
+            <i className={`bi bi-speedometer2 me-3 fs-5 ${({ isActive }: any) => isActive ? "" : ""}`} style={{ color: "#818cf8" }}></i>
             Tổng quan
-          </a>
+          </NavLink>
         </li>
         <li className="nav-item mb-1">
-          <a
-            href="#"
-            className="nav-link rounded d-flex align-items-center text-light opacity-75 hover-opacity-100"
+          <NavLink
+            to="/admin/content" // Tui giả định link này cho tương lai
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+             style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
-            <i className="bi bi-music-note-list me-3 fs-5"></i> Kiểm duyệt bài
-            hát
-          </a>
+            <i className="bi bi-music-note-list me-3 fs-5"></i> Kiểm duyệt bài hát
+          </NavLink>
         </li>
         <li className="nav-item mb-1">
-          <Link
+          <NavLink
             to="/admin/users"
-            className="nav-link rounded d-flex align-items-center text-light opacity-75 hover-opacity-100"
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+             style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
             <i className="bi bi-people me-3 fs-5"></i> Quản lý Người dùng
-          </Link>
+          </NavLink>
         </li>
 
         <li className="nav-item mb-1">
-          <a
-            href="#"
-            className="nav-link rounded d-flex align-items-center text-light opacity-75 hover-opacity-100"
+          <NavLink
+            to="/admin/orders" // ĐÃ SỬA LỖI Ở ĐÂY (thêm dấu /)
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+             style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
             <i className="bi bi-receipt me-3 fs-5"></i> Quản lý Hóa đơn
-          </a>
+          </NavLink>
         </li>
 
         <li className="nav-item mb-1">
-          <a
-            href="#"
-            className="nav-link rounded d-flex align-items-center text-light opacity-75 hover-opacity-100"
+          <NavLink
+            to="/admin/copyright" // Tui giả định link này cho tương lai
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+             style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
             <i className="bi bi-shield-check me-3 fs-5"></i> Quản lý Bản quyền
-          </a>
+          </NavLink>
         </li>
         <li
           className="nav-item mt-4 pt-4 border-top"
           style={{ borderColor: "#334155" }}
         >
-          <a
-            href="#"
-            className="nav-link rounded d-flex align-items-center text-light opacity-75 hover-opacity-100"
+          <NavLink
+            to="/admin/settings" // Tui giả định link này cho tương lai
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+             style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
           >
             <i className="bi bi-gear me-3 fs-5"></i> Cài đặt hệ thống
-          </a>
+          </NavLink>
         </li>
       </ul>
     </aside>

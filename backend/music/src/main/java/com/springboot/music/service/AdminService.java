@@ -4,9 +4,11 @@ import com.springboot.music.dto.AccountOrderDTO;
 import com.springboot.music.dto.AccountOrderItemDTO;
 import com.springboot.music.dto.AdminUserDTO;
 import com.springboot.music.dto.AdminUserDetailDTO;
+import com.springboot.music.dto.AdminOrderDTO;
+import com.springboot.music.dto.AdminOrderDetailDTO;
+import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.entity.AudioTrack;
-import com.springboot.music.entity.AudioTrackReview;
 import com.springboot.music.entity.License;
 import com.springboot.music.entity.OrderDetail;
 import com.springboot.music.entity.OrderEntity;
@@ -21,6 +23,8 @@ import com.springboot.music.repository.UserRepository;
 import com.springboot.music.responsemodel.AdminUserPageResponse;
 import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
+import com.springboot.music.responsemodel.AdminOrderPageResponse;
+import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +41,9 @@ import java.util.List;
 public class AdminService {
 
     private static final String ROLE_ARTIST = "artist";
+    private static final String ORDER_STATUS_PENDING = "PENDING";
+    private static final String ORDER_STATUS_COMPLETED = "COMPLETED";
+    private static final String ORDER_STATUS_FAILED = "FAILED";
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -139,6 +146,115 @@ public class AdminService {
                 .currentPage(trackPage.getNumber())
                 .totalPages(trackPage.getTotalPages())
                 .totalItems(trackPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminOrderPageResponse getAllOrders(int page, int size, String paymentStatus) {
+        validatePagination(page, size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<OrderEntity> orderPage = orderRepository.findAllWithFilter(paymentStatus, pageable);
+        List<AdminOrderDTO> orders = orderPage.getContent().stream()
+                .map(this::toAdminOrderDto)
+                .toList();
+
+        return AdminOrderPageResponse.builder()
+                .orders(orders)
+                .currentPage(orderPage.getNumber())
+                .totalPages(orderPage.getTotalPages())
+                .totalItems(orderPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminOrderWithDetailsDTO getOrderDetail(Integer orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(orderId).orElse(null);
+        List<AdminOrderDetailDTO> details = new ArrayList<>();
+
+        if (order.getDetails() != null) {
+            for (OrderDetail detail : order.getDetails()) {
+                AudioTrack audioTrack = detail.getAudioTrack();
+                User artist = audioTrack != null ? audioTrack.getArtist() : null;
+                License license = detail.getLicense();
+
+                details.add(AdminOrderDetailDTO.builder()
+                        .orderDetailId(detail.getId())
+                        .audioId(audioTrack != null ? audioTrack.getId() : null)
+                        .trackTitle(audioTrack != null ? audioTrack.getTitle() : null)
+                        .artistName(artist != null ? artist.getName() : "Unknown Artist")
+                        .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
+                        .licenseType(license != null ? license.getLicenseType() : null)
+                        .price(detail.getPrice())
+                        .duration(audioTrack != null ? audioTrack.getDuration() : null)
+                        .watermarkId(detail.getWatermarkId())
+                        .expiredAt(detail.getExpiredAt())
+                        .licenseStatus(detail.getLicenseStatus())
+                        .build());
+            }
+        }
+
+        User customer = order.getUser();
+        return AdminOrderWithDetailsDTO.builder()
+                .orderId(order.getId())
+                .userId(customer.getId())
+                .customerName(customer.getName())
+                .customerEmail(customer.getEmail())
+                .totalAmount(order.getTotalAmount())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
+                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
+                .createdAt(order.getCreatedAt())
+                .totalItems(details.size())
+                .items(details)
+                .build();
+    }
+
+    @Transactional
+    public String updateOrderStatus(Integer orderId, UpdateOrderStatusRequest request) {
+        if (request == null || request.getStatus() == null || request.getStatus().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không được trống");
+        }
+
+        String newStatus = request.getStatus().trim().toUpperCase();
+        if (!isValidOrderStatus(newStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ. Chỉ chấp nhận: PENDING, COMPLETED, FAILED");
+        }
+
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        String oldStatus = order.getPaymentStatus();
+        order.setPaymentStatus(newStatus);
+        orderRepository.save(order);
+
+        return "Cập nhật trạng thái từ " + oldStatus + " thành " + newStatus + " thành công";
+    }
+
+    private boolean isValidOrderStatus(String status) {
+        return ORDER_STATUS_PENDING.equals(status)
+                || ORDER_STATUS_COMPLETED.equals(status)
+                || ORDER_STATUS_FAILED.equals(status);
+    }
+
+    private AdminOrderDTO toAdminOrderDto(OrderEntity order) {
+        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(order.getId()).orElse(null);
+        User customer = order.getUser();
+
+        return AdminOrderDTO.builder()
+                .orderId(order.getId())
+                .userId(customer.getId())
+                .customerName(customer.getName())
+                .customerEmail(customer.getEmail())
+                .totalAmount(order.getTotalAmount())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
+                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
+                .createdAt(order.getCreatedAt())
+                .totalItems(order.getDetails() != null ? order.getDetails().size() : 0)
                 .build();
     }
 

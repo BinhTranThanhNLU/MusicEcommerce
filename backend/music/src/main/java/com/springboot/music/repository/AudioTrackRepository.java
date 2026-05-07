@@ -41,4 +41,11 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
             """)
     Page<AudioTrack> findByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 
+    @Query("""
+            SELECT COALESCE(a.audioType, 'Unknown'), COUNT(a)
+            FROM AudioTrack a
+            GROUP BY COALESCE(a.audioType, 'Unknown')
+            """)
+    List<Object[]> countByAudioType();
+
 }

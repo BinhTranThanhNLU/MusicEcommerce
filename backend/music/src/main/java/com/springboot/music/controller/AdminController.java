@@ -5,6 +5,7 @@ import com.springboot.music.responsemodel.AdminUserPageResponse;
 import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
+import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
@@ -109,6 +110,14 @@ public class AdminController {
     @Operation(summary = "Thu hồi giấy phép của một order detail")
     public ResponseEntity<String> revokeLicense(@PathVariable @Positive Integer orderDetailId) {
         return ResponseEntity.ok(adminService.revokeLicense(orderDetailId));
+    }
+
+    @GetMapping("/dashboard/overview")
+    @Operation(summary = "Lấy dữ liệu tổng quan dashboard của admin")
+    public ResponseEntity<AdminDashboardOverviewDTO> getDashboardOverview(
+            @RequestParam(defaultValue = "month") String period,
+            @RequestParam(defaultValue = "12") int points) {
+        return ResponseEntity.ok(adminService.getDashboardOverview(period, points));
     }
 
     @GetMapping("/orders")

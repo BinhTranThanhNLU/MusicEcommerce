@@ -20,4 +20,25 @@ public interface UserRepository extends JpaRepository<User, Integer> {
                                       @Param("isActive") Boolean isActive,
                                       Pageable pageable);
 
+    long countByRole_NameIgnoreCase(String roleName);
+
+    @Query(value = """
+            SELECT
+                CASE
+                    WHEN :period = 'day' THEN DATE_FORMAT(u.created_at, '%Y-%m-%d')
+                    WHEN :period = 'year' THEN DATE_FORMAT(u.created_at, '%Y')
+                    ELSE DATE_FORMAT(u.created_at, '%Y-%m')
+                END AS bucket,
+                COUNT(*) AS total
+            FROM `user` u
+            JOIN role r ON r.role_id = u.role_id
+            WHERE LOWER(r.name) = LOWER(:roleName)
+              AND u.created_at >= :startAt
+            GROUP BY bucket
+            ORDER BY bucket
+            """, nativeQuery = true)
+    java.util.List<Object[]> countRegistrationsByPeriod(@Param("roleName") String roleName,
+                                                         @Param("period") String period,
+                                                         @Param("startAt") java.time.LocalDateTime startAt);
+
 }

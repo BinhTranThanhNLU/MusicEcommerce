@@ -1,0 +1,102 @@
+.admin-dashboard-page {
+  background:
+    radial-gradient(circle at top left, rgba(79, 70, 229, 0.08), transparent 32%),
+    linear-gradient(180deg, #f8fafc 0%, #f8fafc 100%);
+}
+
+.admin-dashboard-page .admin-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #312e81 100%);
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+.admin-dashboard-page .admin-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto -8% -70% auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.24);
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.admin-dashboard-page .admin-chart-card,
+.admin-dashboard-page .admin-summary-card {
+  backdrop-filter: blur(8px);
+}
+
+.admin-dashboard-page .admin-filter-chip {
+  min-width: 120px;
+}
+
+.admin-dashboard-page .admin-muted-link {
+  color: #4f46e5;
+}
+
+.admin-dashboard-page .admin-dashboard-panel {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.admin-dashboard-page .admin-table-head th {
+  background: #f8fafc;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.admin-dashboard-page .admin-compact-table td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.admin-dashboard-page .admin-item-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.05rem;
+}
+
+.admin-dashboard-page .admin-item-avatar-blue {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.admin-dashboard-page .admin-item-avatar-violet {
+  color: #7c3aed;
+  background: #ede9fe;
+}
+
+.admin-dashboard-page .admin-kicker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-dashboard-page .admin-kicker-blue {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.admin-dashboard-page .admin-kicker-violet {
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.admin-dashboard-page .admin-dashboard-footer-cta {
+  padding: 1rem 0.25rem 0.25rem;
+}

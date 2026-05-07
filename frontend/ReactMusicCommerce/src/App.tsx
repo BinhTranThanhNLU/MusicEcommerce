@@ -39,6 +39,7 @@ import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 import AdminCopyrightPage from "./pages/admin/AdminCopyrightPage";
+import AdminSongModerationPage from "./pages/admin/AdminSongModerationPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -146,6 +147,8 @@ function App() {
                   <Route path="orders/:id" element={<AdminOrderDetailPage />} />
                   <Route path="copyright" element={<AdminCopyrightPage />} />
                 </Route>
+
+                <Route path="/admin/content" element={<AdminSongModerationPage />} />
               </Route>
 
               {/* Bắt các route lỗi hoặc linh tinh */}

@@ -42,5 +42,14 @@ public class OrderDetail {
 
     @Column(name = "license_status", length = 50)
     private String licenseStatus;
+
+    @Column(name = "commission_rate")
+    private Double commissionRate;
+
+    @Column(name = "admin_fee")
+    private Double adminFee;
+
+    @Column(name = "artist_earnings")
+    private Double artistEarnings;
 }
 

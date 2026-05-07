@@ -5,6 +5,7 @@ import type { AdminUserOrderPageResponse } from "../responsemodel/AdminUserOrder
 import type { AdminUserTrackPageResponse } from "../responsemodel/AdminUserTrackPageResponse";
 import type { AdminOrderPageResponse } from "../responsemodel/AdminOrderPageResponse";
 import type { AdminOrderWithDetailsDTO } from "../responsemodel/AdminOrderWithDetailsDTO";
+import type { AdminDashboardOverviewDTO } from "../responsemodel/AdminDashboardOverviewDTO";
 import type { CopyrightPageResponse } from "../responsemodel/CopyrightPageResponse";
 import type { CopyrightInfoDTO } from "../models/CopyrightInfoDTO";
 import type { UpdateCopyrightRequest } from "../requestmodel/UpdateCopyrightRequest";
@@ -90,6 +91,17 @@ export const updateAdminOrderStatus = async (
   const response = await axiosClient.put<string>(`/admin/orders/${id}/status`, {
     status,
   });
+  return response.data;
+};
+
+export const getAdminDashboardOverview = async (
+  period = "month",
+  points = 12,
+): Promise<AdminDashboardOverviewDTO> => {
+  const response = await axiosClient.get<AdminDashboardOverviewDTO>("/admin/dashboard/overview", {
+    params: { period, points },
+  });
+
   return response.data;
 };
 

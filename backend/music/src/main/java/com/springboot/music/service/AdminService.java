@@ -7,6 +7,7 @@ import com.springboot.music.dto.AdminUserDetailDTO;
 import com.springboot.music.dto.AdminOrderDTO;
 import com.springboot.music.dto.AdminOrderDetailDTO;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
+import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.License;
@@ -41,12 +42,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AdminService {
 
     private static final String ROLE_ARTIST = "artist";
+    private static final String ROLE_USER = "user";
     private static final String ORDER_STATUS_PENDING = "PENDING";
     private static final String ORDER_STATUS_COMPLETED = "COMPLETED";
     private static final String ORDER_STATUS_FAILED = "FAILED";
@@ -133,6 +142,34 @@ public class AdminService {
         return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
     }
 
+    @Transactional(readOnly = true)
+    public AdminDashboardOverviewDTO getDashboardOverview(String period, int points) {
+        String normalizedPeriod = normalizePeriod(period);
+        int normalizedPoints = normalizePoints(points);
+        LocalDateTime startAt = buildStartAt(normalizedPeriod, normalizedPoints);
+
+        long totalTracks = audioTrackRepository.count();
+        long totalArtists = userRepository.countByRole_NameIgnoreCase(ROLE_ARTIST);
+        long totalUsers = userRepository.countByRole_NameIgnoreCase(ROLE_USER);
+        double totalRevenue = defaultDouble(orderDetailRepository.sumTotalAdminRevenue());
+
+        List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> revenueTrend = buildRevenueTrend(normalizedPeriod, normalizedPoints, startAt);
+        List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> growthTrend = buildGrowthTrend(normalizedPeriod, normalizedPoints, startAt);
+        List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> contentDistribution = buildContentDistribution(totalTracks);
+
+        return AdminDashboardOverviewDTO.builder()
+                .period(normalizedPeriod)
+                .points(normalizedPoints)
+                .totalAudioTracks(totalTracks)
+                .totalArtists(totalArtists)
+                .totalUsers(totalUsers)
+                .totalRevenue(totalRevenue)
+                .revenueTrend(revenueTrend)
+                .growthTrend(growthTrend)
+                .contentDistribution(contentDistribution)
+                .build();
+    }
+
     private CopyrightInfoDTO mapCopyright(CopyrightInfo info) {
         if (info == null) return null;
         CopyrightInfoDTO dto = CopyrightInfoDTO.builder()
@@ -153,6 +190,158 @@ public class AdminService {
         }
 
         return dto;
+    }
+
+    private List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> buildRevenueTrend(String period, int points, LocalDateTime startAt) {
+        Map<String, Double> valueByLabel = new LinkedHashMap<>();
+        for (String label : buildLabels(period, points)) {
+            valueByLabel.put(label, 0.0);
+        }
+
+        List<Object[]> rows = orderDetailRepository.sumAdminRevenueByPeriod(period, startAt);
+        for (Object[] row : rows) {
+            String label = row[0] != null ? String.valueOf(row[0]) : null;
+            if (label != null && valueByLabel.containsKey(label)) {
+                valueByLabel.put(label, row[1] == null ? 0.0 : ((Number) row[1]).doubleValue());
+            }
+        }
+
+        return valueByLabel.entrySet().stream()
+                .map(e -> AdminDashboardOverviewDTO.AdminRevenuePointDTO.builder()
+                        .label(e.getKey())
+                        .revenue(e.getValue())
+                        .build())
+                .toList();
+    }
+
+    private List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> buildGrowthTrend(String period, int points, LocalDateTime startAt) {
+        Map<String, Long> usersByLabel = toLongMap(userRepository.countRegistrationsByPeriod(ROLE_USER, period, startAt));
+        Map<String, Long> artistsByLabel = toLongMap(userRepository.countRegistrationsByPeriod(ROLE_ARTIST, period, startAt));
+
+        List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> result = new ArrayList<>();
+        for (String label : buildLabels(period, points)) {
+            result.add(AdminDashboardOverviewDTO.AdminGrowthPointDTO.builder()
+                    .label(label)
+                    .newUsers(usersByLabel.getOrDefault(label, 0L))
+                    .newArtists(artistsByLabel.getOrDefault(label, 0L))
+                    .build());
+        }
+        return result;
+    }
+
+    private List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> buildContentDistribution(long totalTracks) {
+        Map<String, Long> distribution = new LinkedHashMap<>();
+        distribution.put("Bai hat hoan chinh", 0L);
+        distribution.put("Nhac khong loi", 0L);
+        distribution.put("Doan am thanh ngan", 0L);
+
+        for (Object[] row : audioTrackRepository.countByAudioType()) {
+            String rawType = row[0] == null ? "" : String.valueOf(row[0]);
+            long count = row[1] == null ? 0L : ((Number) row[1]).longValue();
+            String key = normalizeContentType(rawType);
+            if (distribution.containsKey(key)) {
+                distribution.put(key, distribution.get(key) + count);
+            }
+        }
+
+        List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> result = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : distribution.entrySet()) {
+            double percentage = totalTracks == 0 ? 0.0 : (entry.getValue() * 100.0) / totalTracks;
+            result.add(AdminDashboardOverviewDTO.AdminContentDistributionDTO.builder()
+                    .contentType(entry.getKey())
+                    .count(entry.getValue())
+                    .percentage(percentage)
+                    .build());
+        }
+
+        return result;
+    }
+
+    private String normalizePeriod(String period) {
+        if (period == null || period.isBlank()) {
+            return "month";
+        }
+        String value = period.trim().toLowerCase(Locale.ROOT);
+        if (!"day".equals(value) && !"month".equals(value) && !"year".equals(value)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "period không hợp lệ. Chỉ chấp nhận: day, month, year");
+        }
+        return value;
+    }
+
+    private int normalizePoints(int points) {
+        if (points <= 0 || points > 60) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "points phải nằm trong khoảng 1..60");
+        }
+        return points;
+    }
+
+    private LocalDateTime buildStartAt(String period, int points) {
+        LocalDateTime now = LocalDateTime.now();
+        return switch (period) {
+            case "day" -> now.minusDays(points - 1L).toLocalDate().atStartOfDay();
+            case "year" -> now.minusYears(points - 1L).withDayOfYear(1).toLocalDate().atStartOfDay();
+            default -> now.minusMonths(points - 1L).withDayOfMonth(1).toLocalDate().atStartOfDay();
+        };
+    }
+
+    private List<String> buildLabels(String period, int points) {
+        List<String> labels = new ArrayList<>(points);
+        LocalDate today = LocalDate.now();
+
+        if ("day".equals(period)) {
+            DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate start = today.minusDays(points - 1L);
+            for (int i = 0; i < points; i++) {
+                labels.add(start.plusDays(i).format(f));
+            }
+            return labels;
+        }
+
+        if ("year".equals(period)) {
+            int startYear = today.getYear() - points + 1;
+            for (int i = 0; i < points; i++) {
+                labels.add(String.valueOf(startYear + i));
+            }
+            return labels;
+        }
+
+        DateTimeFormatter f = DateTimeFormatter.ofPattern("yyyy-MM");
+        YearMonth startMonth = YearMonth.now().minusMonths(points - 1L);
+        for (int i = 0; i < points; i++) {
+            labels.add(startMonth.plusMonths(i).format(f));
+        }
+        return labels;
+    }
+
+    private Map<String, Long> toLongMap(List<Object[]> rows) {
+        Map<String, Long> map = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            String label = row[0] == null ? null : String.valueOf(row[0]);
+            if (label == null) {
+                continue;
+            }
+            long value = row[1] == null ? 0L : ((Number) row[1]).longValue();
+            map.put(label, value);
+        }
+        return map;
+    }
+
+    private String normalizeContentType(String rawType) {
+        String value = rawType.trim().toLowerCase(Locale.ROOT);
+        if (value.contains("full")) {
+            return "Bai hat hoan chinh";
+        }
+        if (value.contains("instrumental")) {
+            return "Nhac khong loi";
+        }
+        if (value.contains("short")) {
+            return "Doan am thanh ngan";
+        }
+        return "";
+    }
+
+    private double defaultDouble(Double value) {
+        return value == null ? 0.0 : value;
     }
 
     @Transactional(readOnly = true)

@@ -179,6 +179,13 @@ public class OrderService {
             double itemPrice = Optional.ofNullable(trackLicense.getPrice()).orElse(0.0);
             totalAmount += itemPrice;
 
+            Double commissionRaw = Optional.ofNullable(item.getLicense().getCommissionRate()).orElse(0.0);
+
+            // Hỗ trợ cả hai cách biểu diễn 0,30 và 30. Nếu commissionRaw > 1 thì coi như là phần trăm và chia cho 100, ngược lại coi như đã là tỷ lệ.
+            double commissionRate = commissionRaw > 1 ? commissionRaw / 100.0 : commissionRaw;
+            double adminFee = itemPrice * commissionRate;
+            double artistEarnings = itemPrice - adminFee;
+
             // Tự động sinh một mã Watermark ID ngẫu nhiên và duy nhất (Ví dụ: WMK-A1B2C3D4)
             String generatedWatermarkId = "WMK-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
@@ -195,6 +202,9 @@ public class OrderService {
                     .license(item.getLicense())
                     .price(itemPrice)
                     .licenseStatus("ACTIVE") // Mặc định khi mua xong là ACTIVE
+                    .commissionRate(commissionRate)
+                    .adminFee(adminFee)
+                    .artistEarnings(artistEarnings)
                     .watermarkId(generatedWatermarkId)
                     .expiredAt(expiredAt)
                     .build());

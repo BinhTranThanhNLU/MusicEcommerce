@@ -206,4 +206,29 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             ORDER BY o.createdAt DESC
             """)
     List<OrderDetail> findRecentOrdersByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
+
+    @Query("""
+            SELECT COALESCE(SUM(od.adminFee), 0)
+            FROM OrderDetail od
+            WHERE od.order.paymentStatus = 'COMPLETED'
+            """)
+    Double sumTotalAdminRevenue();
+
+    @Query(value = """
+            SELECT
+                CASE
+                    WHEN :period = 'day' THEN DATE_FORMAT(o.created_at, '%Y-%m-%d')
+                    WHEN :period = 'year' THEN DATE_FORMAT(o.created_at, '%Y')
+                    ELSE DATE_FORMAT(o.created_at, '%Y-%m')
+                END AS bucket,
+                COALESCE(SUM(od.admin_fee), 0) AS revenue
+            FROM order_detail od
+            JOIN `order` o ON o.order_id = od.order_id
+            WHERE o.payment_status = 'COMPLETED'
+              AND o.created_at >= :startAt
+            GROUP BY bucket
+            ORDER BY bucket
+            """, nativeQuery = true)
+    List<Object[]> sumAdminRevenueByPeriod(@Param("period") String period,
+                                           @Param("startAt") java.time.LocalDateTime startAt);
 }

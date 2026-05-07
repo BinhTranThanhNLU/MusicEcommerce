@@ -23,5 +23,8 @@ public class License {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "commission_rate")
+    private Double commissionRate;
+
 
 }

@@ -5,6 +5,9 @@ import type { AdminUserOrderPageResponse } from "../responsemodel/AdminUserOrder
 import type { AdminUserTrackPageResponse } from "../responsemodel/AdminUserTrackPageResponse";
 import type { AdminOrderPageResponse } from "../responsemodel/AdminOrderPageResponse";
 import type { AdminOrderWithDetailsDTO } from "../responsemodel/AdminOrderWithDetailsDTO";
+import type { CopyrightPageResponse } from "../responsemodel/CopyrightPageResponse";
+import type { CopyrightInfoDTO } from "../models/CopyrightInfoDTO";
+import type { UpdateCopyrightRequest } from "../requestmodel/UpdateCopyrightRequest";
 
 export const getAdminUsers = async (
   page: number,
@@ -87,5 +90,47 @@ export const updateAdminOrderStatus = async (
   const response = await axiosClient.put<string>(`/admin/orders/${id}/status`, {
     status,
   });
+  return response.data;
+};
+
+export const getAdminCopyrights = async (
+  page = 0,
+  size = 10,
+  audioId?: number,
+  ownerName?: string,
+): Promise<CopyrightPageResponse> => {
+  const params: Record<string, number | string> = { page, size };
+
+  if (audioId !== undefined && audioId !== null) {
+    params.audioId = audioId;
+  }
+
+  if (ownerName) {
+    params.ownerName = ownerName;
+  }
+
+  const response = await axiosClient.get<CopyrightPageResponse>("/admin/copyrights", {
+    params,
+  });
+
+  return response.data;
+};
+
+export const getAdminCopyrightDetail = async (
+  id: number,
+): Promise<CopyrightInfoDTO> => {
+  const response = await axiosClient.get<CopyrightInfoDTO>(`/admin/copyrights/${id}`);
+  return response.data;
+};
+
+export const updateAdminCopyright = async (
+  id: number,
+  request: UpdateCopyrightRequest,
+): Promise<CopyrightInfoDTO> => {
+  const response = await axiosClient.put<CopyrightInfoDTO>(
+    `/admin/copyrights/${id}`,
+    request,
+  );
+
   return response.data;
 };

@@ -100,7 +100,7 @@ const AdminSidebar = () => {
 
         <li className="nav-item mb-1">
           <NavLink
-            to="/admin/copyright" // Tui giả định link này cho tương lai
+            to="/admin/copyright"
             className={({ isActive }) =>
               `nav-link rounded d-flex align-items-center fw-medium ${
                 isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"

@@ -7,6 +7,9 @@ import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
+import com.springboot.music.requestmodel.UpdateCopyrightRequest;
+import com.springboot.music.responsemodel.CopyrightPageResponse;
+import com.springboot.music.dto.CopyrightInfoDTO;
 import com.springboot.music.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,6 +60,8 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getUserDetail(id));
     }
 
+    
+
     @GetMapping({"/users/{id}/orders", "/users/{id}/transactions"})
     @Operation(summary = "Lấy lịch sử đơn hàng/giao dịch của người dùng theo ID")
     public ResponseEntity<AdminUserOrderPageResponse> getUserOrders(
@@ -73,6 +78,37 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(adminService.getUserTracks(id, page, size));
+    }
+
+    @GetMapping("/copyrights")
+    @Operation(summary = "Lấy danh sách thông tin bản quyền (có phân trang & lọc)")
+    public ResponseEntity<CopyrightPageResponse> getCopyrights(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Integer audioId,
+            @RequestParam(required = false) String ownerName) {
+
+        return ResponseEntity.ok(adminService.getCopyrights(page, size, audioId, ownerName));
+    }
+
+    @GetMapping("/copyrights/{id}")
+    @Operation(summary = "Lấy chi tiết thông tin bản quyền theo ID")
+    public ResponseEntity<CopyrightInfoDTO> getCopyrightDetail(@PathVariable @Positive Integer id) {
+        return ResponseEntity.ok(adminService.getCopyrightDetail(id));
+    }
+
+    @PutMapping("/copyrights/{id}")
+    @Operation(summary = "Cập nhật thông tin bản quyền")
+    public ResponseEntity<CopyrightInfoDTO> updateCopyright(
+            @PathVariable @Positive Integer id,
+            @RequestBody UpdateCopyrightRequest request) {
+        return ResponseEntity.ok(adminService.updateCopyright(id, request));
+    }
+
+    @PutMapping("/licenses/{orderDetailId}/revoke")
+    @Operation(summary = "Thu hồi giấy phép của một order detail")
+    public ResponseEntity<String> revokeLicense(@PathVariable @Positive Integer orderDetailId) {
+        return ResponseEntity.ok(adminService.revokeLicense(orderDetailId));
     }
 
     @GetMapping("/orders")

@@ -15,6 +15,12 @@ import com.springboot.music.entity.OrderEntity;
 import com.springboot.music.entity.PaymentTransaction;
 import com.springboot.music.entity.User;
 import com.springboot.music.mapper.AudioTrackMapper;
+import com.springboot.music.repository.CopyrightInfoRepository;
+import com.springboot.music.repository.OrderDetailRepository;
+import com.springboot.music.entity.CopyrightInfo;
+import com.springboot.music.requestmodel.UpdateCopyrightRequest;
+import com.springboot.music.dto.CopyrightInfoDTO;
+import com.springboot.music.responsemodel.CopyrightPageResponse;
 import com.springboot.music.mapper.UserMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.OrderRepository;
@@ -50,6 +56,8 @@ public class AdminService {
     private final OrderRepository orderRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final AudioTrackRepository audioTrackRepository;
+    private final CopyrightInfoRepository copyrightInfoRepository;
+    private final OrderDetailRepository orderDetailRepository;
     private final AudioTrackMapper audioTrackMapper;
 
     public AdminService(UserRepository userRepository,
@@ -57,13 +65,94 @@ public class AdminService {
                         OrderRepository orderRepository,
                         PaymentTransactionRepository paymentTransactionRepository,
                         AudioTrackRepository audioTrackRepository,
+                        CopyrightInfoRepository copyrightInfoRepository,
+                        OrderDetailRepository orderDetailRepository,
                         AudioTrackMapper audioTrackMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.orderRepository = orderRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.audioTrackRepository = audioTrackRepository;
+        this.copyrightInfoRepository = copyrightInfoRepository;
+        this.orderDetailRepository = orderDetailRepository;
         this.audioTrackMapper = audioTrackMapper;
+    }
+
+    @Transactional(readOnly = true)
+    public CopyrightPageResponse getCopyrights(int page, int size, Integer audioId, String ownerName) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("registeredAt").descending());
+
+        Page<CopyrightInfo> pageResult;
+        if (audioId != null && ownerName != null && !ownerName.isBlank()) {
+            pageResult = copyrightInfoRepository.findByAudioTrack_IdAndOwnerNameContainingIgnoreCase(audioId, ownerName.trim(), pageable);
+        } else if (audioId != null) {
+            pageResult = copyrightInfoRepository.findByAudioTrack_Id(audioId, pageable);
+        } else if (ownerName != null && !ownerName.isBlank()) {
+            pageResult = copyrightInfoRepository.findByOwnerNameContainingIgnoreCase(ownerName.trim(), pageable);
+        } else {
+            pageResult = copyrightInfoRepository.findAll(pageable);
+        }
+
+        List<CopyrightInfoDTO> items = pageResult.getContent().stream().map(this::mapCopyright).toList();
+
+        return CopyrightPageResponse.builder()
+                .items(items)
+                .currentPage(pageResult.getNumber())
+                .totalPages(pageResult.getTotalPages())
+                .totalItems(pageResult.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public CopyrightInfoDTO getCopyrightDetail(Integer id) {
+        CopyrightInfo info = copyrightInfoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
+        return mapCopyright(info);
+    }
+
+    @Transactional
+    public CopyrightInfoDTO updateCopyright(Integer id, UpdateCopyrightRequest request) {
+        CopyrightInfo info = copyrightInfoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
+
+        if (request.getOwnerName() != null) info.setOwnerName(request.getOwnerName().trim());
+        if (request.getIsrcCode() != null) info.setIsrcCode(request.getIsrcCode().trim());
+        if (request.getCertificateFileUrl() != null) info.setCertificateFileUrl(request.getCertificateFileUrl().trim());
+
+        CopyrightInfo saved = copyrightInfoRepository.save(info);
+        return mapCopyright(saved);
+    }
+
+    @Transactional
+    public String revokeLicense(Integer orderDetailId) {
+        OrderDetail od = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy order detail"));
+        od.setLicenseStatus("REVOKED");
+        orderDetailRepository.save(od);
+        return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
+    }
+
+    private CopyrightInfoDTO mapCopyright(CopyrightInfo info) {
+        if (info == null) return null;
+        CopyrightInfoDTO dto = CopyrightInfoDTO.builder()
+                .id(info.getId())
+                .ownerName(info.getOwnerName())
+                .isrcCode(info.getIsrcCode())
+                .certificateFileUrl(info.getCertificateFileUrl())
+                .registeredAt(info.getRegisteredAt())
+                .build();
+
+        if (info.getAudioTrack() != null) {
+            dto.setAudioId(info.getAudioTrack().getId());
+            dto.setAudioTitle(info.getAudioTrack().getTitle());
+            if (info.getAudioTrack().getArtist() != null) {
+                dto.setArtistId(info.getAudioTrack().getArtist().getId());
+                dto.setArtistName(info.getAudioTrack().getArtist().getName());
+            }
+        }
+
+        return dto;
     }
 
     @Transactional(readOnly = true)

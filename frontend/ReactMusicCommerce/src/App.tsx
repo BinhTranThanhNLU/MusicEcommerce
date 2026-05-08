@@ -40,6 +40,7 @@ import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 import AdminCopyrightPage from "./pages/admin/AdminCopyrightPage";
 import AdminModerationPage from "./pages/admin/AdminModerationPage";
+import ErrorPage from "./pages/auth/ErrorPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -52,7 +53,7 @@ const ArtistRouteGuard = () => {
   }
 
   if (user.role !== "artist") {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/403" replace />;
   }
 
   return <Outlet />;
@@ -67,10 +68,22 @@ const AdminRouteGuard = () => {
   }
 
   if (user.role !== "admin") {
-    // Nếu không phải admin mà cố tình vào URL admin, đẩy về trang chủ
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/403" replace />;
   }
 
+  return <Outlet />;
+};
+
+const UserRouteGuard = () => {
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+
+  // Nếu chưa đăng nhập mà gõ bậy URL, đá văng về trang Login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Đã đăng nhập thì cho phép vào trang
   return <Outlet />;
 };
 
@@ -115,8 +128,14 @@ function App() {
                 />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/cart" element={<CartPage />} />
-                <Route path="/checkout" element={<CheckoutPage />} />
-                <Route path="/account" element={<AccountPage />} />
+              </Route>
+
+              {/* --- ROUTE CHO USER ĐÃ ĐĂNG NHẬP (BẮT BUỘC BẢO VỆ) --- */}
+              <Route element={<MainLayout />}>
+                <Route element={<UserRouteGuard />}>
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/account" element={<AccountPage />} />
+                </Route>
               </Route>
 
               {/* --- ROUTE CHO ARTIST --- */}
@@ -143,20 +162,33 @@ function App() {
                   <Route path="dashboard" element={<AdminDashboardPage />} />
                   <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="users" element={<AdminUserPage />} />
-                  <Route path="users/view/:id" element={<AdminUserDetailPage />} />
+                  <Route
+                    path="users/view/:id"
+                    element={<AdminUserDetailPage />}
+                  />
                   <Route path="orders" element={<AdminOrdersPage />} />
                   <Route path="orders/:id" element={<AdminOrderDetailPage />} />
                   <Route path="copyright" element={<AdminCopyrightPage />} />
                 </Route>
-
               </Route>
 
-              {/* Bắt các route lỗi hoặc linh tinh */}
-              <Route
-                path="/artist-dashboard"
-                element={<Navigate to="/artist/dashboard" replace />}
-              />
-              <Route path="*" element={<Navigate to="/home" replace />} />
+              {/* --- CÁC ROUTE BÁO LỖI --- */}
+              <Route element={<MainLayout />}>
+                {/* Lỗi 403: Cấm truy cập */}
+                <Route
+                  path="/403"
+                  element={
+                    <ErrorPage
+                      code="403"
+                      title="Truy cập bị từ chối"
+                      message="Bạn không có quyền truy cập vào khu vực này. Vui lòng đăng nhập với tài khoản cấp cao hơn."
+                    />
+                  }
+                />
+
+                {/* Lỗi 404: Không tìm thấy trang (Dấu * sẽ bắt TẤT CẢ các URL không khớp với bất kỳ Route nào ở trên) */}
+                <Route path="*" element={<ErrorPage />} />
+              </Route>
             </Routes>
           </BrowserRouter>
         </AudioPlayerProvider>

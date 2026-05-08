@@ -38,23 +38,49 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì dùng JWT
                 .cors(cors -> cors.configure(http))    // Cấu hình CORS cho React gọi API không bị lỗi
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/audio-tracks/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/audio-tracks/*/preview-play").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/audio-tracks/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
-                        .requestMatchers("/admin/**").hasAuthority("admin")
-                        .requestMatchers("/artists/**").permitAll()
-                        .requestMatchers("/genres/**").permitAll()
-                        .requestMatchers("/moods/**").permitAll()
-                        .requestMatchers("/themes/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/orders/vnpay/return", "/orders/vnpay/return").permitAll()
-                        .requestMatchers("/cart/**", "/orders/checkout").authenticated()
-                        .anyRequest().authenticated()
+//                        .requestMatchers("/auth/**").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/audio-tracks/**").permitAll()
+//                        .requestMatchers(HttpMethod.POST, "/audio-tracks/*/preview-play").permitAll()
+//                        .requestMatchers(HttpMethod.POST, "/audio-tracks/**").authenticated()
+//                        .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").authenticated()
+//                        .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").authenticated()
+//                        .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
+//                        .requestMatchers("/admin/**").hasAuthority("admin")
+//                        .requestMatchers("/artists/**").permitAll()
+//                        .requestMatchers("/genres/**").permitAll()
+//                        .requestMatchers("/moods/**").permitAll()
+//                        .requestMatchers("/themes/**").permitAll()
+//                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+//                        .requestMatchers("/error").permitAll()
+//                        .requestMatchers("/orders/vnpay/return", "/orders/vnpay/return").permitAll()
+//                        .requestMatchers("/cart/**", "/orders/checkout").authenticated()
+//                        .anyRequest().authenticated()
+
+                                // 1. NHÓM PUBLIC (Không cần đăng nhập)
+                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/audio-tracks/**", "/genres/**", "/moods/**", "/themes/**", "/artists/**", "/reviews/**").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/audio-tracks/*/preview-play").permitAll()
+                                .requestMatchers("/orders/vnpay/return", "/orders/vnpay/ipn").permitAll() // Webhook cho cổng thanh toán
+                                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error").permitAll()
+
+                                // 2. NHÓM ARTIST (Quyền Nghệ sĩ)
+                                .requestMatchers(HttpMethod.POST, "/audio-tracks/**").hasAuthority("artist")
+                                .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").hasAuthority("artist")
+                                .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").hasAuthority("artist")
+                                // .requestMatchers("/artist/revenue/**").hasAuthority("artist") // Ví dụ API doanh thu
+
+                                // 3. NHÓM ADMIN (Quyền Quản trị viên)
+                                .requestMatchers("/admin/**").hasAuthority("admin")
+                                .requestMatchers(HttpMethod.POST, "/genres/**", "/moods/**", "/themes/**").hasAuthority("admin")
+                                .requestMatchers(HttpMethod.PUT, "/genres/**", "/moods/**", "/themes/**").hasAuthority("admin")
+                                .requestMatchers(HttpMethod.DELETE, "/genres/**", "/moods/**", "/themes/**").hasAuthority("admin")
+
+                                // 4. NHÓM USER ĐÃ ĐĂNG NHẬP
+                                .requestMatchers("/cart/**", "/orders/checkout", "/orders/history").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/reviews/**").authenticated()
+
+                                // 5. An toàn mặc định
+                                .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 // Không lưu session (Stateless) vì mỗi request đều có JWT rồi

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import CartList from "../../components/CartComponent/CartList";
 import CartSummary from "../../components/CartComponent/CartSummary";
 import PageTitle from "../../components/utils/PageTitle";
@@ -11,16 +11,19 @@ import {
   removeFromCart,
   updateCartItemLicense,
 } from "../../apis/cartApi";
-import {
-  CART_ITEMS_UPDATED_EVENT,
-} from "../../utils/cartStorage";
+import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 import Swal from "sweetalert2";
+import { AuthContext } from "../../context/AuthContext";
+import { Link } from "react-router-dom";
 
 const CartPage = () => {
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingCart, setIsUpdatingCart] = useState(false);
   const [httpError, setHttpError] = useState<string | null>(null);
+
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
 
   const syncCart = useCallback(async (showPageLoading = false) => {
     if (showPageLoading) {
@@ -32,7 +35,9 @@ const CartPage = () => {
       const response = await getCart();
       setCart(response);
     } catch (error: any) {
-      setHttpError(error?.response?.data || error?.message || "Không tải được giỏ hàng.");
+      setHttpError(
+        error?.response?.data || error?.message || "Không tải được giỏ hàng.",
+      );
       setCart(null);
     } finally {
       if (showPageLoading) {
@@ -42,6 +47,11 @@ const CartPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     const onCartUpdated = () => {
       void syncCart(false);
     };
@@ -52,7 +62,7 @@ const CartPage = () => {
     return () => {
       window.removeEventListener(CART_ITEMS_UPDATED_EVENT, onCartUpdated);
     };
-  }, [syncCart]);
+  }, [syncCart, user]);
 
   const handleRemoveItem = async (cartItemId: number) => {
     setIsUpdatingCart(true);
@@ -141,6 +151,46 @@ const CartPage = () => {
   };
 
   if (isLoading) return <SpinningLoading />;
+
+  // MỚI THÊM: Giao diện khi chưa đăng nhập (Chặn UI trước khi báo lỗi API)
+  if (!user) {
+    return (
+      <main className="main">
+        <PageTitle title="Giỏ hàng" current="Giỏ hàng" />
+        <section id="cart" className="cart section">
+          <div className="container" data-aos="fade-up" data-aos-delay="100">
+            <div
+              className="text-center py-5"
+              style={{
+                minHeight: "50vh",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <i
+                className="bi bi-cart-x mb-4"
+                style={{ fontSize: "5rem", color: "#6c757d" }}
+              ></i>
+              <h2 className="mb-3">Bạn chưa đăng nhập!</h2>
+              <p className="text-muted mb-4 fs-5">
+                Vui lòng đăng nhập để xem giỏ hàng và tiến hành thanh toán cho
+                các bản nhạc yêu thích.
+              </p>
+              <Link
+                to="/login"
+                className="btn btn-primary px-5 py-3 rounded-pill fw-bold"
+              >
+                Đăng nhập ngay
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (httpError) return <ErrorMessage message={httpError} />;
 
   return (
@@ -163,7 +213,9 @@ const CartPage = () => {
             <div className="cart-hero-stats">
               <div className="hero-stat-pill">
                 <span className="pill-label">Sản phẩm đã chọn</span>
-                <strong>{String(cart?.totalItems || 0).padStart(2, "0")}</strong>
+                <strong>
+                  {String(cart?.totalItems || 0).padStart(2, "0")}
+                </strong>
               </div>
               <div className="hero-stat-pill">
                 <span className="pill-label">Định dạng file</span>

@@ -1,81 +1,80 @@
 import { useContext, useState } from "react";
 import PageTitle from "../../components/utils/PageTitle";
-import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import { SpinningLoading } from "../../components/utils/SpinningLoading";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { loginWithEmail, loginWithGoogleToken } from "../../apis/authApi";
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import { parseApiError } from "../../utils/apiError";
 
-interface BackendErrorResponse {
-  error?: string;
-  message?: string;
-  status?: number;
-  path?: string;
-  timestamp?: string;
+interface LoginFormFieldErrors {
+  email?: string;
+  password?: string;
 }
 
-const resolveAuthErrorMessage = (error: unknown, fallback: string): string => {
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status;
-    const data = error.response?.data as
-      | BackendErrorResponse
-      | string
-      | undefined;
-
-    if (typeof data === "string" && data.trim()) {
-      return data;
-    }
-
-    if (data && typeof data === "object") {
-      if (typeof data.message === "string" && data.message.trim()) {
-        return data.message;
-      }
-
-      if (typeof data.error === "string" && data.error.trim()) {
-        return data.error;
-      }
-    }
-
-    if (status === 401) {
-      return "Email hoặc mật khẩu không chính xác.";
-    }
-
-    if (status && status >= 500) {
-      return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.";
-    }
-
-    return fallback;
-  }
-
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-
-  return fallback;
+const mapLoginFieldErrors = (
+  backendFieldErrors: Record<string, string>
+): LoginFormFieldErrors => {
+  return {
+    email: backendFieldErrors.email,
+    password: backendFieldErrors.password,
+  };
 };
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [httpError, setHttpError] = useState<string | null>(null);
+  
+  const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<LoginFormFieldErrors>({});
 
-  // Dùng hook để lấy hàm loginContext từ kho chứa chung
   const authContext = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // ----- Xử lý Đăng nhập Truyền thống -----
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+  };
+
   const handleLocalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setFieldErrors({});
+
+    const newFieldErrors: LoginFormFieldErrors = {};
+    let hasError = false;
+
+    if (!email.trim()) {
+      newFieldErrors.email = "Email không được để trống";
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newFieldErrors.email = "Định dạng email không hợp lệ";
+      hasError = true;
+    }
+
+    if (!password) {
+      newFieldErrors.password = "Mật khẩu không được để trống";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors);
+      setError("Vui lòng kiểm tra lại các thông tin chưa hợp lệ.");
+      return;
+    }
+
     setIsLoading(true);
-    setHttpError(null);
 
     try {
       const response = await loginWithEmail({ email, password });
 
-      // Thành công -> Lưu vào Context và chuyển trang
       if (authContext) {
         authContext.loginContext(response.user, response.token);
       }
@@ -83,12 +82,17 @@ const LoginPage = () => {
       if (response.user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        navigate("/"); // User bình thường
+        navigate("/"); 
       }
-    } catch (error: unknown) {
-      setHttpError(
-        resolveAuthErrorMessage(error, "Đăng nhập thất bại. Vui lòng thử lại!"),
+    } catch (err: unknown) {
+      const parsed = parseApiError(err, "Đăng nhập thất bại. Vui lòng thử lại!");
+      const mappedFieldErrors = mapLoginFieldErrors(parsed.fieldErrors || {});
+      const hasBackendFieldErrors = Object.values(mappedFieldErrors).some(
+        (value) => typeof value === "string" && value.trim().length > 0
       );
+
+      setFieldErrors(mappedFieldErrors);
+      setError(hasBackendFieldErrors ? "Vui lòng kiểm tra lại thông tin đăng nhập." : parsed.message);
     } finally {
       setIsLoading(false);
     }
@@ -97,10 +101,9 @@ const LoginPage = () => {
   // ----- Xử lý Đăng nhập Google -----
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setIsLoading(true);
-    setHttpError(null);
+    setError("");
 
     try {
-      // credentialResponse.credential chính là cái ID Token Google trả về
       const response = await loginWithGoogleToken({
         credential: credentialResponse.credential,
       });
@@ -112,16 +115,11 @@ const LoginPage = () => {
       if (response.user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        navigate("/"); // User bình thường
+        navigate("/");
       }
-      
-    } catch (error: unknown) {
-      setHttpError(
-        resolveAuthErrorMessage(
-          error,
-          "Đăng nhập Google thất bại. Vui lòng thử lại!",
-        ),
-      );
+    } catch (err: unknown) {
+      const parsed = parseApiError(err, "Đăng nhập Google thất bại. Vui lòng thử lại!");
+      setError(parsed.message);
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +140,6 @@ const LoginPage = () => {
                 data-aos="fade-in"
                 data-aos-delay="200"
               >
-                {/* Login Form */}
                 <div className="auth-form login-form active">
                   <div className="form-header">
                     <h3>Chào mừng trở lại</h3>
@@ -152,38 +149,60 @@ const LoginPage = () => {
                   <form
                     className="auth-form-content"
                     onSubmit={handleLocalLogin}
+                    noValidate
                   >
-                    <div className="input-group mb-3">
+                    
+                    {/* Báo lỗi Global (Sai pass, tài khoản bị khóa...) */}
+                    {error && (
+                      <div className="alert alert-danger mb-4" role="alert">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="input-group mb-3 position-relative">
                       <span className="input-icon">
                         <i className="bi bi-envelope"></i>
                       </span>
                       <input
                         type="email"
-                        className="form-control"
+                        className={`form-control ${fieldErrors.email ? "is-invalid" : ""}`}
                         placeholder="Email"
-                        required
                         autoComplete="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={handleEmailChange}
                       />
+                      {fieldErrors.email && (
+                        <div className="invalid-feedback d-block w-100 mt-2 text-start">
+                          {fieldErrors.email}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="input-group mb-3">
+                    <div className="input-group mb-3 position-relative">
                       <span className="input-icon">
                         <i className="bi bi-lock"></i>
                       </span>
                       <input
-                        type="password"
-                        className="form-control"
+                        type={showPassword ? "text" : "password"}
+                        className={`form-control ${fieldErrors.password ? "is-invalid" : ""}`}
                         placeholder="Password"
-                        required
                         autoComplete="current-password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={handlePasswordChange}
                       />
                       <span className="password-toggle">
-                        <i className="bi bi-eye"></i>
+                        <span
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+                        </span>
                       </span>
+                      {fieldErrors.password && (
+                        <div className="invalid-feedback d-block w-100 mt-2 text-start">
+                          {fieldErrors.password}
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-options mb-4">
@@ -195,8 +214,6 @@ const LoginPage = () => {
                         Quên mật khẩu?
                       </Link>
                     </div>
-
-                    {httpError && <ErrorMessage message={httpError} />}
 
                     <button
                       type="submit"
@@ -215,7 +232,7 @@ const LoginPage = () => {
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         useOneTap
-                        theme="outline" // Tùy chỉnh màu sắc nút
+                        theme="outline"
                         text="continue_with"
                       />
                     </div>

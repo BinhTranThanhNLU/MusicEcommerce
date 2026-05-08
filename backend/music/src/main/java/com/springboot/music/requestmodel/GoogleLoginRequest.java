@@ -7,7 +7,5 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GoogleLoginRequest {
-
     private String credential;
-
 }

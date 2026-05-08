@@ -1,9 +1,7 @@
 package com.springboot.music.requestmodel;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import jakarta.validation.constraints.*;
 
 @Getter
 @Setter
@@ -11,7 +9,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class LoginRequest {
 
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không hợp lệ")
     private String email;
+
+    @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
 
 }

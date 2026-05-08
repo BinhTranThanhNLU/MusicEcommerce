@@ -56,6 +56,14 @@ public class AuthService {
             throw new InvalidCredentialsException("Sai email hoặc mật khẩu");
         }
 
+        if (user.getAuthProvider() != null && !user.getAuthProvider().equals("local")) {
+            throw new InvalidCredentialsException("Tài khoản này được liên kết với " + user.getAuthProvider() + ". Vui lòng đăng nhập bằng " + user.getAuthProvider() + ".");
+        }
+
+        if (user.getIsActive() != null && !user.getIsActive()) {
+            throw new InvalidCredentialsException("Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.");
+        }
+
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new InvalidCredentialsException("Sai email hoặc mật khẩu");
         }

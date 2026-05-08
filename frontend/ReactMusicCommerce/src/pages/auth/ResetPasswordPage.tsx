@@ -1,8 +1,24 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import PageTitle from "../../components/utils/PageTitle";
-import { resetPassword } from "../../apis/authApi"; // Chú ý sửa lại đường dẫn nếu cần
+import { resetPassword } from "../../apis/authApi";
 import Swal from "sweetalert2";
+import { parseApiError } from "../../utils/apiError";
+
+interface ResetPasswordFormFieldErrors {
+  newPassword?: string;
+  confirmPassword?: string;
+}
+
+const mapResetPasswordFieldErrors = (
+  backendFieldErrors: Record<string, string>,
+): ResetPasswordFormFieldErrors => {
+  return {
+    // Backend có thể trả về lỗi ở field 'newPassword' hoặc 'password' tùy cách bạn code RequestDTO
+    newPassword: backendFieldErrors.newPassword || backendFieldErrors.password,
+    confirmPassword: backendFieldErrors.confirmPassword,
+  };
+};
 
 const ResetPasswordPage = () => {
   // Lấy token từ thanh URL
@@ -20,10 +36,30 @@ const ResetPasswordPage = () => {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<ResetPasswordFormFieldErrors>(
+    {},
+  );
+
+  const handleNewPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewPassword(e.target.value);
+    if (fieldErrors.newPassword)
+      setFieldErrors((prev) => ({ ...prev, newPassword: undefined }));
+  };
+
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setConfirmPassword(e.target.value);
+    if (fieldErrors.confirmPassword)
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setFieldErrors({});
 
-    // Kiểm tra xem có token trên URL
     if (!token) {
       Swal.fire({
         icon: "error",
@@ -34,21 +70,34 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    // Kiểm tra mật khẩu khớp nhau
+    const newFieldErrors: ResetPasswordFormFieldErrors = {};
+    let hasError = false;
+
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!newPassword) {
+      newFieldErrors.newPassword = "Mật khẩu không được để trống";
+      hasError = true;
+    } else if (!passwordRegex.test(newPassword)) {
+      newFieldErrors.newPassword =
+        "Mật khẩu phải từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 thường, 1 số và 1 ký tự đặc biệt.";
+      hasError = true;
+    }
+
     if (newPassword !== confirmPassword) {
-      Swal.fire({
-        icon: "warning",
-        title: "Cảnh báo",
-        text: "Mật khẩu xác nhận không khớp!",
-        confirmButtonColor: "#f39c12",
-      });
-      return;
+      newFieldErrors.confirmPassword = "Mật khẩu xác nhận không khớp!";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors);
+      return; // Dừng lại, không gọi API
     }
 
     setIsLoading(true);
 
     try {
-      // Gọi API đặt lại mật khẩu
       await resetPassword({ token, newPassword });
 
       Swal.fire({
@@ -60,16 +109,24 @@ const ResetPasswordPage = () => {
       }).then(() => {
         navigate("/login");
       });
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data ||
-        "Link đã hết hạn hoặc không hợp lệ. Vui lòng thử lại!";
-      Swal.fire({
-        icon: "error",
-        title: "Thất bại",
-        text: errorMessage,
-        confirmButtonColor: "#dc3545",
-      });
+    } catch (err: unknown) {
+      const parsed = parseApiError(
+        err,
+        "Link đã hết hạn hoặc không hợp lệ. Vui lòng thử lại!",
+      );
+      const mappedFieldErrors = mapResetPasswordFieldErrors(
+        parsed.fieldErrors || {},
+      );
+      const hasBackendFieldErrors = Object.values(mappedFieldErrors).some(
+        (value) => typeof value === "string" && value.trim().length > 0,
+      );
+
+      setFieldErrors(mappedFieldErrors);
+      setError(
+        hasBackendFieldErrors
+          ? "Vui lòng kiểm tra lại thông tin."
+          : parsed.message,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +134,7 @@ const ResetPasswordPage = () => {
 
   return (
     <main className="main">
-      <PageTitle title="Thay đổi mật khẩu" current="Thay đổi mật khẩu"/>
+      <PageTitle title="Thay đổi mật khẩu" current="Thay đổi mật khẩu" />
 
       <section id="reset-password" className="register section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">
@@ -101,18 +158,25 @@ const ResetPasswordPage = () => {
                       </div>
                     ) : (
                       // Form đổi mật khẩu hiển thị khi có token
-                      <form onSubmit={handleSubmit}>
+                      <form onSubmit={handleSubmit} noValidate>
+                        {error && (
+                          <div
+                            className="alert alert-danger mb-4 text-start"
+                            role="alert"
+                          >
+                            {error}
+                          </div>
+                        )}
+
                         <div className="form-floating position-relative mb-3">
                           <input
                             type={showPassword ? "text" : "password"}
-                            className="form-control"
+                            className={`form-control ${fieldErrors.newPassword ? "is-invalid" : ""}`}
                             id="newPassword"
                             name="newPassword"
                             placeholder="Mật khẩu mới"
-                            required
-                            minLength={8}
                             value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
+                            onChange={handleNewPasswordChange}
                           />
                           <label htmlFor="newPassword">Mật khẩu mới</label>
                           <i
@@ -125,19 +189,23 @@ const ResetPasswordPage = () => {
                             }}
                             onClick={() => setShowPassword(!showPassword)}
                           ></i>
+
+                          {fieldErrors.newPassword && (
+                            <div className="invalid-feedback d-block w-100 mt-2 text-start">
+                              {fieldErrors.newPassword}
+                            </div>
+                          )}
                         </div>
 
                         <div className="form-floating position-relative mb-4">
                           <input
                             type={showConfirmPassword ? "text" : "password"}
-                            className="form-control"
+                            className={`form-control ${fieldErrors.confirmPassword ? "is-invalid" : ""}`}
                             id="confirmPassword"
                             name="confirmPassword"
                             placeholder="Xác nhận mật khẩu"
-                            required
-                            minLength={8}
                             value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            onChange={handleConfirmPasswordChange}
                           />
                           <label htmlFor="confirmPassword">
                             Xác nhận mật khẩu mới
@@ -154,6 +222,13 @@ const ResetPasswordPage = () => {
                               setShowConfirmPassword(!showConfirmPassword)
                             }
                           ></i>
+
+                          {fieldErrors.confirmPassword && (
+                            <div className="invalid-feedback d-block w-100 mt-2 text-start">
+                              {fieldErrors.confirmPassword}
+                            </div>
+                          )}
+                          
                         </div>
 
                         <div className="d-grid mb-4">

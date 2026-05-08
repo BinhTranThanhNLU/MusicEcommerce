@@ -5,22 +5,60 @@ import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 import { parseApiError } from "../../utils/apiError";
 
+interface ForgotPasswordFormFieldErrors {
+  email?: string;
+}
+
+const mapForgotPasswordFieldErrors = (
+  backendFieldErrors: Record<string, string>,
+): ForgotPasswordFormFieldErrors => {
+  return {
+    email: backendFieldErrors.email,
+  };
+};
+
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Ngăn trình duyệt reload
+  const [error, setError] = useState<string>("");
+  const [fieldErrors, setFieldErrors] = useState<ForgotPasswordFormFieldErrors>(
+    {},
+  );
 
-    if (!email) return;
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (fieldErrors.email)
+      setFieldErrors((prev) => ({ ...prev, email: undefined }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setFieldErrors({});
+
+    const newFieldErrors: ForgotPasswordFormFieldErrors = {};
+    let hasError = false;
+
+    if (!email.trim()) {
+      newFieldErrors.email = "Email không được để trống";
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newFieldErrors.email = "Định dạng email không hợp lệ";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors);
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      // Gọi API gửi yêu cầu
       await forgotPassword({ email });
 
-      // Hiển thị popup thành công
+      // Thành công
       Swal.fire({
         icon: "success",
         title: "Đã gửi yêu cầu!",
@@ -29,21 +67,19 @@ const ForgotPasswordPage = () => {
         confirmButtonColor: "#007bff",
       });
 
-      // Xóa rỗng ô input sau khi gửi thành công
       setEmail("");
     } catch (err: unknown) {
-      const parsed = parseApiError(
-        err,
-        "Có lỗi xảy ra. Vui lòng thử lại sau!",
+      const parsed = parseApiError(err, "Có lỗi xảy ra. Vui lòng thử lại sau!");
+      const mappedFieldErrors = mapForgotPasswordFieldErrors(
+        parsed.fieldErrors || {},
       );
-      const errorMessage = parsed.fieldErrors.email || parsed.message;
+      const hasBackendFieldErrors = Object.values(mappedFieldErrors).some(
+        (value) => typeof value === "string" && value.trim().length > 0,
+      );
 
-      Swal.fire({
-        icon: "error",
-        title: "Thất bại",
-        text: errorMessage,
-        confirmButtonColor: "#dc3545",
-      });
+      setFieldErrors(mappedFieldErrors);
+      // Hiển thị lỗi chung ("Email không tồn tại trong hệ thống")
+      setError(hasBackendFieldErrors ? "" : parsed.message);
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +87,7 @@ const ForgotPasswordPage = () => {
 
   return (
     <main className="main">
-      <PageTitle title="Quên mật khẩu" current="Quên mật khẩu"/>
+      <PageTitle title="Quên mật khẩu" current="Quên mật khẩu" />
 
       <section id="register" className="register section">
         <div className="container" data-aos="fade-up" data-aos-delay="100">
@@ -65,27 +101,42 @@ const ForgotPasswordPage = () => {
 
                 <div className="row">
                   <div className="col-lg-8 mx-auto">
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} noValidate>
+                      {error && (
+                        <div
+                          className="alert alert-danger mb-4 text-start"
+                          role="alert"
+                        >
+                          {error}
+                        </div>
+                      )}
+
                       <div className="form-floating mb-3">
                         <input
                           type="email"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.email ? "is-invalid" : ""}`}
                           id="email"
                           name="email"
                           placeholder="Email"
-                          required
                           autoComplete="email"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={handleEmailChange}
                         />
                         <label htmlFor="email">Email</label>
+
+                        {fieldErrors.email && (
+                          <div className="invalid-feedback text-start mt-2 d-block">
+                            {fieldErrors.email}
+                          </div>
+                        )}
+
                       </div>
 
                       <div className="d-grid mb-4">
                         <button
                           type="submit"
                           className="btn btn-register"
-                          disabled={isLoading || !email}
+                          disabled={isLoading}
                         >
                           {isLoading ? "Đang gửi..." : "Gửi yêu cầu"}
                         </button>

@@ -36,6 +36,8 @@ const RegisterPage = () => {
     confirmPassword: "",
   });
 
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
+
   const [error, setError] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<RegisterFormFieldErrors>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -68,11 +70,53 @@ const RegisterPage = () => {
     setError("");
     setFieldErrors({});
 
+    const newFieldErrors: RegisterFormFieldErrors = {};
+    let hasError = false;
+
+    if (!formData.fullName.trim()) {
+      newFieldErrors.fullName = "Họ và tên không được để trống";
+      hasError = true;
+    }
+
+    if (!formData.email.trim()) {
+      newFieldErrors.email = "Email không được để trống";
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      // Dùng Regex cơ bản để check định dạng email
+      newFieldErrors.email = "Định dạng email không hợp lệ";
+      hasError = true;
+    }
+
+    if (!formData.password) {
+      newFieldErrors.password = "Mật khẩu không được để trống";
+      hasError = true;
+    } else {
+      // Regex: Ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 số, 1 ký tự đặc biệt (@$!%*?&)
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      
+      if (!passwordRegex.test(formData.password)) {
+        newFieldErrors.password = "Mật khẩu phải từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt.";
+        hasError = true;
+      }
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp!");
-      setFieldErrors({ confirmPassword: "Mật khẩu xác nhận không khớp!" });
+      newFieldErrors.confirmPassword = "Mật khẩu xác nhận không khớp!";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setFieldErrors(newFieldErrors);
+      setError("Vui lòng kiểm tra lại các thông tin chưa hợp lệ.");
+      return; // Dừng lại ngay lập tức, không gọi API
+    }
+
+    // Check điều khoản dịch vụ riêng biệt
+    if (!termsAccepted) {
+      setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật để tiếp tục.");
       return;
     }
+  
 
     setIsLoading(true);
 
@@ -94,7 +138,7 @@ const RegisterPage = () => {
         title: "Thành công!",
         text: "Tài khoản của bạn đã được tạo thành công.",
         confirmButtonText: "Đăng nhập ngay",
-        confirmButtonColor: "#007bff", // đổi màu theo theme của web
+        confirmButtonColor: "#007bff",
       }).then((result) => {
         if (result.isConfirmed) {
           navigate("/login");
@@ -103,12 +147,12 @@ const RegisterPage = () => {
     } catch (err: unknown) {
       const parsed = parseApiError(err, "Đăng ký thất bại. Vui lòng thử lại!");
       const mappedFieldErrors = mapRegisterFieldErrors(parsed.fieldErrors);
-      const hasFieldErrors = Object.values(mappedFieldErrors).some(
+      const hasBackendFieldErrors = Object.values(mappedFieldErrors).some(
         (value) => typeof value === "string" && value.trim().length > 0,
       );
 
       setFieldErrors(mappedFieldErrors);
-      setError(hasFieldErrors ? "" : parsed.message);
+      setError(hasBackendFieldErrors ? "Vui lòng kiểm tra lại các thông tin chưa hợp lệ." : parsed.message);
     } finally {
       setIsLoading(false);
     }

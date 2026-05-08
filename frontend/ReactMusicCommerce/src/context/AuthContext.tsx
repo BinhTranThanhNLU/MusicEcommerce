@@ -11,15 +11,11 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<UserModel | null>(null);
 
-    // Khi F5 lại trang, lấy user từ localStorage ra để không bị văng đăng nhập
-    useEffect(() => {
+    const [user, setUser] = useState<UserModel | null>(() => {
         const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-    }, []);
+        return storedUser ? JSON.parse(storedUser) : null;
+    });
 
     const loginContext = (userData: UserModel, token: string) => {
         setUser(userData);

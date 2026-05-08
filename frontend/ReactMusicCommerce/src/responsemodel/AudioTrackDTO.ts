@@ -19,4 +19,10 @@ export interface AudioTrackDTO {
   tags: TrackTagsModel;
   licenses: AudioTrackLicenseModel[];
   description: string;
+  status?: string | null;
+  moderationDecision?: string | null;
+  rejectionReason?: string | null;
+  revisionPoints?: string[] | null;
+  moderatedAt?: string | null;
+  moderatedBy?: string | null;
 }

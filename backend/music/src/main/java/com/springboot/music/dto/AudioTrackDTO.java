@@ -23,7 +23,13 @@ public class AudioTrackDTO {
     private Double averageRating;
     private Long reviewCount;
     private LocalDateTime uploadDate;
+    private String status;
     private String authorName;
+    private String moderationDecision;
+    private String rejectionReason;
+    private List<String> revisionPoints;
+    private LocalDateTime moderatedAt;
+    private String moderatedBy;
 
     private ArtistDTO artist;
     private TrackTagsDTO tags;

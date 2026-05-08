@@ -9,6 +9,9 @@ import type { AdminDashboardOverviewDTO } from "../responsemodel/AdminDashboardO
 import type { CopyrightPageResponse } from "../responsemodel/CopyrightPageResponse";
 import type { CopyrightInfoDTO } from "../models/CopyrightInfoDTO";
 import type { UpdateCopyrightRequest } from "../requestmodel/UpdateCopyrightRequest";
+import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
+import type { AudioTrackDTO } from "../responsemodel/AudioTrackDTO";
+import type { ModerateAudioTrackRequest } from "../requestmodel/ModerateAudioTrackRequest";
 
 export const getAdminUsers = async (
   page: number,
@@ -102,6 +105,43 @@ export const getAdminDashboardOverview = async (
     params: { period, points },
   });
 
+  return response.data;
+};
+
+export const getPendingTracks = async (
+  page = 0,
+  size = 10,
+): Promise<AudioTrackPageResponse> => {
+  const response = await axiosClient.get<AudioTrackPageResponse>("/admin/tracks/pending", {
+    params: { page, size },
+  });
+
+  return response.data;
+};
+
+export const getTrackModerationDetail = async (id: number): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.get<AudioTrackDTO>(`/admin/tracks/${id}`);
+  return response.data;
+};
+
+export const approveTrack = async (id: number): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.put<AudioTrackDTO>(`/admin/tracks/${id}/approve`);
+  return response.data;
+};
+
+export const rejectTrack = async (
+  id: number,
+  request: ModerateAudioTrackRequest,
+): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.put<AudioTrackDTO>(`/admin/tracks/${id}/reject`, request);
+  return response.data;
+};
+
+export const requestTrackRevision = async (
+  id: number,
+  request: ModerateAudioTrackRequest,
+): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.put<AudioTrackDTO>(`/admin/tracks/${id}/need-revision`, request);
   return response.data;
 };
 

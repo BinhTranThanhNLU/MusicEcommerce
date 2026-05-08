@@ -10,18 +10,22 @@ import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.entity.AudioTrack;
+import com.springboot.music.entity.AudioTrackModeration;
 import com.springboot.music.entity.License;
 import com.springboot.music.entity.OrderDetail;
 import com.springboot.music.entity.OrderEntity;
 import com.springboot.music.entity.PaymentTransaction;
 import com.springboot.music.entity.User;
 import com.springboot.music.mapper.AudioTrackMapper;
+import com.springboot.music.repository.AudioTrackModerationRepository;
 import com.springboot.music.repository.CopyrightInfoRepository;
 import com.springboot.music.repository.OrderDetailRepository;
 import com.springboot.music.entity.CopyrightInfo;
+import com.springboot.music.requestmodel.ModerateAudioTrackRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
 import com.springboot.music.dto.CopyrightInfoDTO;
 import com.springboot.music.responsemodel.CopyrightPageResponse;
+import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.mapper.UserMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.OrderRepository;
@@ -32,6 +36,8 @@ import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -54,37 +61,92 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class AdminService {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminService.class);
+
     private static final String ROLE_ARTIST = "artist";
     private static final String ROLE_USER = "user";
     private static final String ORDER_STATUS_PENDING = "PENDING";
     private static final String ORDER_STATUS_COMPLETED = "COMPLETED";
     private static final String ORDER_STATUS_FAILED = "FAILED";
+    private static final String TRACK_STATUS_PENDING = "Pending";
+    private static final String TRACK_STATUS_APPROVED = "Approved";
+    private static final String TRACK_STATUS_REJECTED = "Rejected";
+    private static final String TRACK_STATUS_NEED_REVISION = "Need Revision";
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final OrderRepository orderRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final AudioTrackRepository audioTrackRepository;
+    private final AudioTrackModerationRepository audioTrackModerationRepository;
     private final CopyrightInfoRepository copyrightInfoRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final AudioTrackMapper audioTrackMapper;
+    private final EmailService emailService;
 
     public AdminService(UserRepository userRepository,
                         UserMapper userMapper,
                         OrderRepository orderRepository,
                         PaymentTransactionRepository paymentTransactionRepository,
                         AudioTrackRepository audioTrackRepository,
+                        AudioTrackModerationRepository audioTrackModerationRepository,
                         CopyrightInfoRepository copyrightInfoRepository,
                         OrderDetailRepository orderDetailRepository,
-                        AudioTrackMapper audioTrackMapper) {
+                        AudioTrackMapper audioTrackMapper,
+                        EmailService emailService) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.orderRepository = orderRepository;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.audioTrackRepository = audioTrackRepository;
+        this.audioTrackModerationRepository = audioTrackModerationRepository;
         this.copyrightInfoRepository = copyrightInfoRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.audioTrackMapper = audioTrackMapper;
+        this.emailService = emailService;
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getPendingTracks(int page, int size) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+
+        Page<AudioTrack> trackPage = audioTrackRepository.findByStatusIgnoreCase(TRACK_STATUS_PENDING, pageable);
+        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
+
+        return AudioTrackPageResponse.builder()
+                .tracks(tracks)
+                .currentPage(trackPage.getNumber())
+                .totalPages(trackPage.getTotalPages())
+                .totalItems(trackPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackDTO getTrackModerationDetail(Integer audioId) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
+    @Transactional
+    public AudioTrackDTO approveTrack(Integer audioId) {
+        return applyModerationDecision(audioId, TRACK_STATUS_APPROVED, null, Collections.emptyList());
+    }
+
+    @Transactional
+    public AudioTrackDTO rejectTrack(Integer audioId, ModerateAudioTrackRequest request) {
+        String reason = normalizeModerationReason(request != null ? request.getReason() : null);
+        return applyModerationDecision(audioId, TRACK_STATUS_REJECTED, reason, Collections.emptyList());
+    }
+
+    @Transactional
+    public AudioTrackDTO requestRevision(Integer audioId, ModerateAudioTrackRequest request) {
+        List<String> revisionPoints = normalizeRevisionPoints(request != null ? request.getRevisionPoints() : null);
+        String reason = request != null ? normalizeOptionalText(request.getReason()) : null;
+        if ((reason == null || reason.isBlank()) && revisionPoints.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất một điểm cần sửa hoặc mô tả lý do");
+        }
+        return applyModerationDecision(audioId, TRACK_STATUS_NEED_REVISION, reason, revisionPoints);
     }
 
     @Transactional(readOnly = true)
@@ -111,6 +173,116 @@ public class AdminService {
                 .totalPages(pageResult.getTotalPages())
                 .totalItems(pageResult.getTotalElements())
                 .build();
+    }
+
+    private AudioTrackDTO applyModerationDecision(Integer audioId, String decision, String reason, List<String> revisionPoints) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        String moderatedBy = resolveCurrentModeratorName();
+
+        audioTrack.setStatus(decision);
+        audioTrackRepository.save(audioTrack);
+
+        AudioTrackModeration moderation = audioTrackModerationRepository.findByAudioTrack_Id(audioId)
+                .orElseGet(() -> AudioTrackModeration.builder()
+                        .audioTrack(audioTrack)
+                        .build());
+        moderation.setAudioTrack(audioTrack);
+        moderation.setDecision(decision);
+        moderation.setRejectionReason(reason);
+        moderation.setRevisionPointsJson(serializeRevisionPoints(revisionPoints));
+        moderation.setModeratedBy(moderatedBy);
+        moderation.setModeratedAt(LocalDateTime.now());
+        audioTrackModerationRepository.save(moderation);
+
+        audioTrack.setModeration(moderation);
+
+        notifyArtist(audioTrack, decision, reason, revisionPoints);
+        log.info("Admin {} updated moderation for track {} -> {}", moderatedBy, audioId, decision);
+
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
+    private void notifyArtist(AudioTrack audioTrack, String decision, String reason, List<String> revisionPoints) {
+        if (audioTrack.getArtist() == null || audioTrack.getArtist().getEmail() == null || audioTrack.getArtist().getEmail().isBlank()) {
+            return;
+        }
+
+        try {
+            String artistName = audioTrack.getArtist().getName();
+            if (TRACK_STATUS_APPROVED.equalsIgnoreCase(decision)) {
+                emailService.sendTrackApprovedEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle());
+            } else if (TRACK_STATUS_REJECTED.equalsIgnoreCase(decision)) {
+                emailService.sendTrackRejectedEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle(), reason);
+            } else if (TRACK_STATUS_NEED_REVISION.equalsIgnoreCase(decision)) {
+                emailService.sendTrackRevisionEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle(), revisionPoints);
+            }
+        } catch (RuntimeException ex) {
+            log.warn("Không thể gửi email moderation cho track {}: {}", audioTrack.getId(), ex.getMessage());
+        }
+    }
+
+    private AudioTrack getAudioTrackByIdOrThrow(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+        }
+
+        return audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài hát"));
+    }
+
+    private String resolveCurrentModeratorName() {
+        try {
+            if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null
+                    && org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() != null
+                    && !org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName().isBlank()) {
+                return org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            }
+        } catch (Exception ignored) {
+        }
+        return "system";
+    }
+
+    private String normalizeModerationReason(String reason) {
+        String normalized = normalizeOptionalText(reason);
+        if (normalized == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống");
+        }
+        return normalized;
+    }
+
+    private List<String> normalizeRevisionPoints(List<String> revisionPoints) {
+        if (revisionPoints == null || revisionPoints.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> normalized = new ArrayList<>();
+        for (String point : revisionPoints) {
+            String value = normalizeOptionalText(point);
+            if (value != null) {
+                normalized.add(value);
+            }
+        }
+        return normalized;
+    }
+
+    private String serializeRevisionPoints(List<String> revisionPoints) {
+        if (revisionPoints == null || revisionPoints.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(revisionPoints);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể lưu danh sách điểm cần sửa");
+        }
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 
     @Transactional(readOnly = true)

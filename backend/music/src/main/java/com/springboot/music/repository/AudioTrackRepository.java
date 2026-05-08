@@ -24,8 +24,10 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
     @Query("select coalesce(a.playCount, 0) from AudioTrack a where a.id = :audioId")
     Integer findPlayCountById(@Param("audioId") Integer audioId);
 
+    Page<AudioTrack> findByStatusIgnoreCase(String status, Pageable pageable);
+
     // Đếm số tác phẩm đang bán
-    @Query("SELECT COUNT(a) FROM AudioTrack a WHERE a.artist.id = :artistId AND a.status = 'Approved'")
+    @Query("SELECT COUNT(a) FROM AudioTrack a WHERE a.artist.id = :artistId AND UPPER(a.status) = 'APPROVED'")
     Long countActiveTracksByArtistId(@Param("artistId") Integer artistId);
 
     @Query(value = """

@@ -39,7 +39,7 @@ import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 import AdminCopyrightPage from "./pages/admin/AdminCopyrightPage";
-import AdminSongModerationPage from "./pages/admin/AdminSongModerationPage";
+import AdminModerationPage from "./pages/admin/AdminModerationPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -141,6 +141,7 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboardPage />} />
+                  <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="users" element={<AdminUserPage />} />
                   <Route path="users/view/:id" element={<AdminUserDetailPage />} />
                   <Route path="orders" element={<AdminOrdersPage />} />
@@ -148,7 +149,6 @@ function App() {
                   <Route path="copyright" element={<AdminCopyrightPage />} />
                 </Route>
 
-                <Route path="/admin/content" element={<AdminSongModerationPage />} />
               </Route>
 
               {/* Bắt các route lỗi hoặc linh tinh */}

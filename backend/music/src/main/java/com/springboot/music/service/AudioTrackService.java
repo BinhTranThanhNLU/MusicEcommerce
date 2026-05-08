@@ -516,16 +516,13 @@ public class AudioTrackService {
                 audioTrack.setDuration(request.getDuration());
             }
 
-            if (request.getStatus() != null) {
-                hasAnyField = true;
-                String status = request.getStatus().trim();
-                audioTrack.setStatus(status.isBlank() ? null : status);
-            }
         }
 
         if (!hasAnyField) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 truong de cap nhat");
         }
+
+        audioTrack.setStatus("Pending");
 
         AudioTrack savedTrack = audioTrackRepository.save(audioTrack);
         AudioTrackDTO dto = audioTrackMapper.toDto(savedTrack);

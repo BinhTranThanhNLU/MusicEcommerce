@@ -47,7 +47,7 @@ const AdminSidebar = () => {
         </li>
         <li className="nav-item mb-1">
           <NavLink
-            to="/admin/content" // Tui giả định link này cho tương lai
+            to="/admin/moderation"
             className={({ isActive }) =>
               `nav-link rounded d-flex align-items-center fw-medium ${
                 isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
@@ -82,7 +82,7 @@ const AdminSidebar = () => {
 
         <li className="nav-item mb-1">
           <NavLink
-            to="/admin/orders" // ĐÃ SỬA LỖI Ở ĐÂY (thêm dấu /)
+            to="/admin/orders"
             className={({ isActive }) =>
               `nav-link rounded d-flex align-items-center fw-medium ${
                 isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
@@ -120,7 +120,7 @@ const AdminSidebar = () => {
           style={{ borderColor: "#334155" }}
         >
           <NavLink
-            to="/admin/settings" // Tui giả định link này cho tương lai
+            to="/admin/settings"
             className={({ isActive }) =>
               `nav-link rounded d-flex align-items-center fw-medium ${
                 isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"

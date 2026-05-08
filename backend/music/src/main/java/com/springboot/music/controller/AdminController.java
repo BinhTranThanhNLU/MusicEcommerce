@@ -7,10 +7,13 @@ import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
+import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
+import com.springboot.music.requestmodel.ModerateAudioTrackRequest;
 import com.springboot.music.responsemodel.CopyrightPageResponse;
 import com.springboot.music.dto.CopyrightInfoDTO;
+import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,8 +63,6 @@ public class AdminController {
     public ResponseEntity<AdminUserDetailDTO> getUserDetail(@PathVariable @Positive Integer id) {
         return ResponseEntity.ok(adminService.getUserDetail(id));
     }
-
-    
 
     @GetMapping({"/users/{id}/orders", "/users/{id}/transactions"})
     @Operation(summary = "Lấy lịch sử đơn hàng/giao dịch của người dùng theo ID")
@@ -141,5 +142,41 @@ public class AdminController {
             @PathVariable @Positive Integer id,
             @RequestBody UpdateOrderStatusRequest request) {
         return ResponseEntity.ok(adminService.updateOrderStatus(id, request));
+    }
+
+    @GetMapping("/tracks/pending")
+    @Operation(summary = "Lấy danh sách bài hát đang chờ duyệt")
+    public ResponseEntity<AudioTrackPageResponse> getPendingTracks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(adminService.getPendingTracks(page, size));
+    }
+
+    @GetMapping("/tracks/{id}")
+    @Operation(summary = "Lấy chi tiết bài hát để kiểm duyệt")
+    public ResponseEntity<AudioTrackDTO> getTrackModerationDetail(@PathVariable @Positive Integer id) {
+        return ResponseEntity.ok(adminService.getTrackModerationDetail(id));
+    }
+
+    @PutMapping("/tracks/{id}/approve")
+    @Operation(summary = "Duyệt bài hát")
+    public ResponseEntity<AudioTrackDTO> approveTrack(@PathVariable @Positive Integer id) {
+        return ResponseEntity.ok(adminService.approveTrack(id));
+    }
+
+    @PutMapping("/tracks/{id}/reject")
+    @Operation(summary = "Từ chối bài hát")
+    public ResponseEntity<AudioTrackDTO> rejectTrack(
+            @PathVariable @Positive Integer id,
+            @RequestBody ModerateAudioTrackRequest request) {
+        return ResponseEntity.ok(adminService.rejectTrack(id, request));
+    }
+
+    @PutMapping("/tracks/{id}/need-revision")
+    @Operation(summary = "Yêu cầu chỉnh sửa bài hát")
+    public ResponseEntity<AudioTrackDTO> requestRevision(
+            @PathVariable @Positive Integer id,
+            @RequestBody ModerateAudioTrackRequest request) {
+        return ResponseEntity.ok(adminService.requestRevision(id, request));
     }
 }

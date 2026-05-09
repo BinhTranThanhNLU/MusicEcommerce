@@ -160,12 +160,33 @@ const ArtistTrackTable = ({
             </tr>
           ) : (
             displayedTracks.map((track) => {
-              const statusLabel = track.uploadDate
-                ? "Đang xuất bản"
-                : "Đang chờ duyệt";
-              const statusClass = track.uploadDate
-                ? "bg-success bg-opacity-10 text-success border border-success border-opacity-25"
-                : "bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25";
+              const statusValue = track.status?.toUpperCase() || "PENDING";
+              let statusLabel = "Không xác định";
+              let statusClass =
+                "bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25";
+              let statusIcon = "bi-question-circle-fill";
+
+              if (statusValue === "APPROVED") {
+                statusLabel = "Đã duyệt"; 
+                statusClass =
+                  "bg-success bg-opacity-10 text-success border border-success border-opacity-25";
+                statusIcon = "bi-check-circle-fill";
+              } else if (statusValue === "PENDING") {
+                statusLabel = "Đang chờ duyệt";
+                statusClass =
+                  "bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25";
+                statusIcon = "bi-hourglass-split";
+              } else if (statusValue === "REVISION") {
+                statusLabel = "Cần chỉnh sửa";
+                statusClass =
+                  "bg-info bg-opacity-10 text-info border border-info border-opacity-25";
+                statusIcon = "bi-pencil-fill";
+              } else if (statusValue === "REJECTED") {
+                statusLabel = "Bị từ chối";
+                statusClass =
+                  "bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25";
+                statusIcon = "bi-x-circle-fill";
+              }
 
               return (
                 <tr key={track.id}>
@@ -306,8 +327,7 @@ const ArtistTrackTable = ({
                     <span
                       className={`badge rounded-pill px-3 py-2 ${statusClass}`}
                     >
-                      <i className="bi bi-check-circle-fill me-1"></i>{" "}
-                      {statusLabel}
+                      <i className={`bi ${statusIcon} me-1`}></i> {statusLabel}
                     </span>
                   </td>
                   <td className="pe-4 text-end">

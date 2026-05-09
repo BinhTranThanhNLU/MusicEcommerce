@@ -38,7 +38,7 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
 
     // Tổng lượt nghe/tải xuống tích lũy của tất cả tác phẩm thuộc artist
     @Query("SELECT COALESCE(SUM(COALESCE(a.playCount, 0)), 0) FROM AudioTrack a WHERE a.artist.id = :artistId")
-    Long sumPlayCountByArtistId(@Param("artistId") Integer artistId);
+    long sumPlayCountByArtistId(@Param("artistId") Integer artistId);
 
     // Lấy danh sách bài hát của một nghệ sĩ, sắp xếp theo ngày tải lên mới nhất
     @Query(value = """

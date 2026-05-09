@@ -10,7 +10,9 @@ import com.springboot.music.repository.AudioTrackReviewRepository;
 import com.springboot.music.repository.OrderDetailRepository;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.responsemodel.ArtistLicensePageResponse;
+import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.TransactionPageResponse;
+import com.springboot.music.specification.AudioTrackSpecification;
 import com.springboot.music.specification.OrderDetailSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -70,8 +72,8 @@ public class ArtistService {
         Long totalCustomers = defaultLong(orderDetailRepository.countDistinctCustomersByArtistId(artistId));
         Long totalReviews = defaultLong(audioTrackReviewRepository.countReviewsByArtistId(artistId));
         Long activeTracks = defaultLong(audioTrackRepository.countActiveTracksByArtistId(artistId));
-        Long totalSalesDownloads = defaultLong(orderDetailRepository.countTotalLicensesByArtistId(artistId));
-        Long totalPlayCount = defaultLong(audioTrackRepository.sumPlayCountByArtistId(artistId));
+        long totalSalesDownloads = orderDetailRepository.countTotalLicensesByArtistId(artistId);
+        long totalPlayCount = audioTrackRepository.sumPlayCountByArtistId(artistId);
         Double conversionRate = totalPlayCount == 0 ? 0.0 : (totalSalesDownloads * 100.0) / totalPlayCount;
 
         DashboardStatsDTO stats = DashboardStatsDTO.builder()
@@ -147,8 +149,8 @@ public class ArtistService {
                 pageable
         );
 
-        List<ArtistLicenseDTO> licenseDTOs = orderDetailPage.getContent().stream().map(detail -> {
-            return ArtistLicenseDTO.builder()
+        List<ArtistLicenseDTO> licenseDTOs = orderDetailPage.getContent().stream().map(detail ->
+            ArtistLicenseDTO.builder()
                     .orderDetailId(detail.getId())
                     .watermarkId(detail.getWatermarkId() != null ? detail.getWatermarkId() : "Không áp dụng")
                     .customerName(detail.getOrder().getUser().getName())
@@ -161,8 +163,7 @@ public class ArtistService {
                     .licenseStatus(detail.getLicenseStatus())
                     .issuedAt(detail.getOrder().getCreatedAt())
                     .expiredAt(detail.getExpiredAt())
-                    .build();
-        }).collect(Collectors.toList());
+                    .build()).collect(Collectors.toList());
 
         return new ArtistLicensePageResponse(
                 licenseDTOs,
@@ -328,6 +329,30 @@ public class ArtistService {
         );
     }
 
+    // Lấy danh sách track của nghệ sĩ
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getMyTracks(String email, int page, int size, String keyword, String genreName, String status) {
+        User artist = userRepository.findByEmail(email);
+        if (artist == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("uploadDate").descending());
+
+        // Gọi Specification mới
+        Page<com.springboot.music.entity.AudioTrack> trackPage = audioTrackRepository.findAll(
+                AudioTrackSpecification.filterForArtist(artist.getId(), keyword, genreName, null, null, null, null, status),
+                pageable
+        );
+
+        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(trackPage.getContent());
+        return new AudioTrackPageResponse(
+                audioTracks,
+                trackPage.getNumber(),
+                trackPage.getTotalPages(),
+                trackPage.getTotalElements()
+        );
+    }
+
 
 }
-

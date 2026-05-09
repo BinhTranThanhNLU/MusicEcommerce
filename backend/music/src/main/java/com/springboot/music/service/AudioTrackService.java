@@ -108,7 +108,7 @@ public class AudioTrackService {
     public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds, sort);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds, sort, null);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
@@ -119,7 +119,7 @@ public class AudioTrackService {
     public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds, sort);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds, sort, null);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
@@ -130,7 +130,7 @@ public class AudioTrackService {
     public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds, sort);
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds, sort, null);
         Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
 
         return createPageResponse(audioTrackPage);
@@ -148,6 +148,7 @@ public class AudioTrackService {
         );
     }
 
+    // Lấy chi tiết một audio track theo id, kèm thông tin đánh giá
     @Transactional(readOnly = true)
     public AudioTrackDTO getAudioTrackById(int id) {
         AudioTrack audioTrack = audioTrackRepository.findById(id)
@@ -157,6 +158,24 @@ public class AudioTrackService {
         return dto;
     }
 
+    // Lấy audio track theo artist id với phân trang và filter nâng cao, đồng thời chỉ truyền artistId hiện tại vào Specification để đảm bảo chỉ lấy bài hát của artist đó
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByArtistId(int artistId, Integer genreId, int page, int size, Double minPrice, Double maxPrice, List<String> types, String sort, String status) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        String genreName = null;
+        if (genreId != null) {
+            Genre genre = genreRepository.findById(genreId).orElse(null);
+            genreName = genre != null ? genre.getName() : null;
+        }
+
+        Specification<AudioTrack> spec = AudioTrackSpecification.filterForArtist(artistId, null, genreName, minPrice, maxPrice, types, sort, status);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
+    // Tạo mới một audio track, chỉ cho phép artist hoặc admin thực hiện, kèm xử lý upload file và tạo preview
     @Transactional
     public AudioTrackDTO createAudioTrack(CreateAudioTrackRequest request,
                                           MultipartFile originalFile,
@@ -220,6 +239,7 @@ public class AudioTrackService {
         return dto;
     }
 
+    // Giải quyết người dùng hiện tại từ context bảo mật, đồng thời kiểm tra vai trò và tồn tại của người dùng
     private User resolveCurrentArtist() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
@@ -242,6 +262,7 @@ public class AudioTrackService {
         return user;
     }
 
+    // Chuẩn hóa và validate các trường text bắt buộc, đồng thời trả về giá trị đã được trim
     private String normalizeRequiredText(String value, String errorMessage) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMessage);
@@ -255,6 +276,7 @@ public class AudioTrackService {
         return normalized;
     }
 
+    // Chuẩn hóa các trường text tùy chọn, nếu null hoặc chỉ chứa whitespace thì trả về null
     private String normalizeOptionalText(String value) {
         if (value == null) {
             return null;
@@ -264,6 +286,7 @@ public class AudioTrackService {
         return normalized.isBlank() ? null : normalized;
     }
 
+    // Validate file upload, đảm bảo file không null và không rỗng, đồng thời phân biệt giữa audio file và cover image để trả về thông báo lỗi phù hợp
     private void validateUploadFile(MultipartFile file, boolean audioFile) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -313,6 +336,7 @@ public class AudioTrackService {
         return themes;
     }
 
+    // Xử lý thông tin license price từ request, kiểm tra tính hợp lệ, tránh trùng lặp license id, và lưu vào cơ sở dữ liệu
     private List<AudioTrackLicense> buildAndSaveLicenses(AudioTrack savedTrack, List<LicensePriceRequest> licensePrices) {
         if (licensePrices == null || licensePrices.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 license price");
@@ -347,6 +371,7 @@ public class AudioTrackService {
         return trackLicenses;
     }
 
+    // Tạo file preview có watermark từ file gốc, lưu vào storage và trả về URL, đồng thời đảm bảo cleanup file tạm sau khi đã lưu vào storage
     private String createAndStorePreviewFile(MultipartFile originalFile) {
         Path previewFilePath = audioMixerService.createWatermarkedPreview(originalFile);
         try {
@@ -356,6 +381,7 @@ public class AudioTrackService {
         }
     }
 
+    // Xóa file tạm nếu tồn tại, đảm bảo không để lỗi xảy ra khi cleanup file ảnh hưởng đến luồng chính của nghiệp vụ
     private void cleanupTempFile(Path filePath) {
         if (filePath == null) {
             return;
@@ -366,17 +392,6 @@ public class AudioTrackService {
         } catch (IOException ignored) {
             // Keep cleanup failure non-fatal to avoid hiding main business flow errors.
         }
-    }
-
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByArtistId(int artistId, int page, int size, Double minPrice, Double maxPrice, List<String> types, String sort) {
-        Pageable pageable = PageRequest.of(page, size);
-
-        // Truyền List.of(artistId) vào vị trí của artistIds trong Specification
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, null, minPrice, maxPrice, types, List.of(artistId), sort);
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
-
-        return createPageResponse(audioTrackPage);
     }
 
     // Bổ sung thông tin đánh giá vào DTO

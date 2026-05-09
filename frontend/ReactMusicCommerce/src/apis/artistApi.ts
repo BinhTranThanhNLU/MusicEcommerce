@@ -3,6 +3,7 @@ import type { ArtistLicenseStatsModel } from "../models/ArtistLicenseStatsModel"
 import type { ArtistModel } from "../models/ArtistModel";
 import type { ArtistRevenueSummaryModel } from "../models/ArtistRevenueSummaryModel";
 import type { ArtistLicensePageResponse } from "../responsemodel/ArtistLicensePageResponse";
+import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
 import type { TransactionPageResponse } from "../responsemodel/TransactionPageResponse";
 import axiosClient from "./axiosClient";
 
@@ -14,6 +15,26 @@ export const getAllArtists = async (): Promise<ArtistModel[]> => {
 // Lấy dữ liệu Dashboard tổng quan
 export const getDashboardSummary = async (): Promise<ArtistDashboardSummaryModel> => {
   const response = await axiosClient.get("/artists/me/dashboard/summary");
+  return response.data;
+};
+
+// Lấy danh sách track của nghệ sĩ đang đăng nhập (Artist Dashboard)
+export const getMyTracks = async (
+  page: number = 0,
+  size: number = 10,
+  keyword?: string,
+  genreName?: string,
+  status: string = "all"
+): Promise<AudioTrackPageResponse> => {
+  const response = await axiosClient.get("/artists/me/tracks", {
+    params: { 
+      page, 
+      size, 
+      keyword: keyword || undefined, 
+      genreName: genreName === "all" ? undefined : genreName, 
+      status 
+    },
+  });
   return response.data;
 };
 

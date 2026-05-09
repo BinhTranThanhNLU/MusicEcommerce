@@ -141,7 +141,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             WHERE at.artist.id = :artistId 
               AND od.order.paymentStatus = 'COMPLETED'
             GROUP BY at.id, at.title, at.coverImage, at.audioType
-            ORDER BY total_revenue DESC
+            ORDER BY SUM(od.price) DESC
             """)
     List<Object[]> findTopPerformingTracksByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 

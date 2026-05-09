@@ -7,6 +7,7 @@ import com.springboot.music.dto.ArtistRevenueSummaryDTO;
 import com.springboot.music.entity.User;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.responsemodel.ArtistLicensePageResponse;
+import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.TransactionPageResponse;
 import com.springboot.music.service.ArtistService;
 import com.springboot.music.service.CertificateService;
@@ -45,6 +46,20 @@ public class ArtistController {
     public ResponseEntity<ArtistDashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(artistService.getDashboardSummary(email));
+    }
+
+    @GetMapping("/me/tracks")
+    @Operation(summary = "Lấy danh sách track của nghệ sĩ đang đăng nhập")
+    public ResponseEntity<AudioTrackPageResponse> getMyTracks(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String genreName,
+            @RequestParam(required = false, defaultValue = "all") String status) {
+
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getMyTracks(email, page, size, keyword, genreName, status));
     }
 
     @GetMapping("/me/licenses")

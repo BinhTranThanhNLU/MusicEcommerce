@@ -2,7 +2,6 @@ package com.springboot.music.controller;
 
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.requestmodel.CreateAudioTrackRequest;
-import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.service.AudioTrackService;
@@ -86,41 +85,33 @@ public class AudioTrackController {
         return ResponseEntity.ok(audioTrackDTO);
     }
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
-    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
-            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
-            @RequestPart("originalFile") MultipartFile originalFile,
-            @RequestPart("coverImage") MultipartFile coverImage) {
-        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
+    @PostMapping("/{id}/preview-play")
+    public ResponseEntity<AudioTrackPlayCountResponse> incrementPreviewPlayCount(@PathVariable Integer id) {
+        return ResponseEntity.ok(audioTrackService.incrementPreviewPlayCount(id));
     }
-
-
 
     @GetMapping("/artist/{id}")
     public ResponseEntity<AudioTrackPageResponse> getTracksByArtist(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "7") int size, // Lấy 7 bài để xíu nữa Frontend trừ đi bài hiện tại là vừa đẹp 6 bài
+            @RequestParam(required = false) Integer genreId,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(required = false) List<String> types,
-            @RequestParam(required = false) String sort) {
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false, defaultValue = "all") String status) {
 
-        AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, page, size, minPrice, maxPrice, types, sort);
+        AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, genreId, page, size, minPrice, maxPrice, types, sort, status);
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/preview-play")
-    public ResponseEntity<AudioTrackPlayCountResponse> incrementPreviewPlayCount(@PathVariable Integer id) {
-        return ResponseEntity.ok(audioTrackService.incrementPreviewPlayCount(id));
-    }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Update audio track", description = "Cap nhat audio track voi ho tro multipart form data. Cac field text va image/audio file (optional).")
     public ResponseEntity<AudioTrackDTO> updateAudioTrack(
             @PathVariable Integer id,
-            @RequestPart(name = "updateRequest", required = true) String updateRequestJson,
+            @RequestPart(name = "updateRequest") String updateRequestJson,
             @RequestPart(name = "originalFile", required = false) MultipartFile originalFile,
             @RequestPart(name = "coverImage", required = false) MultipartFile coverImage) {
         return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, updateRequestJson, originalFile, coverImage));
@@ -130,6 +121,16 @@ public class AudioTrackController {
     public ResponseEntity<String> deleteAudioTrack(@PathVariable Integer id) {
         audioTrackService.deleteAudioTrack(id);
         return ResponseEntity.ok("Audio track deleted successfully");
+    }
+
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
+    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
+            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
+            @RequestPart("originalFile") MultipartFile originalFile,
+            @RequestPart("coverImage") MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
     }
 
 }

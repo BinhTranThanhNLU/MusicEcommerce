@@ -1,8 +1,12 @@
+import React from "react";
+
 interface ArtistTrackFilterProps {
   keyword: string;
   setKeyword: (keyword: string) => void;
   genreFilter: string;
   setGenreFilter: (genre: string) => void;
+  statusFilter: string;
+  setStatusFilter: (status: string) => void;
   genres: string[];
 }
 
@@ -11,6 +15,8 @@ const ArtistTrackFilter = ({
   setKeyword,
   genreFilter,
   setGenreFilter,
+  statusFilter,
+  setStatusFilter,
   genres,
 }: ArtistTrackFilterProps) => {
   return (
@@ -30,15 +36,18 @@ const ArtistTrackFilter = ({
         </div>
 
         <div className="d-flex gap-2">
+          {/* CẬP NHẬT TRẠNG THÁI VÀ LABEL */}
           <select
             className="form-select bg-light border-0"
             style={{ minWidth: "150px" }}
-            disabled
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="published">Đang xuất bản</option>
+            <option value="approved">Đã duyệt</option>
             <option value="pending">Đang chờ duyệt</option>
-            <option value="draft">Bản nháp</option>
+            <option value="revision">Cần chỉnh sửa</option>
+            <option value="rejected">Bị từ chối</option>
           </select>
 
           <select

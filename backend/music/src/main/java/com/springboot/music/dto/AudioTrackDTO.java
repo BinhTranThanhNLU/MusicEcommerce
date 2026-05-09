@@ -37,5 +37,6 @@ public class AudioTrackDTO {
     private List<AudioTrackLicenseDTO> licenses;
 
     private String description;
+    private String lyrics;
 
 }

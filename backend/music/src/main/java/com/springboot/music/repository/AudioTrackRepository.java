@@ -14,22 +14,33 @@ import java.util.List;
 
 public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>, JpaSpecificationExecutor<AudioTrack> {
 
+    // Tìm kiếm theo trạng thái (Pending, Approved, Rejected)
+    List<AudioTrack> findByStatusIgnoreCase(String status);
+
+    Page<AudioTrack> findByStatusIgnoreCase(String status, Pageable pageable);
+
+    // Tìm kiếm theo nghệ sĩ
     @Query("select distinct a.artist from AudioTrack a where a.artist is not null")
     List<User> findDistinctArtists();
 
+    // Tìm kiếm theo tên bài hát (chứa chuỗi con, không phân biệt hoa thường)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update AudioTrack a set a.playCount = coalesce(a.playCount, 0) + 1 where a.id = :audioId")
     int incrementPlayCount(@Param("audioId") Integer audioId);
 
+    // Lấy số lần phát của một bài hát
     @Query("select coalesce(a.playCount, 0) from AudioTrack a where a.id = :audioId")
     Integer findPlayCountById(@Param("audioId") Integer audioId);
-
-    Page<AudioTrack> findByStatusIgnoreCase(String status, Pageable pageable);
 
     // Đếm số tác phẩm đang bán
     @Query("SELECT COUNT(a) FROM AudioTrack a WHERE a.artist.id = :artistId AND UPPER(a.status) = 'APPROVED'")
     Long countActiveTracksByArtistId(@Param("artistId") Integer artistId);
 
+    // Tổng lượt nghe/tải xuống tích lũy của tất cả tác phẩm thuộc artist
+    @Query("SELECT COALESCE(SUM(COALESCE(a.playCount, 0)), 0) FROM AudioTrack a WHERE a.artist.id = :artistId")
+    Long sumPlayCountByArtistId(@Param("artistId") Integer artistId);
+
+    // Lấy danh sách bài hát của một nghệ sĩ, sắp xếp theo ngày tải lên mới nhất
     @Query(value = """
             SELECT a
             FROM AudioTrack a
@@ -43,6 +54,7 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
             """)
     Page<AudioTrack> findByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 
+    // Thống kê số lượng bài hát theo loại âm thanh
     @Query("""
             SELECT COALESCE(a.audioType, 'Unknown'), COUNT(a)
             FROM AudioTrack a

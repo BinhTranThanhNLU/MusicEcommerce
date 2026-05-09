@@ -135,16 +135,15 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
 
     // Lấy Top bài hát mang lại nhiều tiền nhất (Dùng Pageable để lấy Top 5)
     @Query("""
-            SELECT at.id, at.title, at.coverImage, l.licenseType, SUM(od.price) as total_revenue
+            SELECT at.id, at.title, at.coverImage, at.audioType, COUNT(od), SUM(od.price) as total_revenue
             FROM OrderDetail od
             JOIN od.audioTrack at
-            JOIN od.license l
             WHERE at.artist.id = :artistId 
               AND od.order.paymentStatus = 'COMPLETED'
-            GROUP BY at.id, at.title, at.coverImage, l.licenseType
+            GROUP BY at.id, at.title, at.coverImage, at.audioType
             ORDER BY total_revenue DESC
             """)
-    List<Object[]> findTopSellingTracks(@Param("artistId") Integer artistId, Pageable pageable);
+    List<Object[]> findTopPerformingTracksByArtistId(@Param("artistId") Integer artistId, Pageable pageable);
 
     // Lấy tất cả OrderDetail đã bán của Nghệ sĩ
     @Query("""

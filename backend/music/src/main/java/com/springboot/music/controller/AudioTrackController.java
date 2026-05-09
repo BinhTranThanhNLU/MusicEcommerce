@@ -35,15 +35,6 @@ public class AudioTrackController {
         return ResponseEntity.ok(responseList);
     }
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
-    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
-            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
-            @RequestPart("originalFile") MultipartFile originalFile,
-            @RequestPart("coverImage") MultipartFile coverImage) {
-        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
-    }
-
     @GetMapping("/genre/{id}")
     public ResponseEntity<AudioTrackPageResponse> getTracksByGenre(
             @PathVariable int id,
@@ -94,6 +85,17 @@ public class AudioTrackController {
         AudioTrackDTO audioTrackDTO = audioTrackService.getAudioTrackById(id);
         return ResponseEntity.ok(audioTrackDTO);
     }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
+    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
+            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
+            @RequestPart("originalFile") MultipartFile originalFile,
+            @RequestPart("coverImage") MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
+    }
+
+
 
     @GetMapping("/artist/{id}")
     public ResponseEntity<AudioTrackPageResponse> getTracksByArtist(

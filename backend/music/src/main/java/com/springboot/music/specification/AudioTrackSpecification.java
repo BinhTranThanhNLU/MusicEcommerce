@@ -22,6 +22,9 @@ public class AudioTrackSpecification {
             // Xử lý loại bỏ duplicate do dùng JOIN nhiều bảng
             query.distinct(true);
 
+            // Chỉ lấy các track đã được duyệt
+            predicates.add(cb.equal(cb.upper(root.get("status")), "APPROVED"));
+
             // 1. Lọc theo Genre
             if (genreId != null) {
                 Join<AudioTrack, Genre> genreJoin = root.join("genres", JoinType.INNER);

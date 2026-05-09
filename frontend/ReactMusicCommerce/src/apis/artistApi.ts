@@ -11,6 +11,12 @@ export const getAllArtists = async (): Promise<ArtistModel[]> => {
   return response.data;
 };
 
+// Lấy dữ liệu Dashboard tổng quan
+export const getDashboardSummary = async (): Promise<ArtistDashboardSummaryModel> => {
+  const response = await axiosClient.get("/artists/me/dashboard/summary");
+  return response.data;
+};
+
 // Lấy danh sách giấy phép của nghệ sĩ (có phân trang và lọc)
 export const getMyLicenses = async (
   page: number = 0,
@@ -79,8 +85,3 @@ export const getMyTransactions = async (
   return response.data;
 };
 
-// Lấy dữ liệu Dashboard tổng quan
-export const getDashboardSummary = async (): Promise<ArtistDashboardSummaryModel> => {
-  const response = await axiosClient.get("/artists/me/dashboard/summary");
-  return response.data;
-};

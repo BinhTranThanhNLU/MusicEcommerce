@@ -40,6 +40,13 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getAllArtists());
     }
 
+    @GetMapping("/me/dashboard/summary")
+    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard chính của Nghệ sĩ")
+    public ResponseEntity<ArtistDashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getDashboardSummary(email));
+    }
+
     @GetMapping("/me/licenses")
     @Operation(summary = "Lấy danh sách giấy phép đã bán của nghệ sĩ đang đăng nhập")
     public ResponseEntity<ArtistLicensePageResponse> getMyLicenses(
@@ -105,10 +112,5 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getArtistTransactions(email, page, size));
     }
 
-    @GetMapping("/me/dashboard/summary")
-    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard chính của Nghệ sĩ")
-    public ResponseEntity<ArtistDashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(artistService.getDashboardSummary(email));
-    }
+
 }

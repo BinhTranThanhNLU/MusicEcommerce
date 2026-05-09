@@ -1,6 +1,5 @@
 package com.springboot.music.service;
 
-import com.springboot.music.dto.LibraryItemDTO;
 import com.springboot.music.entity.*;
 import com.springboot.music.repository.*;
 import com.springboot.music.requestmodel.CheckoutRequest;
@@ -60,17 +59,14 @@ public class OrderService {
     @Transactional
     public CheckoutResponse checkout(String email, CheckoutRequest request, HttpServletRequest httpRequest) {
         User user = Optional.ofNullable(userRepository.findByEmail(email))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         Cart cart = cartRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new RuntimeException("Cart is empty"));
+                .orElseThrow(() -> new RuntimeException("Giỏ hàng trống"));
 
         String paymentMethod = normalizePaymentMethod(request == null ? null : request.getPaymentMethod());
         if (!isSupportedPaymentMethod(paymentMethod)) {
             throw new RuntimeException("Phương thức thanh toán chưa được hỗ trợ: " + paymentMethod);
-        }
-        if (PAYMENT_METHOD_MOMO.equals(paymentMethod)) {
-            throw new RuntimeException("MoMo chưa được tích hợp. Hiện tại chỉ hỗ trợ VNPay.");
         }
 
         boolean isVnPay = PAYMENT_METHOD_VNPAY.equals(paymentMethod);
@@ -113,20 +109,20 @@ public class OrderService {
     @Transactional
     public String handleVnPayReturn(Map<String, String> params) {
         if (!vnPayService.verifyReturn(params)) {
-            throw new RuntimeException("VNPay signature is invalid");
+            throw new RuntimeException("Chữ ký VNPay không hợp lệ");
         }
 
         String txnRef = params.get("vnp_TxnRef");
         if (txnRef == null || txnRef.isBlank()) {
-            throw new RuntimeException("VNPay response is missing txnRef");
+            throw new RuntimeException("Phản hồi của VNPay thiếu txnRef");
         }
 
         Integer orderId = Integer.valueOf(txnRef);
         OrderEntity order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
         PaymentTransaction paymentTransaction = paymentTransactionRepository.findByOrder_Id(orderId)
-                .orElseThrow(() -> new RuntimeException("Payment transaction not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch thanh toán"));
 
         String responseCode = Optional.ofNullable(params.get("vnp_ResponseCode")).orElse("");
         String transactionStatus = Optional.ofNullable(params.get("vnp_TransactionStatus")).orElse("");

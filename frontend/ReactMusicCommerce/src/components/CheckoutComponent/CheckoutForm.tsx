@@ -109,7 +109,7 @@ const CheckoutForm = ({
             </div>
             <div className="form-group">
               <label htmlFor="email">
-                Email (Link tải nhạc sẽ được gửi qua email này)
+                Email
               </label>
               <input
                 type="email"

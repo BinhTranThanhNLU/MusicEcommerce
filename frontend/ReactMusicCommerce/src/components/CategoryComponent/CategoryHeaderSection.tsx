@@ -53,20 +53,6 @@ const CategoryHeaderSection = () => {
 
             {/* Lọc theo Giấy phép */}
             <div className="col-12 col-md-6 col-lg-3">
-              <div className="filter-item">
-                <label htmlFor="licenseType" className="form-label">
-                  Giấy phép
-                </label>
-                <select
-                  className="form-select shadow-none"
-                  id="licenseType"
-                  defaultValue=""
-                >
-                  <option value="">Tất cả giấy phép</option>
-                  <option value="personal">Cá nhân (Nghe nhạc)</option>
-                  <option value="commercial">Thương mại (YouTube, Ads)</option>
-                </select>
-              </div>
             </div>
 
             <div className="col-12 col-md-6 col-lg-4">

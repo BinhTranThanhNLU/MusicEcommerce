@@ -12,4 +12,6 @@ public class DashboardStatsDTO {
     private Long totalCustomers;
     private Long totalReviews;
     private Long activeTracks;     // Tác phẩm đang bán (Approved)
+    private Long totalSalesDownloads;
+    private Double conversionRate;
 }

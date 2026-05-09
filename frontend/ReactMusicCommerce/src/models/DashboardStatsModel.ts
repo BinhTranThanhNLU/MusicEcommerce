@@ -3,4 +3,6 @@ export interface DashboardStatsModel {
   totalCustomers: number;
   totalReviews: number;
   activeTracks: number;
+  totalSalesDownloads: number;
+  conversionRate: number;
 }

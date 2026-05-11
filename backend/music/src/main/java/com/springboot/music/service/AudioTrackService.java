@@ -175,22 +175,22 @@ public class AudioTrackService {
         return createPageResponse(audioTrackPage);
     }
 
-    // Tạo mới một audio track, chỉ cho phép artist hoặc admin thực hiện, kèm xử lý upload file và tạo preview
+    // Tạo mới một audio track, kèm xử lý upload file và tạo preview
     @Transactional
     public AudioTrackDTO createAudioTrack(CreateAudioTrackRequest request,
                                           MultipartFile originalFile,
                                           MultipartFile coverImageFile) {
         if (request == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Du lieu upload khong duoc de trong");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu upload không được để trống");
         }
 
         User artist = resolveCurrentArtist();
-        String title = normalizeRequiredText(request.getTitle(), "Title khong duoc de trong");
-        String audioType = normalizeRequiredText(request.getAudioType(), "Audio type khong duoc de trong");
-        String authorName = normalizeRequiredText(request.getAuthorName(), "Author khong duoc de trong");
+        String title = normalizeRequiredText(request.getTitle(), "Tên không được để trống");
+        String audioType = normalizeRequiredText(request.getAudioType(), "Thể loại không được để trống");
+        String authorName = normalizeRequiredText(request.getAuthorName(), "Tác giả không được để trống");
         Integer duration = request.getDuration();
         if (duration == null || duration <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phai lon hon 0");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thời lượng phải lớn hơn 0");
         }
 
         validateUploadFile(originalFile, true);
@@ -296,7 +296,7 @@ public class AudioTrackService {
 
     private List<Genre> loadGenres(List<Integer> genreIds) {
         if (genreIds == null || genreIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 genre");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất 1 thể loại");
         }
 
         List<Genre> genres = new ArrayList<>();
@@ -310,7 +310,7 @@ public class AudioTrackService {
 
     private List<Mood> loadMoods(List<Integer> moodIds) {
         if (moodIds == null || moodIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 mood");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 cảm xúc");
         }
 
         List<Mood> moods = new ArrayList<>();
@@ -330,7 +330,7 @@ public class AudioTrackService {
         List<Theme> themes = new ArrayList<>();
         for (Integer themeId : new LinkedHashSet<>(themeIds)) {
             Theme theme = themeRepository.findById(themeId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Theme khong ton tai: " + themeId));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Theme không tồn tại: " + themeId));
             themes.add(theme);
         }
         return themes;
@@ -409,10 +409,12 @@ public class AudioTrackService {
         }
     }
 
+    // Làm tròn điểm đánh giá trung bình đến 1 chữ số thập phân để hiển thị đẹp hơn
     private double roundOneDecimal(double value) {
         return Math.round(value * 10.0) / 10.0;
     }
 
+    // Tăng play count của audio track khi người dùng nghe preview, đồng thời trả về play count mới sau khi đã tăng
     @Transactional
     public AudioTrackPlayCountResponse incrementPreviewPlayCount(Integer audioId) {
         if (audioId == null || audioId <= 0) {
@@ -431,6 +433,7 @@ public class AudioTrackService {
                 .build();
     }
 
+    // Cập nhật thông tin audio track, có thể cập nhật file gốc, ảnh bìa và các trường text, đồng thời đảm bảo chỉ cập nhật những trường được cung cấp trong request và giữ nguyên những trường không được cung cấp
     @Transactional
     public AudioTrackDTO updateAudioTrack(Integer audioId, String updateRequestJson,
                                           MultipartFile newOriginalFile,
@@ -550,6 +553,8 @@ public class AudioTrackService {
         return dto;
     }
 
+
+    // Phân tích JSON string thành UpdateAudioTrackRequest object, đồng thời xử lý lỗi nếu JSON không hợp lệ
     private UpdateAudioTrackRequest parseUpdateRequest(String updateRequestJson) {
         if (updateRequestJson == null || updateRequestJson.isBlank()) {
             return null;
@@ -564,6 +569,7 @@ public class AudioTrackService {
         }
     }
 
+    // Xóa một audio track, đồng thời xử lý lỗi nếu audio track đang được sử dụng trong dữ liệu liên quan (ví dụ: giấy phép đã bán) để tránh xóa dữ liệu
     @Transactional
     public void deleteAudioTrack(Integer audioId) {
         if (audioId == null || audioId <= 0) {

@@ -185,7 +185,7 @@ const ArtistUploadPage = () => {
       setTimeout(() => {
         setFormData({
           title: "",
-          audioType: "Original",
+          audioType: "Full-song",
           authorName: "",
           description: "",
           lyrics: "",

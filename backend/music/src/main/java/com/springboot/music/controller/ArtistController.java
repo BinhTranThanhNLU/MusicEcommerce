@@ -1,22 +1,24 @@
 package com.springboot.music.controller;
 
-import com.springboot.music.dto.ArtistDTO;
-import com.springboot.music.dto.ArtistDashboardSummaryDTO;
-import com.springboot.music.dto.ArtistLicenseStatsDTO;
-import com.springboot.music.dto.ArtistRevenueSummaryDTO;
+import com.springboot.music.dto.*;
 import com.springboot.music.entity.User;
 import com.springboot.music.repository.UserRepository;
+import com.springboot.music.requestmodel.CreateAudioTrackRequest;
 import com.springboot.music.responsemodel.ArtistLicensePageResponse;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.TransactionPageResponse;
 import com.springboot.music.service.ArtistService;
+import com.springboot.music.service.AudioTrackService;
 import com.springboot.music.service.CertificateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -29,11 +31,13 @@ public class ArtistController {
     private final ArtistService artistService;
     private final CertificateService certificateService;
     private final UserRepository userRepository;
+    private final AudioTrackService audioTrackService;
 
-    public ArtistController(ArtistService artistService, CertificateService certificateService, UserRepository userRepository) {
+    public ArtistController(ArtistService artistService, CertificateService certificateService, UserRepository userRepository, AudioTrackService audioTrackService) {
         this.artistService = artistService;
         this.certificateService = certificateService;
         this.userRepository = userRepository;
+        this.audioTrackService = audioTrackService;
     }
 
     @GetMapping
@@ -60,6 +64,31 @@ public class ArtistController {
 
         String email = authentication.getName();
         return ResponseEntity.ok(artistService.getMyTracks(email, page, size, keyword, genreName, status));
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update audio track", description = "Cap nhat audio track voi ho tro multipart form data. Cac field text va image/audio file (optional).")
+    public ResponseEntity<AudioTrackDTO> updateAudioTrack(
+            @PathVariable Integer id,
+            @RequestPart(name = "updateRequest") String updateRequestJson,
+            @RequestPart(name = "originalFile", required = false) MultipartFile originalFile,
+            @RequestPart(name = "coverImage", required = false) MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, updateRequestJson, originalFile, coverImage));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteAudioTrack(@PathVariable Integer id) {
+        audioTrackService.deleteAudioTrack(id);
+        return ResponseEntity.ok("Audio track deleted successfully");
+    }
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
+    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
+            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
+            @RequestPart("originalFile") MultipartFile originalFile,
+            @RequestPart("coverImage") MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
     }
 
     @GetMapping("/me/licenses")

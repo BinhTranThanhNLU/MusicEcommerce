@@ -15,6 +15,10 @@ const BasicInfoForm: React.FC<Props> = ({
   handleFormChange,
   errors,
 }) => {
+  const getMinutes = (totalSeconds: number) =>
+    Math.floor((totalSeconds || 0) / 60);
+  const getSeconds = (totalSeconds: number) => (totalSeconds || 0) % 60;
+
   return (
     <div className="card border-0 shadow-sm rounded-4 mb-4">
       <div className="card-body p-4">
@@ -60,15 +64,60 @@ const BasicInfoForm: React.FC<Props> = ({
             <label className="form-label fw-medium">
               Thời lượng (giây) <span className="text-danger">*</span>
             </label>
-            <input
-              type="number"
-              name="duration"
-              value={formData.duration}
-              onChange={handleFormChange}
-              className={`form-control ${errors.duration ? "is-invalid" : ""}`}
-              placeholder="Ví dụ: 240"
-              min="1"
-            />
+            <div className="d-flex align-items-center gap-2">
+              <div className="input-group">
+                <input
+                  type="number"
+                  className={`form-control ${errors.duration ? "is-invalid" : ""}`}
+                  placeholder="00"
+                  min="0"
+                  value={getMinutes(formData.duration) || ""}
+                  onChange={(e) => {
+                    const m = parseInt(e.target.value) || 0;
+                    const s = getSeconds(formData.duration);
+                    // Tự động gom thành tổng số giây ném vào hàm chung
+                    handleFormChange({
+                      target: {
+                        name: "duration",
+                        value: (m * 60 + s).toString(),
+                      },
+                    } as any);
+                  }}
+                />
+                <span className="input-group-text bg-light text-muted">
+                  phút
+                </span>
+              </div>
+
+              <span className="fw-bold">:</span>
+
+              <div className="input-group">
+                <input
+                  type="number"
+                  className={`form-control ${errors.duration ? "is-invalid" : ""}`}
+                  placeholder="00"
+                  min="0"
+                  max="59"
+                  value={getSeconds(formData.duration) || ""}
+                  onChange={(e) => {
+                    let s = parseInt(e.target.value) || 0;
+                    if (s > 59) s = 59; // Chặn không cho nhập quá 59 giây
+                    const m = getMinutes(formData.duration);
+
+                    handleFormChange({
+                      target: {
+                        name: "duration",
+                        value: (m * 60 + s).toString(),
+                      },
+                    } as any);
+                  }}
+                />
+                <span className="input-group-text bg-light text-muted">
+                  giây
+                </span>
+              </div>
+            </div>
+
             {errors.duration && (
               <div className="invalid-feedback d-block">
                 <i className="bi bi-exclamation-circle me-1"></i>

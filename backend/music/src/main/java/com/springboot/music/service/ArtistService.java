@@ -33,7 +33,6 @@ import java.time.YearMonth;
 @Service
 public class ArtistService {
 
-    private static final double PLATFORM_FEE_RATE = 0.10;
 
     private final AudioTrackRepository audioTrackRepository;
     private final AudioTrackMapper audioTrackMapper;
@@ -67,8 +66,8 @@ public class ArtistService {
         }
         Integer artistId = artist.getId();
 
-        // 1. Lấy dữ liệu KPI chính
-        Double monthlyRevenue = defaultDouble(orderDetailRepository.sumMonthlyRevenueByArtistId(artistId)) * (1.0 - PLATFORM_FEE_RATE);
+        // 1. Lấy dữ liệu KPI chính (sử dụng artistEarnings đã tính hoa hồng)
+        Double monthlyRevenue = defaultDouble(orderDetailRepository.sumMonthlyArtistEarningsByArtistId(artistId));
         Long totalCustomers = defaultLong(orderDetailRepository.countDistinctCustomersByArtistId(artistId));
         Long totalReviews = defaultLong(audioTrackReviewRepository.countReviewsByArtistId(artistId));
         Long activeTracks = defaultLong(audioTrackRepository.countActiveTracksByArtistId(artistId));
@@ -159,7 +158,7 @@ public class ArtistService {
                     .trackName(detail.getAudioTrack().getTitle())
                     .coverImage(detail.getAudioTrack().getCoverImage())
                     .licenseType(detail.getLicense().getLicenseType())
-                    .price(detail.getPrice())
+                    .price(resolveArtistEarnings(detail))
                     .licenseStatus(detail.getLicenseStatus())
                     .issuedAt(detail.getOrder().getCreatedAt())
                     .expiredAt(detail.getExpiredAt())
@@ -201,9 +200,9 @@ public class ArtistService {
 
         Integer artistId = artist.getId();
 
-        // 1. Tính tổng doanh thu & Số dư khả dụng (Trừ 10% phí sàn)
-        Double totalRevenue = defaultDouble(orderDetailRepository.sumTotalRevenueByArtistId(artistId));
-        Double availableBalance = totalRevenue * (1.0 - PLATFORM_FEE_RATE);
+        // 1. Tính tổng doanh thu (sử dụng artistEarnings đã trừ hoa hồng)
+        Double totalRevenue = defaultDouble(orderDetailRepository.sumTotalArtistEarningsByArtistId(artistId));
+        Double availableBalance = totalRevenue;  // Không cần trừ thêm vì artistEarnings đã trừ hoa hồng
         Double pendingBalance = 500000.0; // Tạm thời để số cứng mô phỏng tiền đang bị Hold (chờ đối soát)
 
         // 2. Dữ liệu Biểu đồ Tròn (Cơ cấu doanh thu)
@@ -225,7 +224,7 @@ public class ArtistService {
                 .build();
     }
 
-    // Hàm phụ trợ: Nhóm doanh thu theo 6 tháng gần nhất
+    // Hàm phụ trợ: Nhóm doanh thu theo 6 tháng gần nhất (sử dụng artistEarnings)
     private List<RevenueChartDTO> generateChartData(List<OrderDetail> orders) {
         List<RevenueChartDTO> chartData = new ArrayList<>();
         YearMonth currentMonth = YearMonth.now();
@@ -235,13 +234,13 @@ public class ArtistService {
             YearMonth targetMonth = currentMonth.minusMonths(i);
             String monthName = "Tháng " + targetMonth.getMonthValue();
 
-            // Tính tổng tiền của những order nằm trong tháng 'targetMonth'
+            // Tính tổng tiền của những order nằm trong tháng 'targetMonth' (sử dụng artistEarnings)
             double monthRevenue = orders.stream()
                     .filter(od -> {
                         LocalDateTime createdAt = od.getOrder().getCreatedAt();
                         return createdAt != null && YearMonth.from(createdAt).equals(targetMonth);
                     })
-                    .mapToDouble(od -> od.getPrice() == null ? 0.0 : od.getPrice())
+                    .mapToDouble(od -> od.getArtistEarnings() == null ? 0.0 : od.getArtistEarnings())
                     .sum();
 
             chartData.add(new RevenueChartDTO(monthName, monthRevenue));
@@ -255,7 +254,7 @@ public class ArtistService {
     }
 
     private List<RevenuePieDTO> buildLicenseDistribution(Integer artistId) {
-        return orderDetailRepository.sumRevenueByLicenseType(artistId).stream().map(obj -> {
+        return orderDetailRepository.sumArtistEarningsByLicenseType(artistId).stream().map(obj -> {
             String licenseType = obj[0] == null ? "Unknown" : String.valueOf(obj[0]);
             Double value = obj[1] == null ? 0.0 : ((Number) obj[1]).doubleValue();
             String color = "#0dcaf0";
@@ -270,7 +269,7 @@ public class ArtistService {
 
     private List<TopTrackDTO> buildTopPerformingTracks(Integer artistId) {
         Pageable top5 = PageRequest.of(0, 5);
-        List<Object[]> topTracksObj = orderDetailRepository.findTopPerformingTracksByArtistId(artistId, top5);
+        List<Object[]> topTracksObj = orderDetailRepository.findTopPerformingTracksByArtistIdUsingEarnings(artistId, top5);
         return topTracksObj.stream().map(obj -> {
             Integer trackId = obj[0] == null ? null : ((Number) obj[0]).intValue();
             String title = obj[1] == null ? null : String.valueOf(obj[1]);
@@ -307,13 +306,13 @@ public class ArtistService {
             String licenseName = od.getLicense().getLicenseType();
             String trackTitle = od.getAudioTrack().getTitle();
 
-            // Tính tiền thực nhận (đã trừ 10% phí nền tảng)
-            Double actualAmount = od.getPrice() * 0.9;
+            // Use a single source of truth for net artist revenue.
+            Double actualAmount = resolveArtistEarnings(od);
 
             return TransactionDTO.builder()
                     .id(od.getId())
                     .createdAt(od.getOrder().getCreatedAt())
-                    .type("sale") // Vì hiện tại chưa có bảng rút tiền, mọi GD đều là 'sale'
+                    .type("sale")
                     .title("Bán giấy phép " + (licenseName.contains("Commercial") ? "Thương mại" : licenseName.contains("Extended") ? "Độc quyền" : "Cá nhân"))
                     .desc("Tác phẩm: " + trackTitle)
                     .amount(actualAmount)
@@ -354,5 +353,45 @@ public class ArtistService {
         );
     }
 
+    private Double resolveArtistEarnings(OrderDetail detail) {
+        if (detail == null) {
+            return 0.0;
+        }
+
+        if (detail.getArtistEarnings() != null) {
+            return detail.getArtistEarnings();
+        }
+
+        double grossPrice = detail.getPrice() == null ? 0.0 : detail.getPrice();
+        Double commission = detail.getCommissionRate();
+
+        // Fallback for legacy rows where artistEarnings was not persisted.
+        if (commission == null && detail.getLicense() != null) {
+            commission = detail.getLicense().getCommissionRate();
+        }
+
+        double normalizedCommission = normalizeCommissionRate(commission);
+        return grossPrice * (1.0 - normalizedCommission);
+    }
+
+    private double normalizeCommissionRate(Double commission) {
+        if (commission == null) {
+            return 0.0;
+        }
+
+        double rate = commission;
+        if (rate > 1.0) {
+            rate = rate / 100.0;
+        }
+
+        if (rate < 0.0) {
+            return 0.0;
+        }
+        if (rate > 1.0) {
+            return 1.0;
+        }
+
+        return rate;
+    }
 
 }

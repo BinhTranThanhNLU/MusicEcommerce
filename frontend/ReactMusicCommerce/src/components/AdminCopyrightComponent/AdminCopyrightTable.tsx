@@ -48,8 +48,6 @@ const AdminCopyrightTable = ({
               <th>Bài hát</th>
               <th>Nghệ sĩ</th>
               <th>Chủ sở hữu</th>
-              <th>ISRC</th>
-              <th>Chứng nhận</th>
               <th>Ngày đăng ký</th>
               <th className="text-center pe-4">Thao tác</th>
             </tr>
@@ -71,20 +69,6 @@ const AdminCopyrightTable = ({
                   </td>
                   <td>{item.artistName}</td>
                   <td>{item.ownerName}</td>
-                  <td>
-                    <span className="font-monospace fw-semibold text-dark">{item.isrcCode}</span>
-                  </td>
-                  <td>
-                    {item.certificateFileUrl ? (
-                      <span className="badge rounded-pill bg-success bg-opacity-10 text-success">
-                        Có file
-                      </span>
-                    ) : (
-                      <span className="badge rounded-pill bg-secondary bg-opacity-10 text-secondary">
-                        Chưa có
-                      </span>
-                    )}
-                  </td>
                   <td className="text-muted small">{formatDateTime(item.registeredAt)}</td>
                   <td className="text-center pe-4">
                     <div className="btn-group btn-group-sm" role="group">

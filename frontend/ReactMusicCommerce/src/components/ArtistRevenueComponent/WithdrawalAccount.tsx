@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 
 const WithdrawalAccount = () => {
+  const auth = useContext(AuthContext);
+  const userName = auth && auth.user ? auth.user.name.toUpperCase() : "NGUYEN THANH TUNG";
+
   return (
     <div className="card border-0 shadow-sm rounded-4 mb-4 h-100">
       <div className="card-body p-4">
@@ -11,17 +15,24 @@ const WithdrawalAccount = () => {
           </button>
         </div>
 
-        <div className="border rounded-4 p-3 mb-3 bg-light position-relative overflow-hidden">
-          <div className="position-absolute top-0 end-0 p-2 opacity-25">
-            <i className="bi bi-bank fs-1"></i>
+        <div className="border rounded-4 p-3 mb-3 bg-white d-flex align-items-center" style={{ gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 12, background: "linear-gradient(135deg,var(--accent-color),#36b6ff)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 20 }}>
+            {userName.split(" ").map(s=>s[0]).slice(0,2).join("")}
           </div>
-          <p className="text-muted small mb-1">
-            Ngân hàng TMCP Ngoại Thương (Vietcombank)
-          </p>
-          <h5 className="fw-bold tracking-wider mb-1">0123 4567 8910</h5>
-          <p className="fw-medium text-dark mb-0 text-uppercase">
-            NGUYEN THANH TUNG
-          </p>
+
+          <div className="flex-grow-1">
+            <div className="d-flex justify-content-between align-items-start">
+              <div>
+                <p className="text-muted small mb-1">Ngân hàng TMCP Ngoại Thương (Vietcombank)</p>
+                <h5 className="fw-bold tracking-wider mb-1" style={{ fontFamily: "monospace" }}>0123 4567 8910</h5>
+              </div>
+              <div className="text-end">
+                <button className="btn btn-sm btn-outline-secondary">Sửa</button>
+              </div>
+            </div>
+
+            <p className="fw-semibold text-dark mb-0 text-uppercase">{userName}</p>
+          </div>
         </div>
 
         <div className="alert alert-info bg-info bg-opacity-10 border-0 small mb-0">

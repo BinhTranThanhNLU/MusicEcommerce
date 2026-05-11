@@ -215,19 +215,59 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
 
     @Query(value = """
             SELECT
-                CASE
-                    WHEN :period = 'day' THEN DATE_FORMAT(o.created_at, '%Y-%m-%d')
-                    WHEN :period = 'year' THEN DATE_FORMAT(o.created_at, '%Y')
-                    ELSE DATE_FORMAT(o.created_at, '%Y-%m')
-                END AS bucket,
-                COALESCE(SUM(od.admin_fee), 0) AS revenue
-            FROM order_detail od
-            JOIN `order` o ON o.order_id = od.order_id
-            WHERE o.payment_status = 'COMPLETED'
-              AND o.created_at >= :startAt
-            GROUP BY bucket
-            ORDER BY bucket
-            """, nativeQuery = true)
-    List<Object[]> sumAdminRevenueByPeriod(@Param("period") String period,
-                                           @Param("startAt") java.time.LocalDateTime startAt);
+                 CASE
+                     WHEN :period = 'day' THEN DATE_FORMAT(o.created_at, '%Y-%m-%d')
+                     WHEN :period = 'year' THEN DATE_FORMAT(o.created_at, '%Y')
+                     ELSE DATE_FORMAT(o.created_at, '%Y-%m')
+                 END AS bucket,
+                 COALESCE(SUM(od.admin_fee), 0) AS revenue
+             FROM order_detail od
+             JOIN `order` o ON o.order_id = od.order_id
+             WHERE o.payment_status = 'COMPLETED'
+               AND o.created_at >= :startAt
+             GROUP BY bucket
+             ORDER BY bucket
+             """, nativeQuery = true)
+     List<Object[]> sumAdminRevenueByPeriod(@Param("period") String period,
+                                            @Param("startAt") java.time.LocalDateTime startAt);
+
+    // ===== ARTIST EARNINGS QUERIES (based on commission_rate) =====
+    
+    @Query("""
+            SELECT COALESCE(SUM(od.artistEarnings), 0)
+            FROM OrderDetail od
+            WHERE od.audioTrack.artist.id = :artistId
+              AND od.order.paymentStatus = 'COMPLETED'
+            """)
+    Double sumTotalArtistEarningsByArtistId(@Param("artistId") Integer artistId);
+
+    @Query("""
+            SELECT COALESCE(SUM(od.artistEarnings), 0)
+            FROM OrderDetail od
+            WHERE od.audioTrack.artist.id = :artistId
+              AND od.order.paymentStatus = 'COMPLETED'
+              AND MONTH(od.order.createdAt) = MONTH(CURRENT_DATE)
+              AND YEAR(od.order.createdAt) = YEAR(CURRENT_DATE)
+            """)
+    Double sumMonthlyArtistEarningsByArtistId(@Param("artistId") Integer artistId);
+
+    @Query("""
+            SELECT od.license.licenseType, COALESCE(SUM(od.artistEarnings), 0)
+            FROM OrderDetail od
+            WHERE od.audioTrack.artist.id = :artistId
+              AND od.order.paymentStatus = 'COMPLETED'
+            GROUP BY od.license.licenseType
+            """)
+    List<Object[]> sumArtistEarningsByLicenseType(@Param("artistId") Integer artistId);
+
+    @Query("""
+            SELECT at.id, at.title, at.coverImage, at.audioType, COUNT(od), COALESCE(SUM(od.artistEarnings), 0)
+            FROM OrderDetail od
+            JOIN od.audioTrack at
+            WHERE at.artist.id = :artistId
+              AND od.order.paymentStatus = 'COMPLETED'
+            GROUP BY at.id, at.title, at.coverImage, at.audioType
+            ORDER BY COALESCE(SUM(od.artistEarnings), 0) DESC
+            """)
+    List<Object[]> findTopPerformingTracksByArtistIdUsingEarnings(@Param("artistId") Integer artistId, Pageable pageable);
 }

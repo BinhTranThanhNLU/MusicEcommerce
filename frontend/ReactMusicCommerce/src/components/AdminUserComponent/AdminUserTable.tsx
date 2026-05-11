@@ -115,22 +115,7 @@ const AdminUserTable: React.FC<Props> = ({ users, onOpenLockModal }) => {
                     >
                       <i className="bi bi-eye me-2 text-muted"></i> Xem hồ sơ
                     </Link>
-                    {user.role === "artist" && (
-                      <li>
-                        <button className="dropdown-item">
-                          <i className="bi bi-music-note-list me-2 text-muted"></i>{" "}
-                          Xem kho nhạc
-                        </button>
-                      </li>
-                    )}
-                    {user.role === "user" && (
-                      <li>
-                        <button className="dropdown-item">
-                          <i className="bi bi-cart3 me-2 text-muted"></i> Lịch
-                          sử mua hàng
-                        </button>
-                      </li>
-                    )}
+                   
                     <li>
                       <hr className="dropdown-divider" />
                     </li>

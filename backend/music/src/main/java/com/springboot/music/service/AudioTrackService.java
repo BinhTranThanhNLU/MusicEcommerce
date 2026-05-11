@@ -336,7 +336,7 @@ public class AudioTrackService {
         return themes;
     }
 
-    // Xử lý thông tin license price từ request, kiểm tra tính hợp lệ, tránh trùng lặp license id, và lưu vào cơ sở dữ liệu
+    // Xử lý thông tin license price từ request
     private List<AudioTrackLicense> buildAndSaveLicenses(AudioTrack savedTrack, List<LicensePriceRequest> licensePrices) {
         if (licensePrices == null || licensePrices.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 license price");
@@ -371,7 +371,7 @@ public class AudioTrackService {
         return trackLicenses;
     }
 
-    // Tạo file preview có watermark từ file gốc, lưu vào storage và trả về URL, đồng thời đảm bảo cleanup file tạm sau khi đã lưu vào storage
+    // Tạo file preview có watermark từ file gốc, lưu vào storage và trả về URL
     private String createAndStorePreviewFile(MultipartFile originalFile) {
         Path previewFilePath = audioMixerService.createWatermarkedPreview(originalFile);
         try {
@@ -381,7 +381,7 @@ public class AudioTrackService {
         }
     }
 
-    // Xóa file tạm nếu tồn tại, đảm bảo không để lỗi xảy ra khi cleanup file ảnh hưởng đến luồng chính của nghiệp vụ
+    // Xóa file tạm nếu tồn tại
     private void cleanupTempFile(Path filePath) {
         if (filePath == null) {
             return;
@@ -433,7 +433,7 @@ public class AudioTrackService {
                 .build();
     }
 
-    // Cập nhật thông tin audio track, có thể cập nhật file gốc, ảnh bìa và các trường text, đồng thời đảm bảo chỉ cập nhật những trường được cung cấp trong request và giữ nguyên những trường không được cung cấp
+    // Cập nhật thông tin audio track
     @Transactional
     public AudioTrackDTO updateAudioTrack(Integer audioId, String updateRequestJson,
                                           MultipartFile newOriginalFile,
@@ -569,7 +569,7 @@ public class AudioTrackService {
         }
     }
 
-    // Xóa một audio track, đồng thời xử lý lỗi nếu audio track đang được sử dụng trong dữ liệu liên quan (ví dụ: giấy phép đã bán) để tránh xóa dữ liệu
+    // Xóa một audio track, đồng thời xử lý lỗi nếu audio track đang được sử dụng trong dữ liệu
     @Transactional
     public void deleteAudioTrack(Integer audioId) {
         if (audioId == null || audioId <= 0) {

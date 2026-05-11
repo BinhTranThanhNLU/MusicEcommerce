@@ -1,9 +1,8 @@
 package com.springboot.music.service;
 
-import com.google.cloud.storage.Bucket;
-import com.google.cloud.storage.BlobInfo;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.http.HttpStatus;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -11,13 +10,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.net.URLEncoder;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 public class AudioFileStorageService {
@@ -25,10 +20,10 @@ public class AudioFileStorageService {
     private static final Set<String> AUDIO_EXTENSIONS = Set.of(".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg");
     private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".webp");
 
-    private final ObjectProvider<Bucket> bucketProvider;
+    private final Cloudinary cloudinary;
 
-    public AudioFileStorageService(ObjectProvider<Bucket> bucketProvider) {
-        this.bucketProvider = bucketProvider;
+    public AudioFileStorageService(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
     }
 
     public String storeOriginalAudio(MultipartFile file) {
@@ -53,27 +48,23 @@ public class AudioFileStorageService {
         }
     }
 
+    /**
+     * Kept method name for backward compatibility with existing callers.
+     * This will attempt to extract Cloudinary public_id from the public URL and delete the resource.
+     */
     public void deleteFileFromFirebase(String publicUrl) {
         if (publicUrl == null || publicUrl.isBlank()) {
             return;
         }
 
-        Bucket bucket = bucketProvider.getIfAvailable();
-        if (bucket == null) {
-            // Firebase Storage chưa bật, bỏ qua xóa
-            return;
-        }
-
         try {
-            String objectName = extractObjectNameFromPublicUrl(publicUrl);
-            if (objectName == null || objectName.isBlank()) {
-                return;
-            }
+            String publicId = extractPublicIdFromCloudinaryUrl(publicUrl);
+            if (publicId == null || publicId.isBlank()) return;
 
-            bucket.getStorage().delete(bucket.getName(), objectName);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
         } catch (Exception ex) {
-            // Non-fatal: bỏ qua lỗi xóa file cũ để không gây ảnh hưởng tới flow chính
-            System.err.println("Cảnh báo: Không thể xóa file khỏi Firebase Storage: " + ex.getMessage());
+            // Non-fatal: log and continue
+            System.err.println("Cảnh báo: Không thể xóa file khỏi Cloudinary: " + ex.getMessage());
         }
     }
 
@@ -107,24 +98,28 @@ public class AudioFileStorageService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " khong duoc de trong");
         }
 
-        Bucket bucket = bucketProvider.getIfAvailable();
-        if (bucket == null) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Firebase Storage chua duoc cau hinh. Hay bat app.firebase.enabled=true va cung cap credential.");
-        }
-
         try {
-            String storedFileName = UUID.randomUUID() + extension;
-            String objectName = subDirectory + "/" + storedFileName;
-            String downloadToken = UUID.randomUUID().toString();
+            Map uploadParams = ObjectUtils.asMap(
+                    "folder", subDirectory,
+                    "resource_type", "auto",
+                    "use_filename", false,
+                    "unique_filename", true
+            );
 
-            BlobInfo blobInfo = BlobInfo.newBuilder(bucket.getName(), objectName)
-                    .setContentType(contentType)
-                    .setMetadata(Map.of("firebaseStorageDownloadTokens", downloadToken))
-                    .build();
+            @SuppressWarnings("unchecked")
+            Map result = cloudinary.uploader().upload(bytes, uploadParams);
+            // secure_url is preferred
+            Object secureUrl = result.get("secure_url");
+            if (secureUrl != null) return secureUrl.toString();
 
-            bucket.getStorage().create(blobInfo, bytes);
-            return buildPublicUrl(bucket.getName(), objectName, downloadToken);
+            // fallback to url
+            Object url = result.get("url");
+            if (url != null) return url.toString();
+
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Khong the luu file " + label.toLowerCase(Locale.ROOT));
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "Khong the luu file " + label.toLowerCase(Locale.ROOT), ex);
@@ -162,27 +157,29 @@ public class AudioFileStorageService {
         };
     }
 
-    private String buildPublicUrl(String bucketName, String objectName, String downloadToken) {
-        String encodedObjectName = URLEncoder.encode(objectName, StandardCharsets.UTF_8);
-        return "https://firebasestorage.googleapis.com/v0/b/" + bucketName
-                + "/o/" + encodedObjectName
-                + "?alt=media&token=" + downloadToken;
-    }
-
-    private String extractObjectNameFromPublicUrl(String publicUrl) {
-        if (publicUrl == null || publicUrl.isBlank()) {
-            return null;
-        }
-
+    /**
+     * Try to extract Cloudinary public_id from a known Cloudinary URL.
+     * Supports URLs that include a version segment like /v123456/.
+     * Example: https://res.cloudinary.com/demo/raw/upload/v1610000000/folder/name.mp3 -> folder/name
+     */
+    private String extractPublicIdFromCloudinaryUrl(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) return null;
         try {
-            // URL format: https://firebasestorage.googleapis.com/v0/b/BUCKET_NAME/o/ENCODED_OBJECT_NAME?alt=media&token=TOKEN
-            String[] parts = publicUrl.split("/o/");
-            if (parts.length < 2) {
-                return null;
-            }
-
-            String encodedPart = parts[1].split("\\?")[0];
-            return URLDecoder.decode(encodedPart, StandardCharsets.UTF_8);
+            // find "/upload/" marker
+            int idx = publicUrl.indexOf("/upload/");
+            if (idx < 0) return null;
+            String after = publicUrl.substring(idx + "/upload/".length());
+            // remove possible version prefix v123456/
+            after = after.replaceFirst("^v\\d+\\/", "");
+            // remove query string if any
+            int q = after.indexOf('?');
+            if (q >= 0) after = after.substring(0, q);
+            // remove extension
+            int lastDot = after.lastIndexOf('.');
+            if (lastDot >= 0) after = after.substring(0, lastDot);
+            // trailing slashes cleanup
+            if (after.startsWith("/")) after = after.substring(1);
+            return after;
         } catch (Exception ex) {
             return null;
         }

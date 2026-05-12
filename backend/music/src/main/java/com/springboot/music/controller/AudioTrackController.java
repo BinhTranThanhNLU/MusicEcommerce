@@ -1,13 +1,17 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.dto.AudioTrackDTO;
+import com.springboot.music.requestmodel.CreateAudioTrackRequest;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPlayCountResponse;
 import com.springboot.music.service.AudioTrackService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -100,6 +104,31 @@ public class AudioTrackController {
 
         AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, genreId, page, size, minPrice, maxPrice, types, sort, status);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = {"/upload"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
+    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
+            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
+            @RequestPart("originalFile") MultipartFile originalFile,
+            @RequestPart("coverImage") MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteAudioTrack(@PathVariable Integer id) {
+        audioTrackService.deleteAudioTrack(id);
+        return ResponseEntity.ok("Audio track deleted successfully");
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Update audio track", description = "Cap nhat audio track voi ho tro multipart form data. Cac field text va image/audio file (optional).")
+    public ResponseEntity<AudioTrackDTO> updateAudioTrack(
+            @PathVariable Integer id,
+            @RequestPart(name = "updateRequest") String updateRequestJson,
+            @RequestPart(name = "originalFile", required = false) MultipartFile originalFile,
+            @RequestPart(name = "coverImage", required = false) MultipartFile coverImage) {
+        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, updateRequestJson, originalFile, coverImage));
     }
 
 }

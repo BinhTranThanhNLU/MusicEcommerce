@@ -184,22 +184,39 @@ public class AdminService {
         audioTrack.setStatus(decision);
         audioTrackRepository.save(audioTrack);
 
-        AudioTrackModeration moderation = AudioTrackModeration.builder()
-                .audioTrack(audioTrack)
-                .decision(decision)
-                .rejectionReason(reason)
-                .revisionPointsJson(serializeRevisionPoints(revisionPoints))
-                .moderatedBy(moderatedBy)
-                .moderatedAt(LocalDateTime.now())
-                .build();
-        audioTrackModerationRepository.save(moderation);
+        // Kiểm tra xem đã có bản ghi moderation cho track này chưa
+        AudioTrackModeration moderation = audioTrackModerationRepository
+                .findFirstByAudioTrack_IdOrderByModeratedAtDesc(audioId)
+                .orElse(null);
+
+        if (moderation == null) {
+            // Nếu chưa có: INSERT mới
+            moderation = AudioTrackModeration.builder()
+                    .audioTrack(audioTrack)
+                    .decision(decision)
+                    .rejectionReason(reason)
+                    .revisionPointsJson(serializeRevisionPoints(revisionPoints))
+                    .moderatedBy(moderatedBy)
+                    .moderatedAt(LocalDateTime.now())
+                    .build();
+            audioTrackModerationRepository.save(moderation);
+            log.info("Admin {} created new moderation record for track {} -> {}", moderatedBy, audioId, decision);
+        } else {
+            // Nếu đã có: UPDATE bản ghi đó
+            moderation.setDecision(decision);
+            moderation.setRejectionReason(reason);
+            moderation.setRevisionPointsJson(serializeRevisionPoints(revisionPoints));
+            moderation.setModeratedBy(moderatedBy);
+            moderation.setModeratedAt(LocalDateTime.now());
+            audioTrackModerationRepository.save(moderation);
+            log.info("Admin {} updated existing moderation record for track {} -> {}", moderatedBy, audioId, decision);
+        }
 
         if (audioTrack.getModerationHistory() != null) {
             audioTrack.getModerationHistory().add(moderation);
         }
 
         notifyArtist(audioTrack, decision, reason, revisionPoints);
-        log.info("Admin {} updated moderation for track {} -> {}", moderatedBy, audioId, decision);
 
         return audioTrackMapper.toDto(audioTrack);
     }

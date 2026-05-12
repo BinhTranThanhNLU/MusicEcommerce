@@ -28,7 +28,7 @@ const ArtistUploadPage = () => {
 
   const [formData, setFormData] = useState({
     title: "",
-    audioType: "Original",
+    audioType: "Full-song",
     authorName: "",
     description: "",
     lyrics: "",

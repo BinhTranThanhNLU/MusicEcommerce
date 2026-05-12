@@ -106,3 +106,8 @@ export const getMyTransactions = async (
   return response.data;
 };
 
+export const resubmitMyAudioTrack = async (id: number) => {
+  const response = await axiosClient.put(`/artists/me/tracks/${id}/resubmit`);
+  return response.data;
+};
+

@@ -67,6 +67,29 @@ const UpdateTrackPage = () => {
     void loadTrack();
   }, [id]);
 
+  const reloadTrack = async () => {
+    const trackId = Number(id);
+    if (!id || Number.isNaN(trackId)) return;
+    try {
+      setIsLoading(true); setErrorMessage(null);
+      const data = await getAudioTrackById(trackId);
+      setTrack(data);
+      setForm({
+        title: data.title ?? "", audioType: data.audioType ?? "", description: data.description ?? "",
+        lyrics: data.lyrics ?? "", duration: data.duration ?? null, originalFileUrl: data.originalFileUrl ?? "",
+        watermarkedFileUrl: data.watermarkedFileUrl ?? "", coverImage: data.coverImage ?? "",
+        status: data.status ?? (data.uploadDate ? "Approved" : "Pending"),
+      });
+      setOriginalFile(null);
+      setCoverImageFile(null);
+      setCoverPreview(resolveMediaUrl(data.coverImage));
+    } catch (error: any) {
+      setErrorMessage(parseApiError(error, "Không thể tải dữ liệu cập nhật.").message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: name === "duration" ? (value ? Number(value) : null) : value }));
@@ -166,6 +189,7 @@ const UpdateTrackPage = () => {
               track={track}
               coverPreview={coverPreview}
               resolveMediaUrl={resolveMediaUrl}
+              onResubmitted={reloadTrack}
             />
           </div>
         </div>

@@ -66,15 +66,7 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getMyTracks(email, page, size, keyword, genreName, status));
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Update audio track", description = "Cap nhat audio track voi ho tro multipart form data. Cac field text va image/audio file (optional).")
-    public ResponseEntity<AudioTrackDTO> updateAudioTrack(
-            @PathVariable Integer id,
-            @RequestPart(name = "updateRequest") String updateRequestJson,
-            @RequestPart(name = "originalFile", required = false) MultipartFile originalFile,
-            @RequestPart(name = "coverImage", required = false) MultipartFile coverImage) {
-        return ResponseEntity.ok(audioTrackService.updateAudioTrack(id, updateRequestJson, originalFile, coverImage));
-    }
+
 
     @PutMapping("/me/tracks/{id}/resubmit")
     @Operation(summary = "Gửi duyệt lại bài hát", description = "Sau khi chỉnh sửa nội dung/file, artist gọi API này để chuyển trạng thái từ Need Revision về Pending.")
@@ -82,20 +74,9 @@ public class ArtistController {
         return ResponseEntity.ok(audioTrackService.resubmitAudioTrack(id));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteAudioTrack(@PathVariable Integer id) {
-        audioTrackService.deleteAudioTrack(id);
-        return ResponseEntity.ok("Audio track deleted successfully");
-    }
 
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")
-    public ResponseEntity<AudioTrackDTO> uploadAudioTrack(
-            @Valid @RequestPart("metadata") CreateAudioTrackRequest metadata,
-            @RequestPart("originalFile") MultipartFile originalFile,
-            @RequestPart("coverImage") MultipartFile coverImage) {
-        return ResponseEntity.ok(audioTrackService.createAudioTrack(metadata, originalFile, coverImage));
-    }
+
+
 
     @GetMapping("/me/licenses")
     @Operation(summary = "Lấy danh sách giấy phép đã bán của nghệ sĩ đang đăng nhập")

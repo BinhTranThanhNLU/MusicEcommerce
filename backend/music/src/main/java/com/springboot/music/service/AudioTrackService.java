@@ -545,6 +545,35 @@ public class AudioTrackService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 truong de cap nhat");
         }
 
+        if (audioTrack.getStatus() == null || !"Need Revision".equalsIgnoreCase(audioTrack.getStatus())) {
+            audioTrack.setStatus("Pending");
+        }
+
+        AudioTrack savedTrack = audioTrackRepository.save(audioTrack);
+        AudioTrackDTO dto = audioTrackMapper.toDto(savedTrack);
+        enrichReviewStats(List.of(dto));
+        return dto;
+    }
+
+    @Transactional
+    public AudioTrackDTO resubmitAudioTrack(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+        }
+
+        User currentArtist = resolveCurrentArtist();
+        AudioTrack audioTrack = audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
+
+        if (audioTrack.getArtist() == null || audioTrack.getArtist().getId() == null
+                || !audioTrack.getArtist().getId().equals(currentArtist.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không có quyền nộp lại bài hát này");
+        }
+
+        if (!"Need Revision".equalsIgnoreCase(audioTrack.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Chỉ có thể nộp lại bài hát ở trạng thái Need Revision");
+        }
+
         audioTrack.setStatus("Pending");
 
         AudioTrack savedTrack = audioTrackRepository.save(audioTrack);

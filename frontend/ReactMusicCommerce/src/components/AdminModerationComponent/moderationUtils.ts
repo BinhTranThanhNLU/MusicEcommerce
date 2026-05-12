@@ -65,7 +65,7 @@ export const getStatusMeta = (status?: string | null) => {
     };
   }
 
-  if (normalized.includes("REVISION")) {
+  if (normalized.includes("NEED REVISION")) {
     return {
       className: "bg-warning bg-opacity-10 text-warning border border-warning-subtle",
       label: "Yêu cầu chỉnh sửa",

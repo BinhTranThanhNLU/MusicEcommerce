@@ -32,7 +32,7 @@ CREATE TABLE `audio_track`  (
   `original_file_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NOT NULL,
   `watermarked_file_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NOT NULL,
   `cover_image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT NULL,
-  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT 'Pending' COMMENT 'Pending, Approved, Rejected, Revision',
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT 'Pending' COMMENT 'Pending, Approved, Rejected, Need Revision',
   `play_count` int(11) NULL DEFAULT 0,
   `es_sync_status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT 'Pending' COMMENT 'Pending, Synced, Failed',
   `upload_date` datetime NULL DEFAULT NULL,
@@ -270,7 +270,7 @@ CREATE TABLE `audio_track_moderation`  (
   `moderated_by` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NULL DEFAULT NULL,
   `moderated_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`moderation_id`) USING BTREE,
-  UNIQUE INDEX `uk_audio_track_moderation_audio`(`audio_id`) USING BTREE,
+  INDEX `audio_id`(`audio_id`) USING BTREE,
   CONSTRAINT `audio_track_moderation_ibfk_1` FOREIGN KEY (`audio_id`) REFERENCES `audio_track` (`audio_id`) ON DELETE CASCADE ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_vietnamese_ci ROW_FORMAT = Dynamic;
 

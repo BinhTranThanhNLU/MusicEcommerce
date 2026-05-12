@@ -90,6 +90,7 @@ public class AudioTrack {
     @OneToOne(mappedBy = "audioTrack", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CopyrightInfo copyrightInfo;
 
-    @OneToOne(mappedBy = "audioTrack", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private AudioTrackModeration moderation;
+    @OneToMany(mappedBy = "audioTrack", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OrderBy("moderatedAt DESC")
+    private List<AudioTrackModeration> moderationHistory;
 }

@@ -68,10 +68,10 @@ public class EmailService {
                 buildRejectedHtml(artistName, trackTitle, reason));
     }
 
-    public void sendTrackRevisionEmail(String toEmail, String artistName, String trackTitle, List<String> revisionPoints) {
+    public void sendTrackRevisionEmail(String toEmail, String artistName, String trackTitle, String reason, List<String> revisionPoints) {
         sendModerationEmail(toEmail,
                 "Bài hát cần chỉnh sửa",
-                buildRevisionHtml(artistName, trackTitle, revisionPoints));
+                buildRevisionHtml(artistName, trackTitle, reason, revisionPoints));
     }
 
     private void sendModerationEmail(String toEmail, String subject, String htmlBody) {
@@ -108,7 +108,7 @@ public class EmailService {
                 escapeHtml(artistName), escapeHtml(trackTitle), escapeHtml(reason)));
     }
 
-    private String buildRevisionHtml(String artistName, String trackTitle, List<String> revisionPoints) {
+    private String buildRevisionHtml(String artistName, String trackTitle, String reason, List<String> revisionPoints) {
         StringBuilder pointsHtml = new StringBuilder();
         if (revisionPoints != null && !revisionPoints.isEmpty()) {
             pointsHtml.append("<ul>");
@@ -120,9 +120,13 @@ public class EmailService {
             pointsHtml.append("<p>Không có mô tả chi tiết.</p>");
         }
 
+        String reasonHtml = (reason == null || reason.isBlank())
+                ? "<p>Không có lý do chi tiết.</p>"
+                : "<p><strong>Lý do từ admin:</strong><br/>" + escapeHtml(reason) + "</p>";
+
         return buildBaseHtml("Bài hát cần chỉnh sửa", String.format(
-                "Chào %s,<br/><br/>Bài hát <strong>%s</strong> của bạn cần chỉnh sửa trước khi được duyệt lại.<br/><br/><strong>Các điểm cần sửa:</strong>%s",
-                escapeHtml(artistName), escapeHtml(trackTitle), pointsHtml));
+                "Chào %s,<br/><br/>Bài hát <strong>%s</strong> của bạn cần chỉnh sửa trước khi được duyệt lại.<br/><br/>%s<br/><strong>Các điểm cần sửa:</strong>%s",
+                escapeHtml(artistName), escapeHtml(trackTitle), reasonHtml, pointsHtml));
     }
 
     private String buildBaseHtml(String heading, String body) {

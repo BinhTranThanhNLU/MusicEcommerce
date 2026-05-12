@@ -19,8 +19,8 @@ public class AudioTrackModeration {
     @Column(name = "moderation_id")
     private Integer id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "audio_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "audio_id", nullable = false)
     private AudioTrack audioTrack;
 
     @Column(name = "decision", length = 50, nullable = false)

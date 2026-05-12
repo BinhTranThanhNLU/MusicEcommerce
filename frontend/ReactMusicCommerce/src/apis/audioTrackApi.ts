@@ -94,3 +94,8 @@ export const uploadAudioTrack = async (
   });
   return response.data;
 };
+
+export const resubmitAudioTrack = async (id: number): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.put(`/me/tracks/${id}/resubmit`);
+  return response.data;
+};

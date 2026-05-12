@@ -179,27 +179,47 @@ public class AdminService {
         AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
         String moderatedBy = resolveCurrentModeratorName();
 
+        ensureModerationTransitionAllowed(audioTrack, decision);
+
         audioTrack.setStatus(decision);
         audioTrackRepository.save(audioTrack);
 
-        AudioTrackModeration moderation = audioTrackModerationRepository.findByAudioTrack_Id(audioId)
-                .orElseGet(() -> AudioTrackModeration.builder()
-                        .audioTrack(audioTrack)
-                        .build());
-        moderation.setAudioTrack(audioTrack);
-        moderation.setDecision(decision);
-        moderation.setRejectionReason(reason);
-        moderation.setRevisionPointsJson(serializeRevisionPoints(revisionPoints));
-        moderation.setModeratedBy(moderatedBy);
-        moderation.setModeratedAt(LocalDateTime.now());
+        AudioTrackModeration moderation = AudioTrackModeration.builder()
+                .audioTrack(audioTrack)
+                .decision(decision)
+                .rejectionReason(reason)
+                .revisionPointsJson(serializeRevisionPoints(revisionPoints))
+                .moderatedBy(moderatedBy)
+                .moderatedAt(LocalDateTime.now())
+                .build();
         audioTrackModerationRepository.save(moderation);
 
-        audioTrack.setModeration(moderation);
+        if (audioTrack.getModerationHistory() != null) {
+            audioTrack.getModerationHistory().add(moderation);
+        }
 
         notifyArtist(audioTrack, decision, reason, revisionPoints);
         log.info("Admin {} updated moderation for track {} -> {}", moderatedBy, audioId, decision);
 
         return audioTrackMapper.toDto(audioTrack);
+    }
+
+    private void ensureModerationTransitionAllowed(AudioTrack audioTrack, String decision) {
+        String currentStatus = normalizeOptionalText(audioTrack.getStatus());
+        if (currentStatus == null) {
+            return;
+        }
+
+        boolean openForModeration = TRACK_STATUS_PENDING.equalsIgnoreCase(currentStatus)
+                || TRACK_STATUS_NEED_REVISION.equalsIgnoreCase(currentStatus);
+        if (!openForModeration) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Chỉ có thể kiểm duyệt bài hát ở trạng thái Pending hoặc Need Revision");
+        }
+
+        if (decision == null || decision.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái kiểm duyệt không được để trống");
+        }
     }
 
     private void notifyArtist(AudioTrack audioTrack, String decision, String reason, List<String> revisionPoints) {
@@ -214,7 +234,7 @@ public class AdminService {
             } else if (TRACK_STATUS_REJECTED.equalsIgnoreCase(decision)) {
                 emailService.sendTrackRejectedEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle(), reason);
             } else if (TRACK_STATUS_NEED_REVISION.equalsIgnoreCase(decision)) {
-                emailService.sendTrackRevisionEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle(), revisionPoints);
+                emailService.sendTrackRevisionEmail(audioTrack.getArtist().getEmail(), artistName, audioTrack.getTitle(), reason, revisionPoints);
             }
         } catch (RuntimeException ex) {
             log.warn("Không thể gửi email moderation cho track {}: {}", audioTrack.getId(), ex.getMessage());

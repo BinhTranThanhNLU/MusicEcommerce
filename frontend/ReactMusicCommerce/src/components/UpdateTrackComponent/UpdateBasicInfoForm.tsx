@@ -1,5 +1,5 @@
 import React from "react";
-import type { UpdateAudioTrackRequest } from "../../../requestmodel/UpdateAudioTrackRequest";
+import type { UpdateAudioTrackRequest } from "../../requestmodel/UpdateAudioTrackRequest";
 
 interface Props {
   form: UpdateAudioTrackRequest;

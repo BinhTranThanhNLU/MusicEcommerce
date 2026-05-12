@@ -176,7 +176,7 @@ const ArtistTrackTable = ({
                 statusClass =
                   "bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25";
                 statusIcon = "bi-hourglass-split";
-              } else if (statusValue === "REVISION") {
+              } else if (statusValue === "NEED REVISION") {
                 statusLabel = "Cần chỉnh sửa";
                 statusClass =
                   "bg-info bg-opacity-10 text-info border border-info border-opacity-25";

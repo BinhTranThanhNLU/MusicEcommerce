@@ -7,5 +7,7 @@ import java.util.Optional;
 
 public interface AudioTrackModerationRepository extends JpaRepository<AudioTrackModeration, Integer> {
 
-    Optional<AudioTrackModeration> findByAudioTrack_Id(Integer audioId);
+    Optional<AudioTrackModeration> findFirstByAudioTrack_IdOrderByModeratedAtDesc(Integer audioId);
+
+    java.util.List<AudioTrackModeration> findByAudioTrack_IdOrderByModeratedAtDesc(Integer audioId);
 }

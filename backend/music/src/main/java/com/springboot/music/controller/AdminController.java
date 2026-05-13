@@ -6,6 +6,7 @@ import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
+import com.springboot.music.dto.AdminTopTrackDTO;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
@@ -121,6 +122,13 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getDashboardOverview(period, points));
     }
 
+    @GetMapping("/dashboard/top-selling")
+    @Operation(summary = "Lấy danh sách bài hát/top bán chạy toàn nền tảng")
+    public ResponseEntity<java.util.List<AdminTopTrackDTO>> getTopSellingTracks(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(adminService.getTopSellingTracks(limit));
+    }
+
     @GetMapping("/orders")
     @Operation(summary = "Lấy danh sách tất cả đơn hàng (có phân trang & bộ lọc)")
     public ResponseEntity<AdminOrderPageResponse> getAllOrders(
@@ -128,6 +136,14 @@ public class AdminController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String paymentStatus) {
         return ResponseEntity.ok(adminService.getAllOrders(page, size, paymentStatus));
+    }
+
+    @GetMapping("/transactions")
+    @Operation(summary = "Lấy danh sách giao dịch thanh toán (có phân trang) - kèm doanh thu admin cho mỗi giao dịch")
+    public ResponseEntity<com.springboot.music.responsemodel.AdminTransactionPageResponse> getAllTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(adminService.getAllTransactions(page, size));
     }
 
     @GetMapping("/orders/{id}")

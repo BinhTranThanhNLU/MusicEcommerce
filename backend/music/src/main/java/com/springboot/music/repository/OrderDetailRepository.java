@@ -213,6 +213,35 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Intege
             """)
     Double sumTotalAdminRevenue();
 
+    @Query("""
+            SELECT od.license.licenseType, COALESCE(SUM(od.adminFee), 0)
+            FROM OrderDetail od
+            WHERE od.order.paymentStatus = 'COMPLETED'
+            GROUP BY od.license.licenseType
+            ORDER BY COALESCE(SUM(od.adminFee), 0) DESC
+            """)
+    List<Object[]> sumAdminRevenueByLicenseType();
+
+    @Query("""
+            SELECT at.id,
+                   at.title,
+                   at.coverImage,
+                   at.audioType,
+                   COALESCE(l.id, 0),
+                   COALESCE(l.licenseType, 'Unknown'),
+                   COUNT(od),
+                   COALESCE(SUM(od.price), 0),
+                   COALESCE(SUM(od.adminFee), 0)
+            FROM OrderDetail od
+            JOIN od.order o
+            JOIN od.audioTrack at
+            LEFT JOIN od.license l
+            WHERE o.paymentStatus = 'COMPLETED'
+            GROUP BY at.id, at.title, at.coverImage, at.audioType, l.id, l.licenseType
+            ORDER BY COALESCE(SUM(od.price), 0) DESC, COUNT(od) DESC
+            """)
+    List<Object[]> findTopSellingTracks(Pageable pageable);
+
     @Query(value = """
             SELECT
                  CASE

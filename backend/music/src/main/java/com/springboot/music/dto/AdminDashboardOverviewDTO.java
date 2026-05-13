@@ -8,6 +8,8 @@ import lombok.Setter;
 
 import java.util.List;
 
+import com.springboot.music.dto.AdminTopTrackDTO;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,6 +27,8 @@ public class AdminDashboardOverviewDTO {
     private List<AdminRevenuePointDTO> revenueTrend;
     private List<AdminGrowthPointDTO> growthTrend;
     private List<AdminContentDistributionDTO> contentDistribution;
+    private List<RevenuePieDTO> licenseRevenueDistribution;
+    private List<AdminTopTrackDTO> topSellingTracks;
 
     @Getter
     @Setter

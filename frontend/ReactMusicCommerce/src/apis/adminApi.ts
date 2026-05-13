@@ -6,6 +6,8 @@ import type { AdminUserTrackPageResponse } from "../responsemodel/AdminUserTrack
 import type { AdminOrderPageResponse } from "../responsemodel/AdminOrderPageResponse";
 import type { AdminOrderWithDetailsDTO } from "../responsemodel/AdminOrderWithDetailsDTO";
 import type { AdminDashboardOverviewDTO } from "../responsemodel/AdminDashboardOverviewDTO";
+import type { AdminTopTrackDTO } from "../responsemodel/AdminTopTrackDTO";
+import type { AdminReviewDashboardDTO } from "../responsemodel/AdminReviewDashboardDTO";
 import type { CopyrightPageResponse } from "../responsemodel/CopyrightPageResponse";
 import type { CopyrightInfoDTO } from "../models/CopyrightInfoDTO";
 import type { UpdateCopyrightRequest } from "../requestmodel/UpdateCopyrightRequest";
@@ -102,6 +104,27 @@ export const getAdminDashboardOverview = async (
   points = 12,
 ): Promise<AdminDashboardOverviewDTO> => {
   const response = await axiosClient.get<AdminDashboardOverviewDTO>("/admin/dashboard/overview", {
+    params: { period, points },
+  });
+
+  return response.data;
+};
+
+export const getAdminTopSellingTracks = async (
+  limit = 5,
+): Promise<AdminTopTrackDTO[]> => {
+  const response = await axiosClient.get<AdminTopTrackDTO[]>("/admin/dashboard/top-selling", {
+    params: { limit },
+  });
+
+  return response.data;
+};
+
+export const getAdminReviewDashboard = async (
+  period = "month",
+  points = 12,
+): Promise<AdminReviewDashboardDTO> => {
+  const response = await axiosClient.get<AdminReviewDashboardDTO>("/admin/dashboard/overview", {
     params: { period, points },
   });
 

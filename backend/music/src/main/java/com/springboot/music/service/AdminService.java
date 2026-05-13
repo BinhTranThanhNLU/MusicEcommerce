@@ -8,7 +8,9 @@ import com.springboot.music.dto.AdminOrderDTO;
 import com.springboot.music.dto.AdminOrderDetailDTO;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
+import com.springboot.music.dto.AdminTopTrackDTO;
 import com.springboot.music.dto.AudioTrackDTO;
+import com.springboot.music.dto.RevenuePieDTO;
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.AudioTrackModeration;
 import com.springboot.music.entity.License;
@@ -184,33 +186,17 @@ public class AdminService {
         audioTrack.setStatus(decision);
         audioTrackRepository.save(audioTrack);
 
-        // Kiểm tra xem đã có bản ghi moderation cho track này chưa
-        AudioTrackModeration moderation = audioTrackModerationRepository
-                .findFirstByAudioTrack_IdOrderByModeratedAtDesc(audioId)
-                .orElse(null);
-
-        if (moderation == null) {
-            // Nếu chưa có: INSERT mới
-            moderation = AudioTrackModeration.builder()
-                    .audioTrack(audioTrack)
-                    .decision(decision)
-                    .rejectionReason(reason)
-                    .revisionPointsJson(serializeRevisionPoints(revisionPoints))
-                    .moderatedBy(moderatedBy)
-                    .moderatedAt(LocalDateTime.now())
-                    .build();
-            audioTrackModerationRepository.save(moderation);
-            log.info("Admin {} created new moderation record for track {} -> {}", moderatedBy, audioId, decision);
-        } else {
-            // Nếu đã có: UPDATE bản ghi đó
-            moderation.setDecision(decision);
-            moderation.setRejectionReason(reason);
-            moderation.setRevisionPointsJson(serializeRevisionPoints(revisionPoints));
-            moderation.setModeratedBy(moderatedBy);
-            moderation.setModeratedAt(LocalDateTime.now());
-            audioTrackModerationRepository.save(moderation);
-            log.info("Admin {} updated existing moderation record for track {} -> {}", moderatedBy, audioId, decision);
-        }
+        // Luôn tạo một bản ghi moderation mới để lưu lịch sử đánh giá (không ghi đè bản ghi cũ)
+        AudioTrackModeration moderation = AudioTrackModeration.builder()
+                .audioTrack(audioTrack)
+                .decision(decision)
+                .rejectionReason(reason)
+                .revisionPointsJson(serializeRevisionPoints(revisionPoints))
+                .moderatedBy(moderatedBy)
+                .moderatedAt(LocalDateTime.now())
+                .build();
+        audioTrackModerationRepository.save(moderation);
+        log.info("Admin {} created moderation record for track {} -> {}", moderatedBy, audioId, decision);
 
         if (audioTrack.getModerationHistory() != null) {
             audioTrack.getModerationHistory().add(moderation);
@@ -365,6 +351,8 @@ public class AdminService {
         List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> revenueTrend = buildRevenueTrend(normalizedPeriod, normalizedPoints, startAt);
         List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> growthTrend = buildGrowthTrend(normalizedPeriod, normalizedPoints, startAt);
         List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> contentDistribution = buildContentDistribution(totalTracks);
+        List<RevenuePieDTO> licenseRevenueDistribution = buildLicenseRevenueDistribution();
+        List<AdminTopTrackDTO> topSellingTracks = getTopSellingTracks(5);
 
         return AdminDashboardOverviewDTO.builder()
                 .period(normalizedPeriod)
@@ -376,7 +364,40 @@ public class AdminService {
                 .revenueTrend(revenueTrend)
                 .growthTrend(growthTrend)
                 .contentDistribution(contentDistribution)
+                .licenseRevenueDistribution(licenseRevenueDistribution)
+                .topSellingTracks(topSellingTracks)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminTopTrackDTO> getTopSellingTracks(int limit) {
+        int safeLimit = limit <= 0 ? 5 : Math.min(limit, 20);
+        Pageable pageable = PageRequest.of(0, safeLimit);
+        List<Object[]> rows = orderDetailRepository.findTopSellingTracks(pageable);
+
+        List<AdminTopTrackDTO> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Integer trackId = row[0] == null ? null : ((Number) row[0]).intValue();
+            String title = row[1] == null ? null : String.valueOf(row[1]);
+            String cover = row[2] == null ? null : String.valueOf(row[2]);
+            String audioType = row[3] == null ? null : String.valueOf(row[3]);
+            String licenseType = row[5] == null ? "Unknown" : String.valueOf(row[5]);
+            Long salesCount = row[6] == null ? 0L : ((Number) row[6]).longValue();
+            Double revenue = row[7] == null ? 0.0 : ((Number) row[7]).doubleValue();
+            Double adminRevenue = row[8] == null ? 0.0 : ((Number) row[8]).doubleValue();
+
+            result.add(AdminTopTrackDTO.builder()
+                    .id(trackId)
+                    .title(title)
+                    .audioType(audioType)
+                    .licenseType(licenseType)
+                    .salesCount(salesCount)
+                    .revenue(revenue)
+                    .adminRevenue(adminRevenue)
+                    .cover(cover)
+                    .build());
+        }
+        return result;
     }
 
     private CopyrightInfoDTO mapCopyright(CopyrightInfo info) {
@@ -399,6 +420,29 @@ public class AdminService {
         }
 
         return dto;
+    }
+
+    private List<RevenuePieDTO> buildLicenseRevenueDistribution() {
+        List<Object[]> rows = orderDetailRepository.sumAdminRevenueByLicenseType();
+        List<RevenuePieDTO> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            String licenseType = row[0] == null ? "Unknown" : String.valueOf(row[0]);
+            Double value = row[1] == null ? 0.0 : ((Number) row[1]).doubleValue();
+            String color = "#0dcaf0";
+            if (licenseType.toLowerCase(Locale.ROOT).contains("commercial")) {
+                color = "#dc3545";
+            } else if (licenseType.toLowerCase(Locale.ROOT).contains("personal")) {
+                color = "#0d6efd";
+            } else if (licenseType.toLowerCase(Locale.ROOT).contains("extended")) {
+                color = "#ffc107";
+            }
+            result.add(RevenuePieDTO.builder()
+                    .name(licenseType)
+                    .value(value)
+                    .color(color)
+                    .build());
+        }
+        return result;
     }
 
     private List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> buildRevenueTrend(String period, int points, LocalDateTime startAt) {
@@ -655,6 +699,40 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    public com.springboot.music.responsemodel.AdminTransactionPageResponse getAllTransactions(int page, int size) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("transactionDate").descending());
+        Page<com.springboot.music.entity.PaymentTransaction> txnPage = paymentTransactionRepository.findAll(pageable);
+
+        List<com.springboot.music.dto.AdminTransactionDTO> dtos = txnPage.getContent().stream().map(txn -> {
+            Double adminRev = 0.0;
+            if (txn.getOrder() != null && txn.getOrder().getDetails() != null) {
+                for (OrderDetail od : txn.getOrder().getDetails()) {
+                    if (od != null && od.getAdminFee() != null) adminRev += od.getAdminFee();
+                }
+            }
+            String customerName = txn.getOrder() != null && txn.getOrder().getUser() != null ? txn.getOrder().getUser().getName() : null;
+            return com.springboot.music.dto.AdminTransactionDTO.builder()
+                    .transactionId(txn.getId())
+                    .orderId(txn.getOrder() != null ? txn.getOrder().getId() : null)
+                    .createdAt(txn.getTransactionDate())
+                    .customerName(customerName)
+                    .amount(txn.getAmount())
+                    .adminRevenue(adminRev)
+                    .paymentMethod(txn.getPaymentMethod())
+                    .status(txn.getStatus())
+                    .build();
+        }).toList();
+
+        com.springboot.music.responsemodel.AdminTransactionPageResponse resp = new com.springboot.music.responsemodel.AdminTransactionPageResponse();
+        resp.setTransactions(dtos);
+        resp.setCurrentPage(txnPage.getNumber());
+        resp.setTotalPages(txnPage.getTotalPages());
+        resp.setTotalElements(txnPage.getTotalElements());
+        return resp;
+    }
+
+    @Transactional(readOnly = true)
     public AdminOrderWithDetailsDTO getOrderDetail(Integer orderId) {
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
@@ -691,6 +769,7 @@ public class AdminService {
                 .customerName(customer.getName())
                 .customerEmail(customer.getEmail())
                 .totalAmount(order.getTotalAmount())
+                .adminRevenue(calculateAdminRevenueForOrder(order))
                 .paymentStatus(order.getPaymentStatus())
                 .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
                 .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
@@ -737,12 +816,22 @@ public class AdminService {
                 .customerName(customer.getName())
                 .customerEmail(customer.getEmail())
                 .totalAmount(order.getTotalAmount())
+                .adminRevenue(calculateAdminRevenueForOrder(order))
                 .paymentStatus(order.getPaymentStatus())
                 .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
                 .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
                 .createdAt(order.getCreatedAt())
                 .totalItems(order.getDetails() != null ? order.getDetails().size() : 0)
                 .build();
+    }
+
+    private Double calculateAdminRevenueForOrder(OrderEntity order) {
+        if (order == null || order.getDetails() == null || order.getDetails().isEmpty()) return 0.0;
+        double sum = 0.0;
+        for (OrderDetail od : order.getDetails()) {
+            if (od != null && od.getAdminFee() != null) sum += od.getAdminFee();
+        }
+        return sum;
     }
 
     private User getUserByIdOrThrow(Integer userId) {

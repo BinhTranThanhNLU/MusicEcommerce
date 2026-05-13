@@ -8,19 +8,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { RevenueChartModel } from "../../models/RevenueChartModel";
 
-interface Props { data: RevenueChartModel[]; }
+interface Props { data: any[]; }
 
 const formatVND = (value: number) => {
   return new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 };
 
-const AdminRevenueChart:React.FC<Props> = ({data}) => {
+const AdminRevenueChart: React.FC<Props> = ({ data }) => {
   return (
-    <div className="card border-0 shadow-sm rounded-4 mb-4">
+    <div className="card border-0 shadow-sm rounded-4 mb-4 h-100">
       <div className="card-body p-4">
-        <h5 className="fw-bold mb-4">Biểu đồ doanh thu 6 tháng gần nhất</h5>
+        <h5 className="fw-bold mb-4">Biểu đồ doanh thu gần nhất</h5>
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
             <LineChart
@@ -33,7 +32,7 @@ const AdminRevenueChart:React.FC<Props> = ({data}) => {
                 stroke="#eee"
               />
               <XAxis
-                dataKey="name"
+                dataKey="label" // Đã sửa từ 'name' thành 'label'
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "#6c757d", fontSize: 12 }}

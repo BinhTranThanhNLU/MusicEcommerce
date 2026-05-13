@@ -17,6 +17,7 @@ public class AdminOrderWithDetailsDTO {
     private String customerName;
     private String customerEmail;
     private Double totalAmount;
+    private Double adminRevenue;
     private String paymentStatus;
     private String paymentMethod;
     private String gatewayTransactionCode;

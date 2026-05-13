@@ -1,118 +1,77 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "../../assets/css/adminDashboard.css";
 import AdminRevenueStats from "../../components/AdminRevenueComponent/AdminRevenueStats";
-import AdminRevenueChart from "../../components/AdminRevenueComponent/AdminRevenueChart";
-import AdminRevenueDistribution from "../../components/AdminRevenueComponent/AdminRevenueDistribution";
 import AdminTransactionHistory from "../../components/AdminRevenueComponent/AdminTransactionHistory";
 import AdminTopSellingTracks from "../../components/AdminRevenueComponent/AdminTopSellingTracks";
+import AdminRevenueChart from "../../components/AdminRevenueComponent/AdminRevenueChart";
+import AdminRevenueDistribution from "../../components/AdminRevenueComponent/AdminRevenueDistribution";
 import { getAdminDashboardOverview } from "../../apis/adminApi";
 import type { AdminDashboardOverviewDTO } from "../../responsemodel/AdminDashboardOverviewDTO";
-import type { RevenueChartModel } from "../../models/RevenueChartModel";
-import type { RevenuePieModel } from "../../models/RevenuePieModel";
-import type { TopTrackModel } from "../../models/TopTrackModel";
+import { parseApiError } from "../../utils/apiError";
 
 const AdminRevenuePage = () => {
   const [summaryData, setSummaryData] = useState<AdminDashboardOverviewDTO | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [period, setPeriod] = useState<string>("month");
-  const [points, setPoints] = useState<number>(12);
+  const [points, setPoints] = useState<number>(6); // Đổi mặc định thành 6 tháng cho giống UI
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   useEffect(() => {
     const fetchSummary = async () => {
+      setIsLoading(true);
+      setErrorMessage(null);
+
       try {
-        const data = await getAdminDashboardOverview(period, points);
-        setSummaryData(data);
+        const overviewResult = await getAdminDashboardOverview(period, points);
+        setSummaryData(overviewResult);
       } catch (error) {
-        console.error("Lỗi khi tải dữ liệu doanh thu:", error);
+        const parsedError = parseApiError(error, "Không thể tải dữ liệu doanh thu.");
+        setErrorMessage(parsedError.message);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchSummary();
-  }, [period, points]);
+    void fetchSummary();
+  }, [period, points, refreshIndex]);
 
-  // Transform AdminRevenuePointDTO to RevenueChartModel
-  const transformChartData = (): RevenueChartModel[] => {
-    return summaryData?.revenueTrend.map(point => ({
-      name: point.label,
-      revenue: point.revenue
-    })) || [];
-  };
-
-  // Transform ContentDistribution to RevenuePieModel
-  const transformDistributionData = (): RevenuePieModel[] => {
-    const colors = ["#0d6efd", "#198754", "#fd7e14", "#dc3545"];
-    return summaryData?.contentDistribution.map((item, index) => ({
-      name: item.contentType,
-      value: (summaryData.totalRevenue * item.percentage) / 100,
-      color: colors[index % colors.length]
-    })) || [];
-  };
-
-  // Mock top tracks data
-  const getTopTracks = (): TopTrackModel[] => {
-    return [
-      {
-        id: 1,
-        title: "Beautiful Sunset",
-        cover: "https://via.placeholder.com/40?text=Track1",
-        type: "Commercial License",
-        revenue: 2500000
-      },
-      {
-        id: 2,
-        title: "Morning Coffee",
-        cover: "https://via.placeholder.com/40?text=Track2",
-        type: "Personal License",
-        revenue: 1800000
-      },
-      {
-        id: 3,
-        title: "Night Dreams",
-        cover: "https://via.placeholder.com/40?text=Track3",
-        type: "Commercial License",
-        revenue: 1500000
-      },
-      {
-        id: 4,
-        title: "Ocean Waves",
-        cover: "https://via.placeholder.com/40?text=Track4",
-        type: "Personal License",
-        revenue: 1200000
-      },
-      {
-        id: 5,
-        title: "Forest Walk",
-        cover: "https://via.placeholder.com/40?text=Track5",
-        type: "Commercial License",
-        revenue: 900000
-      }
-    ];
-  };
-
-  // Calculate revenue by license type
-  const calculateRevenueByType = () => {
-    if (!summaryData) return { commercial: 0, personal: 0 };
-    
-    let commercial = 0;
-    let personal = 0;
-
-    summaryData.contentDistribution.forEach(item => {
-      const revenue = (summaryData.totalRevenue * item.percentage) / 100;
-      if (item.contentType.includes("Commercial")) {
-        commercial += revenue;
-      } else {
-        personal += revenue;
-      }
+  // Lấy doanh thu Commercial License
+  const commercialLicenseRevenue = useMemo(() => {
+    const distribution = summaryData?.licenseRevenueDistribution ?? [];
+    const commercialEntry = distribution.find((item) => {
+      const label = (item.label ?? item.name ?? "").toLowerCase();
+      return label.includes("commercial") || label.includes("thương mại") || label.includes("pro");
     });
+    return commercialEntry?.value ?? commercialEntry?.revenue ?? 0;
+  }, [summaryData]);
 
-    return { commercial: commercial || summaryData.totalRevenue * 0.6, personal: personal || summaryData.totalRevenue * 0.4 };
-  };
+  // Lấy doanh thu Personal License
+  const personalLicenseRevenue = useMemo(() => {
+    const distribution = summaryData?.licenseRevenueDistribution ?? [];
+    const personalEntry = distribution.find((item) => {
+      const label = (item.label ?? item.name ?? "").toLowerCase();
+      return label.includes("personal") || label.includes("cá nhân") || label.includes("basic");
+    });
+    return personalEntry?.value ?? personalEntry?.revenue ?? 0;
+  }, [summaryData]);
 
-  const revenueByType = calculateRevenueByType();
+  // Dữ liệu cho biểu đồ đường
+  const revenueTrendData = summaryData?.revenueTrend ?? [];
+
+  // Dữ liệu cho biểu đồ tròn (Pie Chart) - Cần map lại để có màu sắc
+  const distributionColors = ["#0d6efd", "#198754", "#fd7e14", "#dc3545"];
+  const revenueDistributionData = (summaryData?.contentDistribution ?? []).map((item, index) => ({
+    name: item.contentType,
+    value: item.count,
+    color: distributionColors[index % distributionColors.length]
+  }));
 
   if (isLoading) {
-    return <div className="text-center py-5"><div className="spinner-border text-primary"></div></div>;
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -137,33 +96,46 @@ const AdminRevenuePage = () => {
             min={3}
             max={24}
             value={points}
-            onChange={(e) => setPoints(Math.max(3, Math.min(24, parseInt(e.target.value) || 12)))}
+            onChange={(e) => setPoints(Math.max(3, Math.min(24, parseInt(e.target.value) || 6)))}
             className="form-control form-control-sm w-auto bg-light border-0"
             style={{ width: "80px" }}
           />
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm rounded-pill px-3"
+            onClick={() => setRefreshIndex((current) => current + 1)}
+          >
+            <i className="bi bi-arrow-clockwise me-1"></i> Làm mới
+          </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="alert alert-danger rounded-4 mb-4" role="alert">
+          {errorMessage}
+        </div>
+      )}
 
       {/* STATS CARDS */}
       <AdminRevenueStats 
         totalRevenue={summaryData?.totalRevenue || 0}
-        commercialLicenseRevenue={revenueByType.commercial}
-        personalLicenseRevenue={revenueByType.personal}
-        totalTransactions={0}
+        commercialLicenseRevenue={commercialLicenseRevenue}
+        personalLicenseRevenue={personalLicenseRevenue}
+        totalTransactions={summaryData?.totalTransactions || 0}
       />
 
       <div className="row g-4 mb-4">
         <div className="col-lg-8">
-          <AdminRevenueChart data={transformChartData()} />
+          <AdminRevenueChart data={revenueTrendData} />
         </div>
         <div className="col-lg-4">
-          <AdminRevenueDistribution data={transformDistributionData()} />
+          <AdminRevenueDistribution data={revenueDistributionData} />
         </div>
       </div>
 
       <div className="row g-4">
         <div className="col-lg-4 d-flex flex-column gap-4">
-          <AdminTopSellingTracks tracks={getTopTracks()} />
+          <AdminTopSellingTracks limit={5} />
         </div>
         <div className="col-lg-8">
           <AdminTransactionHistory />

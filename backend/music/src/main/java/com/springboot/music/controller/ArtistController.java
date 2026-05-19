@@ -66,17 +66,11 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getMyTracks(email, page, size, keyword, genreName, status));
     }
 
-
-
     @PutMapping("/me/tracks/{id}/resubmit")
     @Operation(summary = "Gửi duyệt lại bài hát", description = "Sau khi chỉnh sửa nội dung/file, artist gọi API này để chuyển trạng thái từ Need Revision về Pending.")
     public ResponseEntity<AudioTrackDTO> resubmitAudioTrack(@PathVariable Integer id) {
         return ResponseEntity.ok(audioTrackService.resubmitAudioTrack(id));
     }
-
-
-
-
 
     @GetMapping("/me/licenses")
     @Operation(summary = "Lấy danh sách giấy phép đã bán của nghệ sĩ đang đăng nhập")

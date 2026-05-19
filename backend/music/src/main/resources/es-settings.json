@@ -1,0 +1,14 @@
+{
+  "analysis": {
+    "analyzer": {
+      "vietnamese": {
+        "type": "custom",
+        "tokenizer": "vi_tokenizer",
+        "filter": [
+          "lowercase",
+          "icu_folding"
+        ]
+      }
+    }
+  }
+}

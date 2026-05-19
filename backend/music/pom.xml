@@ -159,6 +159,12 @@
 			<artifactId>mp3agic</artifactId>
 			<version>0.9.1</version>
 		</dependency>
+
+		<!-- ELastic Search -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -8,17 +8,13 @@ import com.springboot.music.repository.OrderDetailRepository;
 import com.springboot.music.repository.OrderRepository;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.requestmodel.AddToCartRequest;
-import com.springboot.music.requestmodel.CheckoutRequest;
 import com.springboot.music.requestmodel.UpdateCartItemLicenseRequest;
 import com.springboot.music.responsemodel.CartItemDetailResponse;
 import com.springboot.music.responsemodel.CartItemResponse;
 import com.springboot.music.responsemodel.CartResponse;
-import com.springboot.music.responsemodel.CheckoutResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 

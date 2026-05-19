@@ -1,5 +1,6 @@
 package com.springboot.music.service;
 
+import com.springboot.music.document.AudioTrackDocument;
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.entity.AudioTrackLicense;
 import com.springboot.music.entity.AudioTrackLicenseId;
@@ -11,15 +12,7 @@ import com.springboot.music.entity.Mood;
 import com.springboot.music.entity.Theme;
 import com.springboot.music.entity.User;
 import com.springboot.music.mapper.AudioTrackMapper;
-import com.springboot.music.repository.AudioTrackRepository;
-import com.springboot.music.repository.AudioTrackLicenseRepository;
-import com.springboot.music.repository.CopyrightInfoRepository;
-import com.springboot.music.repository.GenreRepository;
-import com.springboot.music.repository.LicenseRepository;
-import com.springboot.music.repository.MoodRepository;
-import com.springboot.music.repository.ThemeRepository;
-import com.springboot.music.repository.AudioTrackReviewRepository;
-import com.springboot.music.repository.UserRepository;
+import com.springboot.music.repository.*;
 import com.springboot.music.requestmodel.CreateAudioTrackRequest;
 import com.springboot.music.requestmodel.LicensePriceRequest;
 import com.springboot.music.requestmodel.UpdateAudioTrackRequest;
@@ -51,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AudioTrackService {
@@ -67,6 +61,7 @@ public class AudioTrackService {
     private final UserRepository userRepository;
     private final AudioFileStorageService audioFileStorageService;
     private final AudioMixerService audioMixerService;
+    private final AudioTrackSearchRepository audioTrackSearchRepository;
 
     public AudioTrackService(AudioTrackRepository audioTrackRepository,
                              AudioTrackLicenseRepository audioTrackLicenseRepository,
@@ -79,7 +74,8 @@ public class AudioTrackService {
                              LicenseRepository licenseRepository,
                              UserRepository userRepository,
                              AudioFileStorageService audioFileStorageService,
-                             AudioMixerService audioMixerService) {
+                             AudioMixerService audioMixerService,
+                             AudioTrackSearchRepository audioTrackSearchRepository) {
         this.audioTrackRepository = audioTrackRepository;
         this.audioTrackLicenseRepository = audioTrackLicenseRepository;
         this.audioTrackMapper = audioTrackMapper;
@@ -92,6 +88,7 @@ public class AudioTrackService {
         this.userRepository = userRepository;
         this.audioFileStorageService = audioFileStorageService;
         this.audioMixerService = audioMixerService;
+        this.audioTrackSearchRepository = audioTrackSearchRepository;
     }
 
     // Lấy tất cả audio track đã được duyệt, không phân trang, kèm thông tin đánh giá
@@ -233,6 +230,18 @@ public class AudioTrackService {
 
         List<AudioTrackLicense> trackLicenses = buildAndSaveLicenses(savedTrack, request.getLicensePrices());
         savedTrack.setLicenses(trackLicenses);
+
+        try {
+            // Đồng bộ dữ liệu sang Elasticsearch
+            syncToElasticsearch(savedTrack, trackLicenses);
+
+            // Nếu ES lưu thành công, cập nhật trạng thái trong MySQL
+            savedTrack.setEsSyncStatus("Synced");
+            audioTrackRepository.save(savedTrack); // Lưu đè lại trạng thái
+        } catch (Exception e) {
+            // Lỗi ở ES thì cứ để esSyncStatus là "Pending", sau này có thể viết job quét để đồng bộ lại.
+            System.err.println("Lỗi đồng bộ Elasticsearch cho AudioTrack ID " + savedTrack.getId() + ": " + e.getMessage());
+        }
 
         AudioTrackDTO dto = audioTrackMapper.toDto(savedTrack);
         enrichReviewStats(List.of(dto));
@@ -615,6 +624,44 @@ public class AudioTrackService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Khong the xoa audio track vi du lieu dang duoc su dung", ex);
         }
+    }
+
+    private void syncToElasticsearch(AudioTrack track, List<AudioTrackLicense> licenses) {
+        AudioTrackDocument esDoc = new AudioTrackDocument();
+
+        // 1. Ánh xạ các trường cơ bản
+        esDoc.setId(String.valueOf(track.getId())); // Ép kiểu Integer của MySQL sang String của ES
+        esDoc.setTitle(track.getTitle());
+        esDoc.setArtistName(track.getArtist().getName());
+        esDoc.setAudioType(track.getAudioType());
+        esDoc.setDescription(track.getDescription());
+        esDoc.setLyrics(track.getLyrics());
+        esDoc.setStatus(track.getStatus());
+        esDoc.setPlayCount(track.getPlayCount());
+        esDoc.setCoverImage(track.getCoverImage());
+        esDoc.setUploadDate(track.getUploadDate());
+
+        // 2. Làm phẳng dữ liệu (Flattening) các danh sách (Thể loại, Cảm xúc, Chủ đề)
+        esDoc.setGenres(track.getGenres().stream()
+                .map(Genre::getName)
+                .collect(Collectors.toList()));
+
+        esDoc.setMoods(track.getMoods().stream()
+                .map(Mood::getName)
+                .collect(Collectors.toList()));
+
+        esDoc.setThemes(track.getThemes().stream()
+                .map(Theme::getName)
+                .collect(Collectors.toList()));
+
+        // 3. Xử lý khoảng giá VNĐ (Lấy tất cả các mức giá của bài hát này)
+        List<Long> priceList = licenses.stream()
+                .map(license -> license.getPrice().longValue()) // BigDecimal chuyển sang Long
+                .collect(Collectors.toList());
+        esDoc.setPricesVnd(priceList);
+
+        // 4. Lưu vào Elasticsearch
+        audioTrackSearchRepository.save(esDoc);
     }
 
 }

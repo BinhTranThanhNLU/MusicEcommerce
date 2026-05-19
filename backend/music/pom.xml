@@ -165,6 +165,18 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>io.opentelemetry.semconv</groupId>
+			<artifactId>opentelemetry-semconv</artifactId>
+			<version>1.40.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.semconv</groupId>
+			<artifactId>opentelemetry-semconv-incubating</artifactId>
+			<version>1.40.0-alpha</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

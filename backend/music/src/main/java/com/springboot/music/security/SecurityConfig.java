@@ -38,23 +38,6 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì dùng JWT
                 .cors(cors -> cors.configure(http))    // Cấu hình CORS cho React gọi API không bị lỗi
                 .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/auth/**").permitAll()
-//                        .requestMatchers(HttpMethod.GET, "/audio-tracks/**").permitAll()
-//                        .requestMatchers(HttpMethod.POST, "/audio-tracks/*/preview-play").permitAll()
-//                        .requestMatchers(HttpMethod.POST, "/audio-tracks/**").authenticated()
-//                        .requestMatchers(HttpMethod.PUT, "/audio-tracks/**").authenticated()
-//                        .requestMatchers(HttpMethod.DELETE, "/audio-tracks/**").authenticated()
-//                        .requestMatchers(HttpMethod.GET, "/reviews/audio-tracks/*").permitAll()
-//                        .requestMatchers("/admin/**").hasAuthority("admin")
-//                        .requestMatchers("/artists/**").permitAll()
-//                        .requestMatchers("/genres/**").permitAll()
-//                        .requestMatchers("/moods/**").permitAll()
-//                        .requestMatchers("/themes/**").permitAll()
-//                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-//                        .requestMatchers("/error").permitAll()
-//                        .requestMatchers("/orders/vnpay/return", "/orders/vnpay/return").permitAll()
-//                        .requestMatchers("/cart/**", "/orders/checkout").authenticated()
-//                        .anyRequest().authenticated()
 
                                 // 1. NHÓM PUBLIC (Không cần đăng nhập)
                                 .requestMatchers("/auth/**").permitAll()
@@ -70,6 +53,7 @@ public class SecurityConfig {
                                 // .requestMatchers("/artist/revenue/**").hasAuthority("artist") // Ví dụ API doanh thu
 
                                 // 3. NHÓM ADMIN (Quyền Quản trị viên)
+                                .requestMatchers("/v1/admin/**").permitAll()
                                 .requestMatchers("/admin/**").hasAuthority("admin")
                                 .requestMatchers(HttpMethod.POST, "/genres/**", "/moods/**", "/themes/**").hasAuthority("admin")
                                 .requestMatchers(HttpMethod.PUT, "/genres/**", "/moods/**", "/themes/**").hasAuthority("admin")

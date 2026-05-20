@@ -1,0 +1,444 @@
+package com.springboot.music.service;
+
+import com.springboot.music.document.AudioTrackDocument;
+import com.springboot.music.repository.AudioTrackSearchRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class AudioTrackSearchService {
+
+    private final AudioTrackSearchRepository audioTrackSearchRepository;
+    private final ElasticsearchOperations elasticsearchOperations;
+
+    public AudioTrackSearchService(AudioTrackSearchRepository audioTrackSearchRepository,
+                                   ElasticsearchOperations elasticsearchOperations) {
+        this.audioTrackSearchRepository = audioTrackSearchRepository;
+        this.elasticsearchOperations = elasticsearchOperations;
+    }
+
+    /**
+     * Full-text Search: Tìm kiếm trong các trường text (title, description, lyrics)
+     * sử dụng match query với analyzer tiếng Việt
+     */
+    public SearchHits<AudioTrackDocument> fullTextSearch(String keyword, int page, int size) {
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            return SearchHits.empty();
+//        }
+
+        String cleanKeyword = keyword.trim();
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Multi-field full-text search query
+        String queryJson = """
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "title": {
+                                        "query": "%s",
+                                        "boost": 3,
+                                        "analyzer": "vietnamese"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "artistName": {
+                                        "query": "%s",
+                                        "boost": 2,
+                                        "analyzer": "vietnamese"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "description": {
+                                        "query": "%s",
+                                        "boost": 1,
+                                        "analyzer": "vietnamese"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "lyrics": {
+                                        "query": "%s",
+                                        "boost": 1,
+                                        "analyzer": "vietnamese"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+                """.formatted(cleanKeyword, cleanKeyword, cleanKeyword, cleanKeyword);
+
+        Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
+
+        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+
+    /**
+     * Fuzzy Search: Tìm kiếm với độ dung sai để bắt lỗi đánh máy
+     * fuzziness tự động điều chỉnh dựa trên độ dài của keyword
+     */
+    public SearchHits<AudioTrackDocument> fuzzySearch(String keyword, int page, int size) {
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            return SearchHits.empty();
+//        }
+
+        String cleanKeyword = keyword.trim();
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Multi-field fuzzy search query
+        String queryJson = """
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "title": {
+                                        "query": "%s",
+                                        "fuzziness": "AUTO",
+                                        "boost": 3
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "artistName": {
+                                        "query": "%s",
+                                        "fuzziness": "AUTO",
+                                        "boost": 2
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "description": {
+                                        "query": "%s",
+                                        "fuzziness": "AUTO",
+                                        "boost": 1
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+                """.formatted(cleanKeyword, cleanKeyword, cleanKeyword);
+
+        Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
+
+        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+
+    /**
+     * Advanced Search: Kết hợp điều kiện lọc theo status, genre, mood, theme
+     */
+    public SearchHits<AudioTrackDocument> advancedSearch(
+            String keyword,
+            String status,
+            List<String> genres,
+            List<String> moods,
+            List<String> themes,
+            Double minPrice,
+            Double maxPrice,
+            int page,
+            int size
+    ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        StringBuilder queryJson = new StringBuilder();
+
+        queryJson.append("""
+        {
+          "bool": {
+            "must": [
+        """);
+
+        // Keyword search
+        if (keyword != null && !keyword.trim().isEmpty()) {
+
+            String cleanKeyword = keyword.trim();
+
+            queryJson.append("""
+            {
+              "multi_match": {
+                "query": "%s",
+                "fields": [
+                  "title^3",
+                  "artistName^2",
+                  "description",
+                  "lyrics"
+                ],
+                "type": "best_fields",
+                "analyzer": "vietnamese"
+              }
+            }
+            """.formatted(cleanKeyword));
+
+        } else {
+
+            queryJson.append("""
+            {
+              "match_all": {}
+            }
+            """);
+        }
+
+        queryJson.append("""
+            ],
+            "filter": [
+        """);
+
+        boolean hasFilter = false;
+
+        // Status filter
+        if (status != null && !status.trim().isEmpty()) {
+
+            queryJson.append("""
+            {
+              "term": {
+                "status.keyword": "%s"
+              }
+            }
+            """.formatted(status));
+
+            hasFilter = true;
+        }
+
+        // Genres filter
+        if (genres != null && !genres.isEmpty()) {
+
+            if (hasFilter) {
+                queryJson.append(",");
+            }
+
+            String genresJson = genres.stream()
+                    .map(g -> "\"" + g + "\"")
+                    .collect(Collectors.joining(", "));
+
+            queryJson.append("""
+            {
+              "terms": {
+                "genres.keyword": [%s]
+              }
+            }
+            """.formatted(genresJson));
+
+            hasFilter = true;
+        }
+
+        // Moods filter
+        if (moods != null && !moods.isEmpty()) {
+
+            if (hasFilter) {
+                queryJson.append(",");
+            }
+
+            String moodsJson = moods.stream()
+                    .map(m -> "\"" + m + "\"")
+                    .collect(Collectors.joining(", "));
+
+            queryJson.append("""
+            {
+              "terms": {
+                "moods.keyword": [%s]
+              }
+            }
+            """.formatted(moodsJson));
+
+            hasFilter = true;
+        }
+
+        // Themes filter
+        if (themes != null && !themes.isEmpty()) {
+
+            if (hasFilter) {
+                queryJson.append(",");
+            }
+
+            String themesJson = themes.stream()
+                    .map(t -> "\"" + t + "\"")
+                    .collect(Collectors.joining(", "));
+
+            queryJson.append("""
+            {
+              "terms": {
+                "themes.keyword": [%s]
+              }
+            }
+            """.formatted(themesJson));
+
+            hasFilter = true;
+        }
+
+        // Price range filter
+        if (minPrice != null || maxPrice != null) {
+
+            if (hasFilter) {
+                queryJson.append(",");
+            }
+
+            List<String> priceConditions = new ArrayList<>();
+
+            if (minPrice != null) {
+                priceConditions.add("\"gte\": " + minPrice);
+            }
+
+            if (maxPrice != null) {
+                priceConditions.add("\"lte\": " + maxPrice);
+            }
+
+            String rangeJson = String.join(", ", priceConditions);
+
+            queryJson.append("""
+            {
+              "range": {
+                "pricesVnd": {
+                  %s
+                }
+              }
+            }
+            """.formatted(rangeJson));
+        }
+
+        // Đóng JSON
+        queryJson.append("""
+            ]
+          }
+        }
+        """);
+
+        Query query = new StringQuery(queryJson.toString());
+        query.setPageable(pageable);
+
+        return elasticsearchOperations.search(
+                query,
+                AudioTrackDocument.class
+        );
+    }
+
+    /**
+     * Phrase Search: Tìm kiếm cụm từ chính xác
+     */
+    public SearchHits<AudioTrackDocument> phraseSearch(String phrase, int page, int size) {
+//        if (phrase == null || phrase.trim().isEmpty()) {
+//            return List.of();
+//        }
+
+        String cleanPhrase = phrase.trim();
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Phrase search query
+        String queryJson = """
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match_phrase": {
+                                    "title": {
+                                        "query": "%s",
+                                        "boost": 3
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase": {
+                                    "description": {
+                                        "query": "%s",
+                                        "boost": 1
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase": {
+                                    "lyrics": {
+                                        "query": "%s",
+                                        "boost": 1
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+                """.formatted(cleanPhrase, cleanPhrase, cleanPhrase);
+
+        Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
+
+        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+
+    /**
+     * Filter by multiple criteria without keyword search
+     */
+    public SearchHits<AudioTrackDocument> filterByMultipleCriteria(String status,
+                                                            List<String> genres, List<String> moods, List<String> themes,
+                                                            Double minPrice, Double maxPrice,
+                                                            int page, int size) {
+        return advancedSearch(null, status, genres, moods, themes, minPrice, maxPrice, page, size);
+    }
+
+    /**
+     * Autocomplete/Suggest: Gợi ý hoàn thành từ khóa (dùng prefix query)
+     */
+    public SearchHits<AudioTrackDocument> autocomplete(String prefix, int limit) {
+//        if (prefix == null || prefix.trim().isEmpty()) {
+//            return List.of();
+//        }
+
+        String cleanPrefix = prefix.trim();
+        Pageable pageable = PageRequest.of(0, limit);
+
+        // Prefix search query
+        String queryJson = """
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match_phrase_prefix": {
+                                    "title": {
+                                        "query": "%s",
+                                        "boost": 3
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase_prefix": {
+                                    "artistName": {
+                                        "query": "%s",
+                                        "boost": 2
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+                """.formatted(cleanPrefix, cleanPrefix);
+
+        Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
+
+        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+}
+

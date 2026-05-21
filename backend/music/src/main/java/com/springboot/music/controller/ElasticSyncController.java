@@ -5,7 +5,7 @@ import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.AudioTrackLicense;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.AudioTrackSearchRepository;
-import com.springboot.music.service.HuggingFaceService;
+import com.springboot.music.service.SemanticSearchService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,12 +28,12 @@ public class ElasticSyncController {
 
     private final AudioTrackRepository audioTrackRepository;
     private final AudioTrackSearchRepository audioTrackESRepository;
-    private final HuggingFaceService huggingFaceService;
+    private final SemanticSearchService semanticSearchService;
 
-    public ElasticSyncController(AudioTrackRepository audioTrackRepository, AudioTrackSearchRepository audioTrackESRepository, HuggingFaceService huggingFaceService) {
+    public ElasticSyncController(AudioTrackRepository audioTrackRepository, AudioTrackSearchRepository audioTrackESRepository, SemanticSearchService semanticSearchService) {
         this.audioTrackRepository = audioTrackRepository;
         this.audioTrackESRepository = audioTrackESRepository;
-        this.huggingFaceService = huggingFaceService;
+        this.semanticSearchService = semanticSearchService;
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +78,7 @@ public class ElasticSyncController {
                 syncedCount++;
 
                 // NGỦ 5 GIÂY TRƯỚC KHI GỌI TIẾP (Tránh spam API Hugging Face)
-                Thread.sleep(5000);
+                Thread.sleep(100);
 
             } catch (Exception ex) {
                 System.err.println("Lỗi ở ID " + track.getId() + ": " + ex.getMessage());
@@ -120,7 +120,7 @@ public class ElasticSyncController {
                 (track.getDescription() != null ? track.getDescription() : "");
 
         // Gọi AI của Bách Khoa để dịch chuỗi này sang mảng 768 số thực
-        List<Double> vector = huggingFaceService.getEmbedding(textToEmbed);
+        List<Double> vector = semanticSearchService.getEmbedding(textToEmbed);
         document.setEmbeddingVector(vector);
 
         return document;

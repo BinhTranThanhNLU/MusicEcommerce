@@ -19,14 +19,14 @@ public class AudioTrackSearchService {
 
     private final AudioTrackSearchRepository audioTrackSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
-    private final HuggingFaceService huggingFaceService;
+    private final SemanticSearchService semanticSearchService;
 
     public AudioTrackSearchService(AudioTrackSearchRepository audioTrackSearchRepository,
                                    ElasticsearchOperations elasticsearchOperations,
-                                   HuggingFaceService huggingFaceService) {
+                                   SemanticSearchService semanticSearchService) {
         this.audioTrackSearchRepository = audioTrackSearchRepository;
         this.elasticsearchOperations = elasticsearchOperations;
-        this.huggingFaceService = huggingFaceService;
+        this.semanticSearchService = semanticSearchService;
     }
 
     public SearchHits<AudioTrackDocument> fullTextSearch(String keyword, int page, int size) {
@@ -433,7 +433,7 @@ public class AudioTrackSearchService {
 //        }
 
         // 1. Dịch câu tìm kiếm của khách hàng (VD: "nhạc nghe lúc mưa") thành Vector
-        List<Double> queryVector = huggingFaceService.getEmbedding(keyword);
+        List<Double> queryVector = semanticSearchService.getEmbedding(keyword);
 
         if (queryVector == null || queryVector.size() != 768) {
             throw new RuntimeException("Không thể tạo vector cho từ khóa");

@@ -1,5 +1,6 @@
 package com.springboot.music.document;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
@@ -57,6 +58,7 @@ public class AudioTrackDocument {
     private LocalDateTime uploadDate;
 
     @Field(type = FieldType.Dense_Vector, dims = 768)
+    @JsonProperty("embeddingVector")
     private List<Double> embeddingVector;
 
     public AudioTrackDocument() {

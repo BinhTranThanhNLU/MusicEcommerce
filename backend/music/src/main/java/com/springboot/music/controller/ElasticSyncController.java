@@ -5,6 +5,7 @@ import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.AudioTrackLicense;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.AudioTrackSearchRepository;
+import com.springboot.music.service.HuggingFaceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,10 +28,12 @@ public class ElasticSyncController {
 
     private final AudioTrackRepository audioTrackRepository;
     private final AudioTrackSearchRepository audioTrackESRepository;
+    private final HuggingFaceService huggingFaceService;
 
-    public ElasticSyncController(AudioTrackRepository audioTrackRepository, AudioTrackSearchRepository audioTrackESRepository) {
+    public ElasticSyncController(AudioTrackRepository audioTrackRepository, AudioTrackSearchRepository audioTrackESRepository, HuggingFaceService huggingFaceService) {
         this.audioTrackRepository = audioTrackRepository;
         this.audioTrackESRepository = audioTrackESRepository;
+        this.huggingFaceService = huggingFaceService;
     }
 
     @Transactional(readOnly = true)
@@ -64,9 +67,21 @@ public class ElasticSyncController {
 
         for (AudioTrack track : tracks) {
             try {
-                audioTrackESRepository.save(toDocument(track));
+                AudioTrackDocument doc = toDocument(track);
+
+                // KIỂM TRA CHẶN LỖI: Nếu AI trả về null thì đánh dấu là lỗi, không lưu vào ES
+                if (doc.getEmbeddingVector() == null || doc.getEmbeddingVector().isEmpty()) {
+                    throw new RuntimeException("Không lấy được Vector từ Hugging Face");
+                }
+
+                audioTrackESRepository.save(doc);
                 syncedCount++;
+
+                // NGỦ 5 GIÂY TRƯỚC KHI GỌI TIẾP (Tránh spam API Hugging Face)
+                Thread.sleep(5000);
+
             } catch (Exception ex) {
+                System.err.println("Lỗi ở ID " + track.getId() + ": " + ex.getMessage());
                 failedIds.add(track.getId());
             }
         }
@@ -96,6 +111,18 @@ public class ElasticSyncController {
         document.setPlayCount(track.getPlayCount());
         document.setCoverImage(track.getCoverImage());
         document.setUploadDate(track.getUploadDate());
+
+        String textToEmbed = track.getTitle() + " " +
+                (track.getArtist() != null ? track.getArtist().getName() : "") + " " +
+                String.join(" ", extractNames(track.getGenres())) + " " +
+                String.join(" ", extractNames(track.getMoods())) + " " +
+                String.join(" ", extractNames(track.getThemes())) + " " +
+                (track.getDescription() != null ? track.getDescription() : "");
+
+        // Gọi AI của Bách Khoa để dịch chuỗi này sang mảng 768 số thực
+        List<Double> vector = huggingFaceService.getEmbedding(textToEmbed);
+        document.setEmbeddingVector(vector);
+
         return document;
     }
 

@@ -210,6 +210,28 @@ public class SearchController {
 
         return ResponseEntity.ok(results);
     }
+
+    @GetMapping("/semantic")
+    public ResponseEntity<AudioTrackSearchResponse> semanticSearch(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (q == null || q.trim().isEmpty() || size <= 0 || size > 100) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.semanticSearch(q, size);
+
+        List<AudioTrackDocument> results = searchHits.stream()
+                .map(hit -> hit.getContent())
+                .collect(Collectors.toList());
+
+        AudioTrackSearchResponse response = new AudioTrackSearchResponse(
+                results, 0, size, searchHits.getTotalHits(), "semantic", q
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
 
 

@@ -19,17 +19,16 @@ public class AudioTrackSearchService {
 
     private final AudioTrackSearchRepository audioTrackSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
+    private final HuggingFaceService huggingFaceService;
 
     public AudioTrackSearchService(AudioTrackSearchRepository audioTrackSearchRepository,
-                                   ElasticsearchOperations elasticsearchOperations) {
+                                   ElasticsearchOperations elasticsearchOperations,
+                                   HuggingFaceService huggingFaceService) {
         this.audioTrackSearchRepository = audioTrackSearchRepository;
         this.elasticsearchOperations = elasticsearchOperations;
+        this.huggingFaceService = huggingFaceService;
     }
 
-    /**
-     * Full-text Search: Tìm kiếm trong các trường text (title, description, lyrics)
-     * sử dụng match query với analyzer tiếng Việt
-     */
     public SearchHits<AudioTrackDocument> fullTextSearch(String keyword, int page, int size) {
 //        if (keyword == null || keyword.trim().isEmpty()) {
 //            return SearchHits.empty();
@@ -91,10 +90,6 @@ public class AudioTrackSearchService {
         return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
 
-    /**
-     * Fuzzy Search: Tìm kiếm với độ dung sai để bắt lỗi đánh máy
-     * fuzziness tự động điều chỉnh dựa trên độ dài của keyword
-     */
     public SearchHits<AudioTrackDocument> fuzzySearch(String keyword, int page, int size) {
 //        if (keyword == null || keyword.trim().isEmpty()) {
 //            return SearchHits.empty();
@@ -335,9 +330,6 @@ public class AudioTrackSearchService {
         );
     }
 
-    /**
-     * Phrase Search: Tìm kiếm cụm từ chính xác
-     */
     public SearchHits<AudioTrackDocument> phraseSearch(String phrase, int page, int size) {
 //        if (phrase == null || phrase.trim().isEmpty()) {
 //            return List.of();
@@ -387,9 +379,6 @@ public class AudioTrackSearchService {
         return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
 
-    /**
-     * Filter by multiple criteria without keyword search
-     */
     public SearchHits<AudioTrackDocument> filterByMultipleCriteria(String status,
                                                             List<String> genres, List<String> moods, List<String> themes,
                                                             Double minPrice, Double maxPrice,
@@ -397,9 +386,6 @@ public class AudioTrackSearchService {
         return advancedSearch(null, status, genres, moods, themes, minPrice, maxPrice, page, size);
     }
 
-    /**
-     * Autocomplete/Suggest: Gợi ý hoàn thành từ khóa (dùng prefix query)
-     */
     public SearchHits<AudioTrackDocument> autocomplete(String prefix, int limit) {
 //        if (prefix == null || prefix.trim().isEmpty()) {
 //            return List.of();
@@ -438,6 +424,38 @@ public class AudioTrackSearchService {
         query.setPageable(pageable);
 
         SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+
+    public SearchHits<AudioTrackDocument> semanticSearch(String keyword, int size) {
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            return SearchHits.empty();
+//        }
+
+        // 1. Dịch câu tìm kiếm của khách hàng (VD: "nhạc nghe lúc mưa") thành Vector
+        List<Double> queryVector = huggingFaceService.getEmbedding(keyword);
+
+        if (queryVector == null || queryVector.size() != 768) {
+            throw new RuntimeException("Không thể tạo vector cho từ khóa");
+        }
+
+        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
+        String vectorJson = queryVector.toString();
+
+        // 3. Viết query KNN tìm kiếm các vector gần nhất
+        String queryJson = """
+            {
+              "knn": {
+                "field": "embeddingVector",
+                "query_vector": %s,
+                "k": %d,
+                "num_candidates": 100
+              }
+            }
+            """.formatted(vectorJson, size);
+
+        Query query = new StringQuery(queryJson);
+
         return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
 }

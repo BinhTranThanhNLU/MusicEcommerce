@@ -56,6 +56,9 @@ public class AudioTrackDocument {
     @Field(type = FieldType.Date, format = {}, pattern = "uuuu-MM-dd'T'HH:mm:ss||epoch_millis")
     private LocalDateTime uploadDate;
 
+    @Field(type = FieldType.Dense_Vector, dims = 768)
+    private List<Double> embeddingVector;
+
     public AudioTrackDocument() {
     }
 
@@ -169,5 +172,13 @@ public class AudioTrackDocument {
 
     public void setUploadDate(LocalDateTime uploadDate) {
         this.uploadDate = uploadDate;
+    }
+
+    public List<Double> getEmbeddingVector() {
+        return embeddingVector;
+    }
+
+    public void setEmbeddingVector(List<Double> embeddingVector) {
+        this.embeddingVector = embeddingVector;
     }
 }

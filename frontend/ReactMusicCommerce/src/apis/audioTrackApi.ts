@@ -5,7 +5,11 @@ import type { AudioTrackPlayCountResponse } from "../responsemodel/AudioTrackPla
 import type { CreateAudioTrackRequest } from "../requestmodel/CreateAudioTrackRequest";
 import type { AudioTrackDTO } from "../responsemodel/AudioTrackDTO";
 import axiosClient from "./axiosClient";
-import type { AudioTrackSearchDocument, AudioTrackSearchResponse } from "../models/Search";
+import type {
+  AudioTrackAdvancedSearchRequest,
+  AudioTrackSearchDocument,
+  AudioTrackSearchResponse,
+} from "../models/Search";
 
 
 export const getAllAudioTracks = async (): Promise<AudioTrackModel[]> => {
@@ -137,6 +141,20 @@ export const semanticSearchTracks = async (
   const response = await axiosClient.get("/v1/search/semantic", {
     params: { q, size },
   });
+  return response.data;
+};
+
+export const advancedSearchTracks = async (
+  request: AudioTrackAdvancedSearchRequest,
+): Promise<AudioTrackSearchResponse> => {
+  const response = await axiosClient.post("/v1/search/advanced", request);
+  return response.data;
+};
+
+export const filterSearchTracks = async (
+  request: AudioTrackAdvancedSearchRequest,
+): Promise<AudioTrackSearchResponse> => {
+  const response = await axiosClient.post("/v1/search/filter", request);
   return response.data;
 };
 

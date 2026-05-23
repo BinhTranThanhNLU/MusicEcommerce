@@ -14,7 +14,7 @@ const SearchProductCard = ({ track }: SearchProductCardProps) => {
     : `/detail-product/${numericId}`;
 
   return (
-    <div className="col-12 col-md-6 col-xl-4">
+    <div className="col-12 col-sm-6 col-lg-4 col-xl-3">
       <div className="product-item music-card h-100" data-aos="fade-up">
         <div className="product-image">
           <img

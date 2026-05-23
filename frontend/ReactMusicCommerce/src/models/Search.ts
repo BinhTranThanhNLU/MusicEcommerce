@@ -1,4 +1,22 @@
-export type SearchType = "full-text" | "fuzzy" | "phrase" | "semantic";
+export type SearchType =
+  | "full-text"
+  | "fuzzy"
+  | "phrase"
+  | "semantic"
+  | "advanced"
+  | "filter";
+
+export interface AudioTrackAdvancedSearchRequest {
+  keyword?: string;
+  status?: string;
+  genres?: string[];
+  moods?: string[];
+  themes?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  page: number;
+  size: number;
+}
 
 export interface AudioTrackSearchDocument {
   id: string;

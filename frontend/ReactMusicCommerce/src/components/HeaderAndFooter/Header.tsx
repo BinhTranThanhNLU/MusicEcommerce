@@ -187,30 +187,38 @@ const Header = () => {
 
                 {showSuggestions && (searchKeyword.trim().length >= 2 || isSearchingSuggestion) && (
                   <div
-                    className="position-absolute bg-white border rounded-3 shadow-sm mt-1 w-100"
-                    style={{ top: "100%", zIndex: 1060, maxHeight: "320px", overflowY: "auto" }}
+                    className="search-suggestions-dropdown position-absolute bg-white border rounded-3 shadow-sm mt-1 w-100"
+                    style={{ top: "100%", zIndex: 1060, maxHeight: "380px", overflowY: "auto" }}
                   >
                     {isSearchingSuggestion ? (
-                      <div className="px-3 py-2 text-muted small">Đang gợi ý...</div>
+                      <div className="search-suggestion-status">Đang gợi ý...</div>
                     ) : suggestions.length > 0 ? (
                       suggestions.map((item) => (
                         <button
                           key={`${item.id}-${item.title}`}
                           type="button"
-                          className="dropdown-item py-2"
+                          className="search-suggestion-item"
                           onClick={() => {
                             setSearchKeyword(item.title);
                             navigateToSmartSearch(item.title);
                           }}
                         >
-                          <div className="fw-semibold text-truncate">{item.title}</div>
-                          <div className="small text-muted text-truncate">
-                            {item.artistName || "Không rõ nghệ sĩ"}
+                          <img
+                            src={item.coverImage || "/assets/img/music-logo.png"}
+                            alt={item.title}
+                            className="search-suggestion-cover"
+                            loading="lazy"
+                          />
+                          <div className="search-suggestion-meta">
+                            <div className="search-suggestion-title text-truncate">{item.title}</div>
+                            <div className="search-suggestion-artist text-truncate">
+                              {item.artistName || "Không rõ nghệ sĩ"}
+                            </div>
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-muted small">Không có gợi ý phù hợp</div>
+                      <div className="search-suggestion-status">Không có gợi ý phù hợp</div>
                     )}
                   </div>
                 )}

@@ -1,4 +1,37 @@
-const SearchResultHeader = () => {
+import { useEffect, useState, type FormEvent } from "react";
+import type { SearchType } from "../../models/Search";
+
+interface SearchResultHeaderProps {
+  totalResults: number;
+  query: string;
+  searchType: SearchType;
+  onSearch: (keyword: string) => void;
+}
+
+const searchTypeLabel: Record<SearchType, string> = {
+  "full-text": "Toan van",
+  fuzzy: "Fuzzy",
+  phrase: "Phrase",
+  semantic: "Thong minh (Semantic)",
+};
+
+const SearchResultHeader = ({
+  totalResults,
+  query,
+  searchType,
+  onSearch,
+}: SearchResultHeaderProps) => {
+  const [keyword, setKeyword] = useState(query);
+
+  useEffect(() => {
+    setKeyword(query);
+  }, [query]);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSearch(keyword);
+  };
+
   return (
     <section
       id="search-results-header"
@@ -15,21 +48,25 @@ const SearchResultHeader = () => {
               >
                 <h2>Kết quả tìm kiếm</h2>
                 <p>
-                  Chúng tôi tìm thấy <span className="results-number">24</span>{" "}
-                  sản phẩm theo{" "}
-                  <span className="search-term">"Lorem ipsum"</span>
+                  Chúng tôi tìm thấy{" "}
+                  <span className="results-number">{totalResults}</span> kết quả theo{" "}
+                  <span className="search-term">"{query || "..."}"</span>
+                </p>
+                <p className="mb-0 small text-muted">
+                  Kieu tim kiem hien tai: <strong>{searchTypeLabel[searchType]}</strong>
                 </p>
               </div>
             </div>
             <div className="col-lg-6" data-aos="fade-left" data-aos-delay="300">
-              <form method="post" className="search-form">
+              <form className="search-form" onSubmit={handleSubmit}>
                 <div className="input-group">
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Tìm kiếm sản phẩm..."
+                    placeholder="Tim kiem tren trang ket qua..."
                     name="search"
-                    value="Lorem ipsum"
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
                     required
                   />
                   <button className="btn search-btn" type="submit">
@@ -37,47 +74,6 @@ const SearchResultHeader = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-
-          <div
-            className="search-filters mt-4"
-            data-aos="fade-up"
-            data-aos-delay="400"
-          >
-            <div className="row">
-              <div className="col-lg-8">
-                <div className="filter-tags">
-                  <span className="filter-label">Lọc:</span>
-                  <div className="tags-wrapper">
-                    <span className="filter-tag">
-                      Danh mục: Giày bóng đá
-                      <i className="bi bi-x-circle"></i>
-                    </span>
-                    <span className="filter-tag">
-                      Thời gian: Tháng trước
-                      <i className="bi bi-x-circle"></i>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="col-lg-4 text-lg-end mt-3 mt-lg-0">
-                <div className="sort-options">
-                  <label htmlFor="sort-select" className="me-2">
-                    Sắp xếp:
-                  </label>
-                  <select
-                    id="sort-select"
-                    className="form-select form-select-sm d-inline-block w-auto"
-                  >
-                    <option value="relevance">Liên quan</option>
-                    <option value="date-desc">Mới nhất</option>
-                    <option value="date-asc">Cũ nhất</option>
-                    <option value="title-asc">Từ A-Z</option>
-                    <option value="title-desc">Từ Z-A</option>
-                  </select>
-                </div>
-              </div>
             </div>
           </div>
         </div>

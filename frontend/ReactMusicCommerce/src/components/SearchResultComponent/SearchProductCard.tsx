@@ -1,49 +1,68 @@
-const SearchProductCard = () => {
+import { Link } from "react-router-dom";
+import type { AudioTrackSearchDocument } from "../../models/Search";
+
+
+interface SearchProductCardProps {
+  track: AudioTrackSearchDocument;
+}
+
+const SearchProductCard = ({ track }: SearchProductCardProps) => {
+  const firstPrice = track.pricesVnd?.[0] ?? 0;
+  const numericId = Number(track.id);
+  const detailPath = Number.isNaN(numericId)
+    ? undefined
+    : `/detail-product/${numericId}`;
+
   return (
-    <div className="col-6 col-lg-3">
-      <div className="product-card" data-aos="zoom-in" data-aos-delay="600">
+    <div className="col-12 col-md-6 col-xl-4">
+      <div className="product-item music-card h-100" data-aos="fade-up">
         <div className="product-image">
           <img
-            src="../../assets/img/product/product-f-7.webp"
-            className="main-image img-fluid"
-            alt="Product"
+            src={track.coverImage || "/assets/img/music-logo.png"}
+            className="img-fluid rounded-3"
+            alt={track.title}
+            style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover" }}
+            loading="lazy"
           />
-          <img
-            src="../../assets/img/product/product-f-8.webp"
-            className="hover-image img-fluid"
-            alt="Product Variant"
-          />
-          <div className="product-overlay">
-            <div className="product-actions">
-              <button
-                type="button"
-                className="action-btn"
-                data-bs-toggle="tooltip"
-                title="Quick View"
-              >
-                <i className="bi bi-eye"></i>
-              </button>
-              <button
-                type="button"
-                className="action-btn"
-                data-bs-toggle="tooltip"
-                title="Add to Cart"
-              >
-                <i className="bi bi-cart-plus"></i>
-              </button>
-            </div>
-          </div>
         </div>
-        <div className="product-details">
-          <div className="product-category">Accessories</div>
-          <h4 className="product-title">
-            <a href="product-details.html">Incididunt Labore</a>
-          </h4>
-          <div className="product-meta">
-            <div className="product-price">$55.00</div>
-            <div className="product-rating">
-              <i className="bi bi-star-fill"></i>
-              4.6 <span>(31)</span>
+
+        <div className="product-info mt-3">
+          <div className="product-category text-muted small mb-1">
+            {track.genres?.length ? track.genres.join(" / ") : "Không có thể loại"}
+          </div>
+
+          <h5 className="product-name mb-1">
+            {detailPath ? (
+              <Link to={detailPath} className="text-decoration-none text-dark fw-bold">
+                {track.title}
+              </Link>
+            ) : (
+              <span className="text-dark fw-bold">{track.title}</span>
+            )}
+          </h5>
+
+          <div className="artist-name text-primary mb-2">
+            <i className="bi bi-mic-fill me-1"></i>
+            {track.artistName || "Không rõ nghệ sĩ"}
+          </div>
+
+          {track.description && (
+            <p className="small text-muted mb-2" style={{ minHeight: "40px" }}>
+              {track.description.length > 90
+                ? `${track.description.slice(0, 90)}...`
+                : track.description}
+            </p>
+          )}
+
+          <div className="d-flex justify-content-between align-items-center">
+            <div className="product-price fw-semibold">
+              {firstPrice > 0
+                ? `${firstPrice.toLocaleString("vi-VN")}đ`
+                : "Liên hệ giá"}
+            </div>
+            <div className="small text-muted d-flex align-items-center gap-1">
+              <i className="bi bi-play-circle"></i>
+              {track.playCount ?? 0}
             </div>
           </div>
         </div>

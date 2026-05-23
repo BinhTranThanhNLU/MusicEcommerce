@@ -19,6 +19,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import ProductDetailPage from "./pages/product/ProductDetailPage";
+import SearchResultPage from "./pages/product/SearchResultPage";
 import CartPage from "./pages/cart-checkout/CartPage";
 import CheckoutPage from "./pages/cart-checkout/CheckoutPage";
 import AccountPage from "./pages/user/AccountPage";
@@ -121,6 +122,7 @@ function App() {
                   path="/detail-product/:id"
                   element={<ProductDetailPage />}
                 />
+                <Route path="/search" element={<SearchResultPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route

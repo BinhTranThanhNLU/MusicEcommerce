@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState, type FormEvent } from "react";
 import type { GenreModel } from "../../models/GenreModel";
 import { getAllGenres } from "../../apis/genreApi";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,6 +10,9 @@ import { getAllThemes } from "../../apis/themeApi";
 import { AuthContext } from "../../context/AuthContext";
 import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 import { getCart } from "../../apis/cartApi";
+import type { AudioTrackSearchDocument } from "../../models/Search";
+import { autocompleteTrackSearch } from "../../apis/audioTrackApi";
+
 
 const Header = () => {
   const [genres, setGenres] = useState<GenreModel[]>([]);
@@ -17,6 +20,12 @@ const Header = () => {
   const [themes, setThemes] = useState<ThemeModel[]>([]);
   const [httpError, setHttpError] = useState<string | null>(null);
   const [cartCount, setCartCount] = useState(0);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [suggestions, setSuggestions] = useState<AudioTrackSearchDocument[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingSuggestion, setIsSearchingSuggestion] = useState(false);
+
+  const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
   const authContext = useContext(AuthContext);
   const user = authContext?.user;
@@ -62,6 +71,71 @@ const Header = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const currentKeyword = searchKeyword.trim();
+
+    if (currentKeyword.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        setIsSearchingSuggestion(true);
+        const data = await autocompleteTrackSearch(currentKeyword, 6);
+        setSuggestions(data);
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setIsSearchingSuggestion(false);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    const closeSuggestionsOnOutsideClick = (event: MouseEvent) => {
+      if (!searchBoxRef.current) {
+        return;
+      }
+
+      const target = event.target as Node;
+      if (!searchBoxRef.current.contains(target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeSuggestionsOnOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", closeSuggestionsOnOutsideClick);
+    };
+  }, []);
+
+  const navigateToSmartSearch = (keyword: string) => {
+    const q = keyword.trim();
+    if (!q) {
+      return;
+    }
+
+    const searchParams = new URLSearchParams({
+      q,
+      type: "semantic",
+      page: "0",
+      size: "12",
+    });
+
+    setShowSuggestions(false);
+    navigate(`/search?${searchParams.toString()}`);
+  };
+
+  const handleHeaderSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    navigateToSmartSearch(searchKeyword);
+  };
+
   // Hàm xử lý khi bấm nút Đăng xuất
   const handleLogout = () => {
     if (logoutContext) {
@@ -89,16 +163,57 @@ const Header = () => {
             </Link>
 
             {/* Search */}
-            <form className="search-form desktop-search-form">
-              <div className="input-group">
+            <form
+              className="search-form desktop-search-form"
+              onSubmit={handleHeaderSearchSubmit}
+            >
+              <div className="input-group position-relative" ref={searchBoxRef}>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Tìm kiếm nhạc..."
+                  placeholder="Tìm kiếm thông minh theo bài hát, nghệ sĩ, mô tả..."
+                  value={searchKeyword}
+                  onChange={(event) => {
+                    setSearchKeyword(event.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    setShowSuggestions(true);
+                  }}
                 />
                 <button className="btn" type="submit">
                   <i className="bi bi-search"></i>
                 </button>
+
+                {showSuggestions && (searchKeyword.trim().length >= 2 || isSearchingSuggestion) && (
+                  <div
+                    className="position-absolute bg-white border rounded-3 shadow-sm mt-1 w-100"
+                    style={{ top: "100%", zIndex: 1060, maxHeight: "320px", overflowY: "auto" }}
+                  >
+                    {isSearchingSuggestion ? (
+                      <div className="px-3 py-2 text-muted small">Đang gợi ý...</div>
+                    ) : suggestions.length > 0 ? (
+                      suggestions.map((item) => (
+                        <button
+                          key={`${item.id}-${item.title}`}
+                          type="button"
+                          className="dropdown-item py-2"
+                          onClick={() => {
+                            setSearchKeyword(item.title);
+                            navigateToSmartSearch(item.title);
+                          }}
+                        >
+                          <div className="fw-semibold text-truncate">{item.title}</div>
+                          <div className="small text-muted text-truncate">
+                            {item.artistName || "Không rõ nghệ sĩ"}
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-muted small">Không có gợi ý phù hợp</div>
+                    )}
+                  </div>
+                )}
               </div>
             </form>
 

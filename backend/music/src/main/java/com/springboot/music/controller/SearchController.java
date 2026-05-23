@@ -232,6 +232,31 @@ public class SearchController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/hybrid")
+    public ResponseEntity<AudioTrackSearchResponse> hybridSearch(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        if (q == null || q.trim().isEmpty() || page < 0 || size <= 0 || size > 100) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Gọi method hybrid mới
+        SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.hybridSearch(q, page, size);
+
+        List<AudioTrackDocument> results = searchHits.stream()
+                .map(hit -> hit.getContent())
+                .collect(Collectors.toList());
+
+        long totalHits = searchHits.getTotalHits();
+        AudioTrackSearchResponse response = new AudioTrackSearchResponse(
+                results, page, size, totalHits, "hybrid", q
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }
 
 

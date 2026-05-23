@@ -122,7 +122,7 @@ const Header = () => {
 
     const searchParams = new URLSearchParams({
       q,
-      type: "semantic",
+      type: "hybrid",
       page: "0",
       size: "12",
     });

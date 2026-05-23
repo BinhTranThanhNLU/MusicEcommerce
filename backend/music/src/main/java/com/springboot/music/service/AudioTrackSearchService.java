@@ -458,5 +458,61 @@ public class AudioTrackSearchService {
 
         return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
+
+    public SearchHits<AudioTrackDocument> hybridSearch(String keyword, int page, int size) {
+        String cleanKeyword = keyword.trim();
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 1. Dịch từ khóa gõ thành Vector
+        List<Double> queryVector = semanticSearchService.getEmbedding(cleanKeyword);
+
+        // Fallback an toàn: Nếu server AI Python sập hoặc lỗi, tự động lùi về Full-text search (BM25)
+        if (queryVector == null || queryVector.size() != 768) {
+            return fullTextSearch(cleanKeyword, page, size);
+        }
+
+        String vectorJson = queryVector.toString();
+
+        // 2. Kết hợp BM25 (Full-text) và Vector (Semantic)
+        // Dùng bool -> should. Bất kỳ bài hát nào thỏa mãn 1 trong 2 điều kiện sẽ được lấy ra.
+        // Nếu thỏa mãn CẢ 2, điểm sẽ được cộng dồn (nhấn mạnh Exact Match nhờ boost cao hơn).
+        String queryJson = """
+        {
+          "bool": {
+            "should": [
+              {
+                "multi_match": {
+                  "query": "%s",
+                  "fields": [
+                    "title^5", 
+                    "artistName^3", 
+                    "description", 
+                    "lyrics"
+                  ],
+                  "type": "best_fields",
+                  "analyzer": "vietnamese",
+                  "boost": 2.0,
+                  "fuzziness": "AUTO"
+                }
+              },
+              {
+                "knn": {
+                  "field": "embeddingVector",
+                  "query_vector": %s,
+                  "num_candidates": 100,
+                  "boost": 1.0
+                }
+              }
+            ],
+            "minimum_should_match": 1
+          }
+        }
+        """.formatted(cleanKeyword, vectorJson);
+
+        Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
+
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
 }
 

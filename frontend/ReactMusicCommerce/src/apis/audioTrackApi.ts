@@ -144,6 +144,17 @@ export const semanticSearchTracks = async (
   return response.data;
 };
 
+export const hybridSearchTracks = async (
+  q: string,
+  page: number,
+  size: number,
+): Promise<AudioTrackSearchResponse> => {
+  const response = await axiosClient.get("/v1/search/hybrid", {
+    params: { q, page, size },
+  });
+  return response.data;
+};
+
 export const advancedSearchTracks = async (
   request: AudioTrackAdvancedSearchRequest,
 ): Promise<AudioTrackSearchResponse> => {

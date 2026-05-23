@@ -3,6 +3,7 @@ export type SearchType =
   | "fuzzy"
   | "phrase"
   | "semantic"
+  | "hybrid"
   | "advanced"
   | "filter";
 

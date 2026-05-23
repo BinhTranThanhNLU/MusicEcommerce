@@ -10,6 +10,7 @@ import { ErrorMessage } from "../../components/utils/ErrorMessage";
 import type { AudioTrackSearchDocument, SearchType } from "../../models/Search";
 import {
   advancedSearchTracks,
+  hybridSearchTracks,
   filterSearchTracks,
   fullTextSearchTracks,
   fuzzySearchTracks,
@@ -30,6 +31,7 @@ const getSafeSearchType = (input: string | null): SearchType => {
     input === "fuzzy" ||
     input === "phrase" ||
     input === "semantic" ||
+    input === "hybrid" ||
     input === "advanced" ||
     input === "filter"
   ) {
@@ -164,20 +166,22 @@ const SearchResultPage = () => {
         };
 
         const response =
-          searchType === "semantic" && !isFilterMode
-            ? await semanticSearchTracks(query, size)
-            : isFilterMode
-              ? query
-                ? await advancedSearchTracks({
-                    ...requestPayload,
-                    keyword: query,
-                  })
-                : await filterSearchTracks(requestPayload)
-              : searchType === "fuzzy"
-                ? await fuzzySearchTracks(query, page, size)
-                : searchType === "phrase"
-                  ? await phraseSearchTracks(query, page, size)
-                  : await fullTextSearchTracks(query, page, size);
+          searchType === "hybrid" && !isFilterMode
+            ? await hybridSearchTracks(query, page, size)
+            : searchType === "semantic" && !isFilterMode
+              ? await semanticSearchTracks(query, size)
+              : isFilterMode
+                ? query
+                  ? await advancedSearchTracks({
+                      ...requestPayload,
+                      keyword: query,
+                    })
+                  : await filterSearchTracks(requestPayload)
+                : searchType === "fuzzy"
+                  ? await fuzzySearchTracks(query, page, size)
+                  : searchType === "phrase"
+                    ? await phraseSearchTracks(query, page, size)
+                    : await fullTextSearchTracks(query, page, size);
 
         setTracks(response.results || []);
         setTotalResults(response.totalResults || 0);
@@ -268,7 +272,7 @@ const SearchResultPage = () => {
     updateSearchParams({
       q: nextKeyword,
       page: 0,
-      type: isFilterMode ? "advanced" : "full-text",
+      type: isFilterMode ? "advanced" : "hybrid",
     });
   };
 

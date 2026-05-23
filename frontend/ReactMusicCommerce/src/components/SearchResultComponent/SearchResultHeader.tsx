@@ -31,6 +31,7 @@ const searchTypeLabel: Record<SearchType, string> = {
   fuzzy: "Fuzzy",
   phrase: "Phrase",
   semantic: "Thông minh (Semantic)",
+  hybrid: "Kết hợp (Hybrid)",
   advanced: "Nâng cao (Advanced)",
   filter: "Lọc (Filter)",
 };

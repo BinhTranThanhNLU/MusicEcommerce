@@ -46,8 +46,8 @@ const AdminDashboardPage = () => {
               <span className="badge rounded-pill text-bg-light text-dark mb-3">
                 Admin dashboard overview
               </span>
-              <h3 className="fw-bold mb-2">Bảng điều khiển hệ thống</h3>
-              <p className="mb-0 text-white-50" style={{ maxWidth: "760px" }}>
+              <h3 className="fw-bold mb-2 text-white">Bảng điều khiển hệ thống</h3>
+              <p className="mb-0 text-white-80" style={{ maxWidth: "760px" }}>
                 Theo dõi doanh thu, tăng trưởng người dùng và cơ cấu nội dung theo từng chu kỳ.
               </p>
             </div>

@@ -1,64 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getPendingTracks } from "../../apis/adminApi";
+import type { AudioTrackModel } from "../../models/AudioTrackModel";
+import { parseApiError } from "../../utils/apiError";
 
-type SongKind = "Bài hát hoàn chỉnh" | "Nhạc không lời" | "Đoạn âm thanh ngắn";
-
-interface PendingSong {
-  id: number;
-  title: string;
-  artist: string;
-  kind: SongKind;
-  submittedAt: string;
-  duration: string;
-  fileType: string;
-}
-
-const pendingSongs: PendingSong[] = [
-  {
-    id: 1,
-    title: "Making My Way",
-    artist: "Sơn Tùng M-TP",
-    kind: "Bài hát hoàn chỉnh",
-    submittedAt: "2026-05-07T09:05:00",
-    duration: "03:42",
-    fileType: "FLAC",
-  },
-  {
-    id: 2,
-    title: "Night Drive Loop",
-    artist: "Lofi Lab",
-    kind: "Nhạc không lời",
-    submittedAt: "2026-05-07T08:10:00",
-    duration: "02:18",
-    fileType: "WAV",
-  },
-  {
-    id: 3,
-    title: "City Pulse Intro",
-    artist: "Blueframe",
-    kind: "Đoạn âm thanh ngắn",
-    submittedAt: "2026-05-06T21:44:00",
-    duration: "00:34",
-    fileType: "MP3",
-  },
-  {
-    id: 4,
-    title: "Ngủ Một Mình",
-    artist: "HIEUTHUHAI",
-    kind: "Bài hát hoàn chỉnh",
-    submittedAt: "2026-05-06T19:27:00",
-    duration: "03:08",
-    fileType: "WAV",
-  },
-  {
-    id: 5,
-    title: "Ocean Keys",
-    artist: "NOVA Studio",
-    kind: "Nhạc không lời",
-    submittedAt: "2026-05-06T16:55:00",
-    duration: "01:57",
-    fileType: "FLAC",
-  },
-];
+const PAGE_SIZE = 5;
 
 const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("vi-VN", {
@@ -69,13 +15,41 @@ const formatDateTime = (value: string) =>
     minute: "2-digit",
   }).format(new Date(value));
 
-const kindClassMap: Record<SongKind, string> = {
-  "Bài hát hoàn chỉnh": "bg-primary bg-opacity-10 text-primary border border-primary-subtle",
-  "Nhạc không lời": "bg-info bg-opacity-10 text-info border border-info-subtle",
-  "Đoạn âm thanh ngắn": "bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle",
+const formatDuration = (seconds: number) => {
+  const safeSeconds = Math.max(0, seconds || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 };
 
 const AdminPendingSongsTable = () => {
+  const [tracks, setTracks] = useState<AudioTrackModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+
+  useEffect(() => {
+    const fetchTracks = async () => {
+      setLoading(true);
+      setErrorMessage(null);
+
+      try {
+        const response = await getPendingTracks(0, PAGE_SIZE);
+        setTracks(response.tracks?.slice(0, PAGE_SIZE) ?? []);
+        setTotalItems(response.totalItems ?? 0);
+      } catch (error) {
+        setTracks([]);
+        setTotalItems(0);
+        setErrorMessage(parseApiError(error, "Không thể tải danh sách bài hát chờ kiểm duyệt.").message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchTracks();
+  }, []);
+
   return (
     <div className="card border-0 shadow-sm rounded-4 h-100 admin-dashboard-panel overflow-hidden">
       <div className="card-body p-0 d-flex flex-column">
@@ -85,15 +59,15 @@ const AdminPendingSongsTable = () => {
               <span className="admin-kicker-pill admin-kicker-violet">
                 <i className="bi bi-music-note-beamed me-1"></i> Pending Review
               </span>
-              <span className="badge rounded-pill text-bg-light border text-secondary">5 bài gần nhất</span>
+              <span className="badge rounded-pill text-bg-light border text-secondary">{totalItems || tracks.length} bài chờ duyệt</span>
             </div>
             <h5 className="fw-bold mb-1">Bài hát chờ kiểm duyệt</h5>
             <p className="text-muted mb-0 small">
-              Danh sách rút gọn các nội dung vừa gửi lên, giúp admin ưu tiên duyệt nhanh phần đang chờ xuất bản.
+              Danh sách rút gọn các nội dung vừa gửi lên để mở nhanh trang kiểm duyệt khi cần xử lý.
             </p>
           </div>
 
-          <Link to="/admin/content" className="btn btn-sm btn-outline-dark rounded-pill px-3 text-nowrap">
+          <Link to="/admin/moderation" className="btn btn-sm btn-outline-dark rounded-pill px-3 text-nowrap">
             Xem tất cả <i className="bi bi-arrow-right ms-1"></i>
           </Link>
         </div>
@@ -105,12 +79,31 @@ const AdminPendingSongsTable = () => {
                 <th className="ps-4">Bài hát</th>
                 <th>Nghệ sĩ</th>
                 <th>Loại nội dung</th>
-                <th>Gửi lúc</th>
-                <th className="text-end pe-4">Thao tác</th>
+                <th className="text-end pe-4">Thông tin</th>
               </tr>
             </thead>
             <tbody>
-              {pendingSongs.map((song) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="py-5 text-center text-muted">
+                    <div className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+                    Đang tải bài chờ duyệt...
+                  </td>
+                </tr>
+              ) : errorMessage ? (
+                <tr>
+                  <td colSpan={4} className="py-5 text-center text-muted">
+                    {errorMessage}
+                  </td>
+                </tr>
+              ) : tracks.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-5 text-center text-muted">
+                    Chưa có nội dung nào đang chờ kiểm duyệt.
+                  </td>
+                </tr>
+              ) : (
+                tracks.map((song) => (
                 <tr key={song.id}>
                   <td className="ps-4 py-3">
                     <div className="d-flex align-items-start gap-3">
@@ -119,25 +112,24 @@ const AdminPendingSongsTable = () => {
                       </div>
                       <div>
                         <div className="fw-semibold text-dark">{song.title}</div>
-                        <small className="text-muted">{song.fileType} • {song.duration}</small>
+                        <small className="text-muted">{formatDuration(song.duration)} • {song.playCount ?? 0} lượt nghe</small>
                       </div>
                     </div>
                   </td>
                   <td className="py-3">
-                    <div className="fw-medium text-dark">{song.artist}</div>
-                    <small className="text-muted">Đang chờ duyệt</small>
+                    <div className="fw-medium text-dark">{song.artist?.name || song.authorName || "-"}</div>
+                    <small className="text-muted">{formatDateTime(song.uploadDate || "")}</small>
                   </td>
                   <td className="py-3">
-                    <span className={`badge rounded-pill px-3 py-2 ${kindClassMap[song.kind]}`}>{song.kind}</span>
+                    <span className="badge rounded-pill px-3 py-2 bg-light text-dark border">{song.audioType || "-"}</span>
                   </td>
-                  <td className="py-3 text-muted small">{formatDateTime(song.submittedAt)}</td>
                   <td className="py-3 text-end pe-4">
-                    <Link to="/admin/content" className="btn btn-sm btn-outline-primary rounded-pill">
-                      Mở kiểm duyệt
-                    </Link>
+                    <div className="text-muted small">{song.status || "Chờ duyệt"}</div>
+                    <div className="text-muted small">{song.tags?.genres?.slice(0, 2).join(" / ") || "Chưa gắn thể loại"}</div>
                   </td>
                 </tr>
-              ))}
+                ))
+              )}
             </tbody>
           </table>
         </div>

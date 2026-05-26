@@ -114,14 +114,7 @@ const AdminLicensePage = () => {
           </p>
         </div>
         <div className="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-outline-secondary rounded-pill px-3"
-            onClick={() => void fetchLicenses()}
-          >
-            <i className="bi bi-arrow-clockwise me-2"></i>
-            Làm mới
-          </button>
+        
         </div>
       </div>
 

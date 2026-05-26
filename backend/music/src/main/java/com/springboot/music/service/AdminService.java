@@ -138,6 +138,8 @@ public class AdminService {
         return mapAdminLicense(orderDetail);
     }
 
+    // ------------------------------Helper của Quản lý giấy phép -----------------------------
+
     private AdminLicenseDTO mapAdminLicense(OrderDetail detail) {
         if (detail == null) {
             return null;

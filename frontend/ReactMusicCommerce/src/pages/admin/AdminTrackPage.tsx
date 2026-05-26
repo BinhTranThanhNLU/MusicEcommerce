@@ -101,7 +101,7 @@ const AdminTrackPage = () => {
         <div className="d-flex justify-content-between align-items-end mb-4">
           <div>
             <h3 className="fw-bold mb-1" style={{ color: "#0f172a" }}>
-              Quản lý Audio Track
+              Quản lý Nhạc
             </h3>
             <p className="text-muted mb-0">
               Lọc, theo dõi trạng thái và xóa mềm các bài hát trong hệ thống.

@@ -45,24 +45,6 @@ const AdminSidebar = () => {
             Tổng quan
           </NavLink>
         </li>
-       
-        <li className="nav-item mb-1">
-          <NavLink
-            to="/admin/tracks"
-            className={({ isActive }) =>
-              `nav-link rounded d-flex align-items-center fw-medium ${
-                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
-              }`
-            }
-            style={({ isActive }) =>
-              isActive
-                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
-                : {}
-            }
-          >
-            <i className="bi bi-music-note-beamed me-3 fs-5"></i> Quản lý Audio Track
-          </NavLink>
-        </li>
 
         <li className="nav-item mb-1">
           <NavLink
@@ -81,6 +63,25 @@ const AdminSidebar = () => {
             <i className="bi bi-music-note-list me-3 fs-5"></i> Kiểm duyệt bài hát
           </NavLink>
         </li>
+       
+        <li className="nav-item mb-1">
+          <NavLink
+            to="/admin/tracks"
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+            style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
+          >
+            <i className="bi bi-music-note-beamed me-3 fs-5"></i> Quản lý Nhạc
+          </NavLink>
+        </li>
+
         <li className="nav-item mb-1">
           <NavLink
             to="/admin/users"

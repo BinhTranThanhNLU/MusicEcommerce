@@ -70,7 +70,7 @@ const AdminLicenseFilter = ({ filters, onFilterChange, onRefresh }: Props) => {
                             <option value="all">Tất cả loại</option>
                             <option value="personal">Cá nhân</option>
                             <option value="commercial">Thương mại</option>
-                            <option value="exclusive">Độc quyền</option>
+                            <option value="extended">Mở rộng</option>
                         </select>
                     </div>
 
@@ -99,10 +99,7 @@ const AdminLicenseFilter = ({ filters, onFilterChange, onRefresh }: Props) => {
                         <button type="button" className="btn btn-light px-4" onClick={handleReset}>
                             Đặt lại
                         </button>
-                        <button type="button" className="btn btn-outline-secondary px-4" onClick={onRefresh}>
-                            <i className="bi bi-arrow-clockwise me-2"></i>
-                            Làm mới
-                        </button>
+                       
                     </div>
                 </div>
             </div>

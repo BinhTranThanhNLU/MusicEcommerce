@@ -70,7 +70,7 @@ const AdminCopyrightPage = () => {
       <div className="d-flex justify-content-between align-items-end mb-4">
         <div>
           <h3 className="fw-bold mb-1" style={{ color: "#0f172a" }}>
-            Quản lý Bản quyền & Giấy phép
+            Quản lý Bản quyền
           </h3>
           <p className="text-muted mb-0">
             Tra cứu thông tin bản quyền, chủ sở hữu và chỉnh sửa dữ liệu chứng nhận.

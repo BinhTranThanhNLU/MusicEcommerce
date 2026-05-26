@@ -62,4 +62,23 @@ public interface AudioTrackRepository extends JpaRepository<AudioTrack, Integer>
             """)
     List<Object[]> countByAudioType();
 
+    // Lấy danh sách các bài hát không bị xóa
+    @Query("SELECT a FROM AudioTrack a WHERE a.isDeleted = false OR a.isDeleted IS NULL ORDER BY a.uploadDate DESC")
+    Page<AudioTrack> findAllNotDeleted(Pageable pageable);
+
+    // Lấy danh sách bài hát không bị xóa với filter theo tiêu đề, loại âm thanh, và trạng thái
+    @Query("""
+            SELECT a FROM AudioTrack a
+            WHERE (a.isDeleted = false OR a.isDeleted IS NULL)
+            AND (:title IS NULL OR LOWER(a.title) LIKE LOWER(CONCAT('%', :title, '%')))
+            AND (:audioType IS NULL OR LOWER(a.audioType) = LOWER(:audioType))
+            AND (:status IS NULL OR LOWER(a.status) = LOWER(:status))
+            ORDER BY a.uploadDate DESC
+            """)
+    Page<AudioTrack> findAllNotDeletedWithFilters(
+            @Param("title") String title,
+            @Param("audioType") String audioType,
+            @Param("status") String status,
+            Pageable pageable);
+
 }

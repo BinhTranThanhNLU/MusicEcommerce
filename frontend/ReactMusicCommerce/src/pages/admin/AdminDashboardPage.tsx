@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import "../../assets/css/adminDashboard.css";
 import { getAdminDashboardOverview } from "../../apis/adminApi";
 import AdminDashboardSummaryCards from "../../components/AdminDashboardComponent/AdminDashboardSummaryCards";

@@ -42,6 +42,8 @@ import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 import AdminCopyrightPage from "./pages/admin/AdminCopyrightPage";
 import AdminModerationPage from "./pages/admin/AdminModerationPage";
 import AdminRevenuePage from "./pages/admin/AdminRevenuePage";
+import AdminTrackPage from "./pages/admin/AdminTrackPage";
+import AdminTrackDetailPage from "./pages/admin/AdminTrackDetailPage";
 import ErrorPage from "./pages/auth/ErrorPage";
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -164,6 +166,8 @@ function App() {
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboardPage />} />
                   <Route path="revenue" element={<AdminRevenuePage />} />
+                  <Route path="tracks" element={<AdminTrackPage />} />
+                  <Route path="tracks/:id" element={<AdminTrackDetailPage />} />
                   <Route path="moderation" element={<AdminModerationPage />} />
                   <Route path="users" element={<AdminUserPage />} />
                   <Route

@@ -56,6 +56,12 @@ public class AudioTrack {
     @Column(name = "upload_date")
     private LocalDateTime uploadDate;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "artist_id")
     private User artist;

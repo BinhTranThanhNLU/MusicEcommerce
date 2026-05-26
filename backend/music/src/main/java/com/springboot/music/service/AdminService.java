@@ -1,16 +1,6 @@
 package com.springboot.music.service;
 
-import com.springboot.music.dto.AccountOrderDTO;
-import com.springboot.music.dto.AccountOrderItemDTO;
-import com.springboot.music.dto.AdminUserDTO;
-import com.springboot.music.dto.AdminUserDetailDTO;
-import com.springboot.music.dto.AdminOrderDTO;
-import com.springboot.music.dto.AdminOrderDetailDTO;
-import com.springboot.music.dto.AdminOrderWithDetailsDTO;
-import com.springboot.music.dto.AdminDashboardOverviewDTO;
-import com.springboot.music.dto.AdminTopTrackDTO;
-import com.springboot.music.dto.AudioTrackDTO;
-import com.springboot.music.dto.RevenuePieDTO;
+import com.springboot.music.dto.*;
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.AudioTrackModeration;
 import com.springboot.music.entity.License;
@@ -25,18 +15,12 @@ import com.springboot.music.repository.OrderDetailRepository;
 import com.springboot.music.entity.CopyrightInfo;
 import com.springboot.music.requestmodel.ModerateAudioTrackRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
-import com.springboot.music.dto.CopyrightInfoDTO;
-import com.springboot.music.responsemodel.CopyrightPageResponse;
-import com.springboot.music.responsemodel.AudioTrackPageResponse;
+import com.springboot.music.responsemodel.*;
 import com.springboot.music.mapper.UserMapper;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.OrderRepository;
 import com.springboot.music.repository.PaymentTransactionRepository;
 import com.springboot.music.repository.UserRepository;
-import com.springboot.music.responsemodel.AdminUserPageResponse;
-import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
-import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
-import com.springboot.music.responsemodel.AdminOrderPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +29,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -108,6 +93,7 @@ public class AdminService {
         this.emailService = emailService;
     }
 
+    // ------------------------------ Kiểm duyệt nhạc -----------------------------
     @Transactional(readOnly = true)
     public AudioTrackPageResponse getPendingTracks(int page, int size) {
         validatePagination(page, size);
@@ -151,6 +137,347 @@ public class AdminService {
         return applyModerationDecision(audioId, TRACK_STATUS_NEED_REVISION, reason, revisionPoints);
     }
 
+    // ------------------------------ Helper của Kiểm duyệt nhạc -----------------------------
+
+    private String normalizeModerationReason(String reason) {
+        String normalized = normalizeOptionalText(reason);
+        if (normalized == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống");
+        }
+        return normalized;
+    }
+
+    private List<String> normalizeRevisionPoints(List<String> revisionPoints) {
+        if (revisionPoints == null || revisionPoints.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> normalized = new ArrayList<>();
+        for (String point : revisionPoints) {
+            String value = normalizeOptionalText(point);
+            if (value != null) {
+                normalized.add(value);
+            }
+        }
+        return normalized;
+    }
+
+    // ------------------------------ Quản lý User -----------------------------
+
+    @Transactional(readOnly = true)
+    public AdminUserPageResponse getUsers(int page, int size, String keyword, String role, Boolean isActive) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        // Chuẩn hóa param để truyền vào query
+        String safeKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String safeRole = (role != null && !role.equals("all")) ? role.trim() : null;
+
+        Page<User> userPage = userRepository.findUsersByAdminFilter(safeKeyword, safeRole, isActive, pageable);
+
+        // Map list User sang list AdminUserDTO
+        List<AdminUserDTO> userDTOs = userMapper.toDtoList(userPage.getContent());
+
+        return AdminUserPageResponse.builder()
+                .users(userDTOs)
+                .currentPage(userPage.getNumber())
+                .totalPages(userPage.getTotalPages())
+                .totalItems(userPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional
+    public void toggleUserStatus(Integer userId, boolean status) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+        // Không cho phép Admin tự khóa chính mình
+        if (user.getRole().getName().equals("admin") && !status) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể khóa tài khoản quản trị viên khác");
+        }
+
+        user.setIsActive(status);
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserDetailDTO getUserDetail(Integer userId) {
+        User user = getUserByIdOrThrow(userId);
+
+        return userMapper.toAdminDetailDto(user);
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserOrderPageResponse getUserOrders(Integer userId, int page, int size) {
+        validatePagination(page, size);
+        User user = getUserByIdOrThrow(userId);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<OrderEntity> orderPage = orderRepository.findByUserId(user.getId(), pageable);
+        List<AccountOrderDTO> orders = orderPage.getContent().stream()
+                .map(this::toAccountOrderDto)
+                .toList();
+
+        return AdminUserOrderPageResponse.builder()
+                .orders(orders)
+                .currentPage(orderPage.getNumber())
+                .totalPages(orderPage.getTotalPages())
+                .totalItems(orderPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserTrackPageResponse getUserTracks(Integer userId, int page, int size) {
+        validatePagination(page, size);
+        User user = getUserByIdOrThrow(userId);
+
+        if (user.getRole() == null || user.getRole().getName() == null
+                || !ROLE_ARTIST.equalsIgnoreCase(user.getRole().getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Người dùng này không phải artist");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+        Page<AudioTrack> trackPage = audioTrackRepository.findByArtistId(user.getId(), pageable);
+        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
+
+        return AdminUserTrackPageResponse.builder()
+                .tracks(tracks)
+                .currentPage(trackPage.getNumber())
+                .totalPages(trackPage.getTotalPages())
+                .totalItems(trackPage.getTotalElements())
+                .build();
+    }
+
+    // ------------------------------ Helper của Quản lý User -----------------------------
+
+    private User getUserByIdOrThrow(Integer userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+    }
+
+    private AccountOrderDTO toAccountOrderDto(OrderEntity order) {
+        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(order.getId()).orElse(null);
+        List<AccountOrderItemDTO> items = new ArrayList<>();
+
+        if (order.getDetails() != null) {
+            for (OrderDetail detail : order.getDetails()) {
+                var audioTrack = detail.getAudioTrack();
+                License license = detail.getLicense();
+                User artist = audioTrack != null ? audioTrack.getArtist() : null;
+
+                items.add(AccountOrderItemDTO.builder()
+                        .orderDetailId(detail.getId())
+                        .audioId(audioTrack != null ? audioTrack.getId() : null)
+                        .title(audioTrack != null ? audioTrack.getTitle() : null)
+                        .audioType(audioTrack != null ? audioTrack.getAudioType() : null)
+                        .artistName(artist != null ? artist.getName() : "Unknown Artist")
+                        .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
+                        .licenseType(license != null ? license.getLicenseType() : null)
+                        .price(detail.getPrice())
+                        .duration(audioTrack != null ? audioTrack.getDuration() : null)
+                        .reviewSubmitted(false)
+                        .build());
+            }
+        }
+
+        return AccountOrderDTO.builder()
+                .orderId(order.getId())
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
+                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
+                .totalAmount(order.getTotalAmount())
+                .createdAt(order.getCreatedAt())
+                .totalItems(items.size())
+                .items(items)
+                .build();
+    }
+
+    // ------------------------------ Quản lý Audio Track -----------------------------
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAllAudioTracks(int page, int size, String title, String audioType, String status) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size);
+
+        String safeTitle = (title != null && !title.isBlank()) ? title.trim() : null;
+        String safeAudioType = (audioType != null && !audioType.isBlank()) ? audioType.trim() : null;
+        String safeStatus = (status != null && !status.isBlank()) ? status.trim() : null;
+
+        Page<AudioTrack> trackPage = audioTrackRepository.findAllNotDeletedWithFilters(safeTitle, safeAudioType, safeStatus, pageable);
+        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
+
+        return AudioTrackPageResponse.builder()
+                .tracks(tracks)
+                .currentPage(trackPage.getNumber())
+                .totalPages(trackPage.getTotalPages())
+                .totalItems(trackPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackDTO getAudioTrackDetail(Integer audioId) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        if (audioTrack.getIsDeleted() != null && audioTrack.getIsDeleted()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Bài hát đã bị xóa");
+        }
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
+    @Transactional
+    public String softDeleteAudioTrack(Integer audioId) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        
+        if (audioTrack.getIsDeleted() != null && audioTrack.getIsDeleted()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bài hát đã được xóa trước đó");
+        }
+
+        audioTrack.setIsDeleted(true);
+        audioTrack.setDeletedAt(LocalDateTime.now());
+        audioTrackRepository.save(audioTrack);
+
+        return "Đã xóa bài hát có ID " + audioId + " thành công";
+    }
+
+    @Transactional
+    public String restoreAudioTrack(Integer audioId) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        
+        if (audioTrack.getIsDeleted() == null || !audioTrack.getIsDeleted()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Bài hát không bị xóa");
+        }
+
+        audioTrack.setIsDeleted(false);
+        audioTrack.setDeletedAt(null);
+        audioTrackRepository.save(audioTrack);
+
+        return "Đã khôi phục bài hát có ID " + audioId + " thành công";
+    }
+
+    // ------------------------------ Quản lý Đơn hàng -----------------------------
+
+    @Transactional(readOnly = true)
+    public AdminOrderPageResponse getAllOrders(int page, int size, String paymentStatus) {
+        validatePagination(page, size);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<OrderEntity> orderPage = orderRepository.findAllWithFilter(paymentStatus, pageable);
+        List<AdminOrderDTO> orders = orderPage.getContent().stream()
+                .map(this::toAdminOrderDto)
+                .toList();
+
+        return AdminOrderPageResponse.builder()
+                .orders(orders)
+                .currentPage(orderPage.getNumber())
+                .totalPages(orderPage.getTotalPages())
+                .totalItems(orderPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminOrderWithDetailsDTO getOrderDetail(Integer orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(orderId).orElse(null);
+        List<AdminOrderDetailDTO> details = new ArrayList<>();
+
+        if (order.getDetails() != null) {
+            for (OrderDetail detail : order.getDetails()) {
+                AudioTrack audioTrack = detail.getAudioTrack();
+                User artist = audioTrack != null ? audioTrack.getArtist() : null;
+                License license = detail.getLicense();
+
+                details.add(AdminOrderDetailDTO.builder()
+                        .orderDetailId(detail.getId())
+                        .audioId(audioTrack != null ? audioTrack.getId() : null)
+                        .trackTitle(audioTrack != null ? audioTrack.getTitle() : null)
+                        .artistName(artist != null ? artist.getName() : "Unknown Artist")
+                        .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
+                        .licenseType(license != null ? license.getLicenseType() : null)
+                        .price(detail.getPrice())
+                        .duration(audioTrack != null ? audioTrack.getDuration() : null)
+                        .watermarkId(detail.getWatermarkId())
+                        .expiredAt(detail.getExpiredAt())
+                        .licenseStatus(detail.getLicenseStatus())
+                        .build());
+            }
+        }
+
+        User customer = order.getUser();
+        return AdminOrderWithDetailsDTO.builder()
+                .orderId(order.getId())
+                .userId(customer.getId())
+                .customerName(customer.getName())
+                .customerEmail(customer.getEmail())
+                .totalAmount(order.getTotalAmount())
+                .adminRevenue(calculateAdminRevenueForOrder(order))
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
+                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
+                .createdAt(order.getCreatedAt())
+                .totalItems(details.size())
+                .items(details)
+                .build();
+    }
+
+    @Transactional
+    public String updateOrderStatus(Integer orderId, UpdateOrderStatusRequest request) {
+        if (request == null || request.getStatus() == null || request.getStatus().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không được trống");
+        }
+
+        String newStatus = request.getStatus().trim().toUpperCase();
+        if (!isValidOrderStatus(newStatus)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ. Chỉ chấp nhận: PENDING, COMPLETED, FAILED");
+        }
+
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
+
+        String oldStatus = order.getPaymentStatus();
+        order.setPaymentStatus(newStatus);
+        orderRepository.save(order);
+
+        return "Cập nhật trạng thái từ " + oldStatus + " thành " + newStatus + " thành công";
+    }
+
+    // ------------------------------ Helper của Quản lý Đơn hàng -----------------------------
+
+    private boolean isValidOrderStatus(String status) {
+        return ORDER_STATUS_PENDING.equals(status)
+                || ORDER_STATUS_COMPLETED.equals(status)
+                || ORDER_STATUS_FAILED.equals(status);
+    }
+
+    private AdminOrderDTO toAdminOrderDto(OrderEntity order) {
+        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(order.getId()).orElse(null);
+        User customer = order.getUser();
+
+        return AdminOrderDTO.builder()
+                .orderId(order.getId())
+                .userId(customer.getId())
+                .customerName(customer.getName())
+                .customerEmail(customer.getEmail())
+                .totalAmount(order.getTotalAmount())
+                .adminRevenue(calculateAdminRevenueForOrder(order))
+                .paymentStatus(order.getPaymentStatus())
+                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
+                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
+                .createdAt(order.getCreatedAt())
+                .totalItems(order.getDetails() != null ? order.getDetails().size() : 0)
+                .build();
+    }
+
+    private Double calculateAdminRevenueForOrder(OrderEntity order) {
+        if (order == null || order.getDetails() == null || order.getDetails().isEmpty()) return 0.0;
+        double sum = 0.0;
+        for (OrderDetail od : order.getDetails()) {
+            if (od != null && od.getAdminFee() != null) sum += od.getAdminFee();
+        }
+        return sum;
+    }
+
+    // ------------------------------ Quản lý bản quyền -----------------------------
+
     @Transactional(readOnly = true)
     public CopyrightPageResponse getCopyrights(int page, int size, Integer audioId, String ownerName) {
         validatePagination(page, size);
@@ -174,6 +501,95 @@ public class AdminService {
                 .currentPage(pageResult.getNumber())
                 .totalPages(pageResult.getTotalPages())
                 .totalItems(pageResult.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public CopyrightInfoDTO getCopyrightDetail(Integer id) {
+        CopyrightInfo info = copyrightInfoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
+        return mapCopyright(info);
+    }
+
+    @Transactional
+    public CopyrightInfoDTO updateCopyright(Integer id, UpdateCopyrightRequest request) {
+        CopyrightInfo info = copyrightInfoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
+
+        if (request.getOwnerName() != null) info.setOwnerName(request.getOwnerName().trim());
+        if (request.getIsrcCode() != null) info.setIsrcCode(request.getIsrcCode().trim());
+        if (request.getCertificateFileUrl() != null) info.setCertificateFileUrl(request.getCertificateFileUrl().trim());
+
+        CopyrightInfo saved = copyrightInfoRepository.save(info);
+        return mapCopyright(saved);
+    }
+
+    // ------------------------------ Helper Quản lý bản quyền -----------------------------
+
+    private CopyrightInfoDTO mapCopyright(CopyrightInfo info) {
+        if (info == null) return null;
+        CopyrightInfoDTO dto = CopyrightInfoDTO.builder()
+                .id(info.getId())
+                .ownerName(info.getOwnerName())
+                .isrcCode(info.getIsrcCode())
+                .certificateFileUrl(info.getCertificateFileUrl())
+                .registeredAt(info.getRegisteredAt())
+                .build();
+
+        if (info.getAudioTrack() != null) {
+            dto.setAudioId(info.getAudioTrack().getId());
+            dto.setAudioTitle(info.getAudioTrack().getTitle());
+            if (info.getAudioTrack().getArtist() != null) {
+                dto.setArtistId(info.getAudioTrack().getArtist().getId());
+                dto.setArtistName(info.getAudioTrack().getArtist().getName());
+            }
+        }
+
+        return dto;
+    }
+
+    // ------------------------------ Quản lý giấy phép -----------------------------
+
+    @Transactional
+    public String revokeLicense(Integer orderDetailId) {
+        OrderDetail od = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy order detail"));
+        od.setLicenseStatus("REVOKED");
+        orderDetailRepository.save(od);
+        return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
+    }
+
+    // ------------------------------ Dashboard & Thống kê -----------------------------
+
+    @Transactional(readOnly = true)
+    public AdminDashboardOverviewDTO getDashboardOverview(String period, int points) {
+        String normalizedPeriod = normalizePeriod(period);
+        int normalizedPoints = normalizePoints(points);
+        LocalDateTime startAt = buildStartAt(normalizedPeriod, normalizedPoints);
+
+        long totalTracks = audioTrackRepository.count();
+        long totalArtists = userRepository.countByRole_NameIgnoreCase(ROLE_ARTIST);
+        long totalUsers = userRepository.countByRole_NameIgnoreCase(ROLE_USER);
+        double totalRevenue = defaultDouble(orderDetailRepository.sumTotalAdminRevenue());
+
+        List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> revenueTrend = buildRevenueTrend(normalizedPeriod, normalizedPoints, startAt);
+        List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> growthTrend = buildGrowthTrend(normalizedPeriod, normalizedPoints, startAt);
+        List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> contentDistribution = buildContentDistribution(totalTracks);
+        List<RevenuePieDTO> licenseRevenueDistribution = buildLicenseRevenueDistribution();
+        List<AdminTopTrackDTO> topSellingTracks = getTopSellingTracks(5);
+
+        return AdminDashboardOverviewDTO.builder()
+                .period(normalizedPeriod)
+                .points(normalizedPoints)
+                .totalAudioTracks(totalTracks)
+                .totalArtists(totalArtists)
+                .totalUsers(totalUsers)
+                .totalRevenue(totalRevenue)
+                .revenueTrend(revenueTrend)
+                .growthTrend(growthTrend)
+                .contentDistribution(contentDistribution)
+                .licenseRevenueDistribution(licenseRevenueDistribution)
+                .topSellingTracks(topSellingTracks)
                 .build();
     }
 
@@ -205,6 +621,77 @@ public class AdminService {
         notifyArtist(audioTrack, decision, reason, revisionPoints);
 
         return audioTrackMapper.toDto(audioTrack);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminTopTrackDTO> getTopSellingTracks(int limit) {
+        int safeLimit = limit <= 0 ? 5 : Math.min(limit, 20);
+        Pageable pageable = PageRequest.of(0, safeLimit);
+        List<Object[]> rows = orderDetailRepository.findTopSellingTracks(pageable);
+
+        List<AdminTopTrackDTO> result = new ArrayList<>();
+        for (Object[] row : rows) {
+            Integer trackId = row[0] == null ? null : ((Number) row[0]).intValue();
+            String title = row[1] == null ? null : String.valueOf(row[1]);
+            String cover = row[2] == null ? null : String.valueOf(row[2]);
+            String audioType = row[3] == null ? null : String.valueOf(row[3]);
+            String licenseType = row[5] == null ? "Unknown" : String.valueOf(row[5]);
+            Long salesCount = row[6] == null ? 0L : ((Number) row[6]).longValue();
+            Double revenue = row[7] == null ? 0.0 : ((Number) row[7]).doubleValue();
+            Double adminRevenue = row[8] == null ? 0.0 : ((Number) row[8]).doubleValue();
+
+            result.add(AdminTopTrackDTO.builder()
+                    .id(trackId)
+                    .title(title)
+                    .audioType(audioType)
+                    .licenseType(licenseType)
+                    .salesCount(salesCount)
+                    .revenue(revenue)
+                    .adminRevenue(adminRevenue)
+                    .cover(cover)
+                    .build());
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public AdminTransactionPageResponse getAllTransactions(int page, int size) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("transactionDate").descending());
+        Page<PaymentTransaction> txnPage = paymentTransactionRepository.findAll(pageable);
+
+        List<AdminTransactionDTO> dtos = txnPage.getContent().stream().map(txn -> {
+            Double adminRev = 0.0;
+            if (txn.getOrder() != null && txn.getOrder().getDetails() != null) {
+                for (OrderDetail od : txn.getOrder().getDetails()) {
+                    if (od != null && od.getAdminFee() != null) adminRev += od.getAdminFee();
+                }
+            }
+            String customerName = txn.getOrder() != null && txn.getOrder().getUser() != null ? txn.getOrder().getUser().getName() : null;
+            return AdminTransactionDTO.builder()
+                    .transactionId(txn.getId())
+                    .orderId(txn.getOrder() != null ? txn.getOrder().getId() : null)
+                    .createdAt(txn.getTransactionDate())
+                    .customerName(customerName)
+                    .amount(txn.getAmount())
+                    .adminRevenue(adminRev)
+                    .paymentMethod(txn.getPaymentMethod())
+                    .status(txn.getStatus())
+                    .build();
+        }).toList();
+
+        AdminTransactionPageResponse resp = new AdminTransactionPageResponse();
+        resp.setTransactions(dtos);
+        resp.setCurrentPage(txnPage.getNumber());
+        resp.setTotalPages(txnPage.getTotalPages());
+        resp.setTotalElements(txnPage.getTotalElements());
+        return resp;
+    }
+
+    // ------------------------------ Helper của Dashboard & Thống kê -----------------------------
+
+    private double defaultDouble(Double value) {
+        return value == null ? 0.0 : value;
     }
 
     private void ensureModerationTransitionAllowed(AudioTrack audioTrack, String decision) {
@@ -244,48 +731,16 @@ public class AdminService {
         }
     }
 
-    private AudioTrack getAudioTrackByIdOrThrow(Integer audioId) {
-        if (audioId == null || audioId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
-        }
-
-        return audioTrackRepository.findById(audioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài hát"));
-    }
-
     private String resolveCurrentModeratorName() {
         try {
-            if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null
-                    && org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() != null
-                    && !org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName().isBlank()) {
-                return org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            if (SecurityContextHolder.getContext().getAuthentication() != null
+                    && SecurityContextHolder.getContext().getAuthentication().getName() != null
+                    && !SecurityContextHolder.getContext().getAuthentication().getName().isBlank()) {
+                return SecurityContextHolder.getContext().getAuthentication().getName();
             }
         } catch (Exception ignored) {
         }
         return "system";
-    }
-
-    private String normalizeModerationReason(String reason) {
-        String normalized = normalizeOptionalText(reason);
-        if (normalized == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống");
-        }
-        return normalized;
-    }
-
-    private List<String> normalizeRevisionPoints(List<String> revisionPoints) {
-        if (revisionPoints == null || revisionPoints.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<String> normalized = new ArrayList<>();
-        for (String point : revisionPoints) {
-            String value = normalizeOptionalText(point);
-            if (value != null) {
-                normalized.add(value);
-            }
-        }
-        return normalized;
     }
 
     private String serializeRevisionPoints(List<String> revisionPoints) {
@@ -298,128 +753,6 @@ public class AdminService {
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể lưu danh sách điểm cần sửa");
         }
-    }
-
-    private String normalizeOptionalText(String value) {
-        if (value == null) {
-            return null;
-        }
-        String normalized = value.trim();
-        return normalized.isBlank() ? null : normalized;
-    }
-
-    @Transactional(readOnly = true)
-    public CopyrightInfoDTO getCopyrightDetail(Integer id) {
-        CopyrightInfo info = copyrightInfoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
-        return mapCopyright(info);
-    }
-
-    @Transactional
-    public CopyrightInfoDTO updateCopyright(Integer id, UpdateCopyrightRequest request) {
-        CopyrightInfo info = copyrightInfoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin bản quyền"));
-
-        if (request.getOwnerName() != null) info.setOwnerName(request.getOwnerName().trim());
-        if (request.getIsrcCode() != null) info.setIsrcCode(request.getIsrcCode().trim());
-        if (request.getCertificateFileUrl() != null) info.setCertificateFileUrl(request.getCertificateFileUrl().trim());
-
-        CopyrightInfo saved = copyrightInfoRepository.save(info);
-        return mapCopyright(saved);
-    }
-
-    @Transactional
-    public String revokeLicense(Integer orderDetailId) {
-        OrderDetail od = orderDetailRepository.findById(orderDetailId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy order detail"));
-        od.setLicenseStatus("REVOKED");
-        orderDetailRepository.save(od);
-        return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
-    }
-
-    @Transactional(readOnly = true)
-    public AdminDashboardOverviewDTO getDashboardOverview(String period, int points) {
-        String normalizedPeriod = normalizePeriod(period);
-        int normalizedPoints = normalizePoints(points);
-        LocalDateTime startAt = buildStartAt(normalizedPeriod, normalizedPoints);
-
-        long totalTracks = audioTrackRepository.count();
-        long totalArtists = userRepository.countByRole_NameIgnoreCase(ROLE_ARTIST);
-        long totalUsers = userRepository.countByRole_NameIgnoreCase(ROLE_USER);
-        double totalRevenue = defaultDouble(orderDetailRepository.sumTotalAdminRevenue());
-
-        List<AdminDashboardOverviewDTO.AdminRevenuePointDTO> revenueTrend = buildRevenueTrend(normalizedPeriod, normalizedPoints, startAt);
-        List<AdminDashboardOverviewDTO.AdminGrowthPointDTO> growthTrend = buildGrowthTrend(normalizedPeriod, normalizedPoints, startAt);
-        List<AdminDashboardOverviewDTO.AdminContentDistributionDTO> contentDistribution = buildContentDistribution(totalTracks);
-        List<RevenuePieDTO> licenseRevenueDistribution = buildLicenseRevenueDistribution();
-        List<AdminTopTrackDTO> topSellingTracks = getTopSellingTracks(5);
-
-        return AdminDashboardOverviewDTO.builder()
-                .period(normalizedPeriod)
-                .points(normalizedPoints)
-                .totalAudioTracks(totalTracks)
-                .totalArtists(totalArtists)
-                .totalUsers(totalUsers)
-                .totalRevenue(totalRevenue)
-                .revenueTrend(revenueTrend)
-                .growthTrend(growthTrend)
-                .contentDistribution(contentDistribution)
-                .licenseRevenueDistribution(licenseRevenueDistribution)
-                .topSellingTracks(topSellingTracks)
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AdminTopTrackDTO> getTopSellingTracks(int limit) {
-        int safeLimit = limit <= 0 ? 5 : Math.min(limit, 20);
-        Pageable pageable = PageRequest.of(0, safeLimit);
-        List<Object[]> rows = orderDetailRepository.findTopSellingTracks(pageable);
-
-        List<AdminTopTrackDTO> result = new ArrayList<>();
-        for (Object[] row : rows) {
-            Integer trackId = row[0] == null ? null : ((Number) row[0]).intValue();
-            String title = row[1] == null ? null : String.valueOf(row[1]);
-            String cover = row[2] == null ? null : String.valueOf(row[2]);
-            String audioType = row[3] == null ? null : String.valueOf(row[3]);
-            String licenseType = row[5] == null ? "Unknown" : String.valueOf(row[5]);
-            Long salesCount = row[6] == null ? 0L : ((Number) row[6]).longValue();
-            Double revenue = row[7] == null ? 0.0 : ((Number) row[7]).doubleValue();
-            Double adminRevenue = row[8] == null ? 0.0 : ((Number) row[8]).doubleValue();
-
-            result.add(AdminTopTrackDTO.builder()
-                    .id(trackId)
-                    .title(title)
-                    .audioType(audioType)
-                    .licenseType(licenseType)
-                    .salesCount(salesCount)
-                    .revenue(revenue)
-                    .adminRevenue(adminRevenue)
-                    .cover(cover)
-                    .build());
-        }
-        return result;
-    }
-
-    private CopyrightInfoDTO mapCopyright(CopyrightInfo info) {
-        if (info == null) return null;
-        CopyrightInfoDTO dto = CopyrightInfoDTO.builder()
-                .id(info.getId())
-                .ownerName(info.getOwnerName())
-                .isrcCode(info.getIsrcCode())
-                .certificateFileUrl(info.getCertificateFileUrl())
-                .registeredAt(info.getRegisteredAt())
-                .build();
-
-        if (info.getAudioTrack() != null) {
-            dto.setAudioId(info.getAudioTrack().getId());
-            dto.setAudioTitle(info.getAudioTrack().getTitle());
-            if (info.getAudioTrack().getArtist() != null) {
-                dto.setArtistId(info.getAudioTrack().getArtist().getId());
-                dto.setArtistName(info.getAudioTrack().getArtist().getName());
-            }
-        }
-
-        return dto;
     }
 
     private List<RevenuePieDTO> buildLicenseRevenueDistribution() {
@@ -593,250 +926,23 @@ public class AdminService {
         return "";
     }
 
-    private double defaultDouble(Double value) {
-        return value == null ? 0.0 : value;
-    }
+    // ------------------------------ Helper Chung -----------------------------
 
-    @Transactional(readOnly = true)
-    public AdminUserPageResponse getUsers(int page, int size, String keyword, String role, Boolean isActive) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-        // Chuẩn hóa param để truyền vào query
-        String safeKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
-        String safeRole = (role != null && !role.equals("all")) ? role.trim() : null;
-
-        Page<User> userPage = userRepository.findUsersByAdminFilter(safeKeyword, safeRole, isActive, pageable);
-
-        // Map list User sang list AdminUserDTO
-        List<AdminUserDTO> userDTOs = userMapper.toDtoList(userPage.getContent());
-
-        return AdminUserPageResponse.builder()
-                .users(userDTOs)
-                .currentPage(userPage.getNumber())
-                .totalPages(userPage.getTotalPages())
-                .totalItems(userPage.getTotalElements())
-                .build();
-    }
-
-    @Transactional
-    public void toggleUserStatus(Integer userId, boolean status) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
-
-        // Không cho phép Admin tự khóa chính mình
-        if (user.getRole().getName().equals("admin") && !status) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể khóa tài khoản quản trị viên khác");
+    private AudioTrack getAudioTrackByIdOrThrow(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
         }
 
-        user.setIsActive(status);
-        userRepository.save(user);
+        return audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài hát"));
     }
 
-    @Transactional(readOnly = true)
-    public AdminUserDetailDTO getUserDetail(Integer userId) {
-        User user = getUserByIdOrThrow(userId);
-
-        return userMapper.toAdminDetailDto(user);
-    }
-
-    @Transactional(readOnly = true)
-    public AdminUserOrderPageResponse getUserOrders(Integer userId, int page, int size) {
-        validatePagination(page, size);
-        User user = getUserByIdOrThrow(userId);
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<OrderEntity> orderPage = orderRepository.findByUserId(user.getId(), pageable);
-        List<AccountOrderDTO> orders = orderPage.getContent().stream()
-                .map(this::toAccountOrderDto)
-                .toList();
-
-        return AdminUserOrderPageResponse.builder()
-                .orders(orders)
-                .currentPage(orderPage.getNumber())
-                .totalPages(orderPage.getTotalPages())
-                .totalItems(orderPage.getTotalElements())
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public AdminUserTrackPageResponse getUserTracks(Integer userId, int page, int size) {
-        validatePagination(page, size);
-        User user = getUserByIdOrThrow(userId);
-
-        if (user.getRole() == null || user.getRole().getName() == null
-                || !ROLE_ARTIST.equalsIgnoreCase(user.getRole().getName())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Người dùng này không phải artist");
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
         }
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
-        Page<AudioTrack> trackPage = audioTrackRepository.findByArtistId(user.getId(), pageable);
-        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
-
-        return AdminUserTrackPageResponse.builder()
-                .tracks(tracks)
-                .currentPage(trackPage.getNumber())
-                .totalPages(trackPage.getTotalPages())
-                .totalItems(trackPage.getTotalElements())
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public AdminOrderPageResponse getAllOrders(int page, int size, String paymentStatus) {
-        validatePagination(page, size);
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<OrderEntity> orderPage = orderRepository.findAllWithFilter(paymentStatus, pageable);
-        List<AdminOrderDTO> orders = orderPage.getContent().stream()
-                .map(this::toAdminOrderDto)
-                .toList();
-
-        return AdminOrderPageResponse.builder()
-                .orders(orders)
-                .currentPage(orderPage.getNumber())
-                .totalPages(orderPage.getTotalPages())
-                .totalItems(orderPage.getTotalElements())
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public com.springboot.music.responsemodel.AdminTransactionPageResponse getAllTransactions(int page, int size) {
-        validatePagination(page, size);
-        Pageable pageable = PageRequest.of(page, size, Sort.by("transactionDate").descending());
-        Page<com.springboot.music.entity.PaymentTransaction> txnPage = paymentTransactionRepository.findAll(pageable);
-
-        List<com.springboot.music.dto.AdminTransactionDTO> dtos = txnPage.getContent().stream().map(txn -> {
-            Double adminRev = 0.0;
-            if (txn.getOrder() != null && txn.getOrder().getDetails() != null) {
-                for (OrderDetail od : txn.getOrder().getDetails()) {
-                    if (od != null && od.getAdminFee() != null) adminRev += od.getAdminFee();
-                }
-            }
-            String customerName = txn.getOrder() != null && txn.getOrder().getUser() != null ? txn.getOrder().getUser().getName() : null;
-            return com.springboot.music.dto.AdminTransactionDTO.builder()
-                    .transactionId(txn.getId())
-                    .orderId(txn.getOrder() != null ? txn.getOrder().getId() : null)
-                    .createdAt(txn.getTransactionDate())
-                    .customerName(customerName)
-                    .amount(txn.getAmount())
-                    .adminRevenue(adminRev)
-                    .paymentMethod(txn.getPaymentMethod())
-                    .status(txn.getStatus())
-                    .build();
-        }).toList();
-
-        com.springboot.music.responsemodel.AdminTransactionPageResponse resp = new com.springboot.music.responsemodel.AdminTransactionPageResponse();
-        resp.setTransactions(dtos);
-        resp.setCurrentPage(txnPage.getNumber());
-        resp.setTotalPages(txnPage.getTotalPages());
-        resp.setTotalElements(txnPage.getTotalElements());
-        return resp;
-    }
-
-    @Transactional(readOnly = true)
-    public AdminOrderWithDetailsDTO getOrderDetail(Integer orderId) {
-        OrderEntity order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(orderId).orElse(null);
-        List<AdminOrderDetailDTO> details = new ArrayList<>();
-
-        if (order.getDetails() != null) {
-            for (OrderDetail detail : order.getDetails()) {
-                AudioTrack audioTrack = detail.getAudioTrack();
-                User artist = audioTrack != null ? audioTrack.getArtist() : null;
-                License license = detail.getLicense();
-
-                details.add(AdminOrderDetailDTO.builder()
-                        .orderDetailId(detail.getId())
-                        .audioId(audioTrack != null ? audioTrack.getId() : null)
-                        .trackTitle(audioTrack != null ? audioTrack.getTitle() : null)
-                        .artistName(artist != null ? artist.getName() : "Unknown Artist")
-                        .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
-                        .licenseType(license != null ? license.getLicenseType() : null)
-                        .price(detail.getPrice())
-                        .duration(audioTrack != null ? audioTrack.getDuration() : null)
-                        .watermarkId(detail.getWatermarkId())
-                        .expiredAt(detail.getExpiredAt())
-                        .licenseStatus(detail.getLicenseStatus())
-                        .build());
-            }
-        }
-
-        User customer = order.getUser();
-        return AdminOrderWithDetailsDTO.builder()
-                .orderId(order.getId())
-                .userId(customer.getId())
-                .customerName(customer.getName())
-                .customerEmail(customer.getEmail())
-                .totalAmount(order.getTotalAmount())
-                .adminRevenue(calculateAdminRevenueForOrder(order))
-                .paymentStatus(order.getPaymentStatus())
-                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
-                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
-                .createdAt(order.getCreatedAt())
-                .totalItems(details.size())
-                .items(details)
-                .build();
-    }
-
-    @Transactional
-    public String updateOrderStatus(Integer orderId, UpdateOrderStatusRequest request) {
-        if (request == null || request.getStatus() == null || request.getStatus().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không được trống");
-        }
-
-        String newStatus = request.getStatus().trim().toUpperCase();
-        if (!isValidOrderStatus(newStatus)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ. Chỉ chấp nhận: PENDING, COMPLETED, FAILED");
-        }
-
-        OrderEntity order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy đơn hàng"));
-
-        String oldStatus = order.getPaymentStatus();
-        order.setPaymentStatus(newStatus);
-        orderRepository.save(order);
-
-        return "Cập nhật trạng thái từ " + oldStatus + " thành " + newStatus + " thành công";
-    }
-
-    private boolean isValidOrderStatus(String status) {
-        return ORDER_STATUS_PENDING.equals(status)
-                || ORDER_STATUS_COMPLETED.equals(status)
-                || ORDER_STATUS_FAILED.equals(status);
-    }
-
-    private AdminOrderDTO toAdminOrderDto(OrderEntity order) {
-        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(order.getId()).orElse(null);
-        User customer = order.getUser();
-
-        return AdminOrderDTO.builder()
-                .orderId(order.getId())
-                .userId(customer.getId())
-                .customerName(customer.getName())
-                .customerEmail(customer.getEmail())
-                .totalAmount(order.getTotalAmount())
-                .adminRevenue(calculateAdminRevenueForOrder(order))
-                .paymentStatus(order.getPaymentStatus())
-                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
-                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
-                .createdAt(order.getCreatedAt())
-                .totalItems(order.getDetails() != null ? order.getDetails().size() : 0)
-                .build();
-    }
-
-    private Double calculateAdminRevenueForOrder(OrderEntity order) {
-        if (order == null || order.getDetails() == null || order.getDetails().isEmpty()) return 0.0;
-        double sum = 0.0;
-        for (OrderDetail od : order.getDetails()) {
-            if (od != null && od.getAdminFee() != null) sum += od.getAdminFee();
-        }
-        return sum;
-    }
-
-    private User getUserByIdOrThrow(Integer userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+        String normalized = value.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 
     private void validatePagination(int page, int size) {
@@ -845,40 +951,5 @@ public class AdminService {
         }
     }
 
-    private AccountOrderDTO toAccountOrderDto(OrderEntity order) {
-        PaymentTransaction transaction = paymentTransactionRepository.findByOrder_Id(order.getId()).orElse(null);
-        List<AccountOrderItemDTO> items = new ArrayList<>();
 
-        if (order.getDetails() != null) {
-            for (OrderDetail detail : order.getDetails()) {
-                var audioTrack = detail.getAudioTrack();
-                License license = detail.getLicense();
-                User artist = audioTrack != null ? audioTrack.getArtist() : null;
-
-                items.add(AccountOrderItemDTO.builder()
-                        .orderDetailId(detail.getId())
-                        .audioId(audioTrack != null ? audioTrack.getId() : null)
-                        .title(audioTrack != null ? audioTrack.getTitle() : null)
-                        .audioType(audioTrack != null ? audioTrack.getAudioType() : null)
-                        .artistName(artist != null ? artist.getName() : "Unknown Artist")
-                        .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
-                        .licenseType(license != null ? license.getLicenseType() : null)
-                        .price(detail.getPrice())
-                        .duration(audioTrack != null ? audioTrack.getDuration() : null)
-                        .reviewSubmitted(false)
-                        .build());
-            }
-        }
-
-        return AccountOrderDTO.builder()
-                .orderId(order.getId())
-                .paymentStatus(order.getPaymentStatus())
-                .paymentMethod(transaction != null ? transaction.getPaymentMethod() : null)
-                .gatewayTransactionCode(transaction != null ? transaction.getGatewayTransactionCode() : null)
-                .totalAmount(order.getTotalAmount())
-                .createdAt(order.getCreatedAt())
-                .totalItems(items.size())
-                .items(items)
-                .build();
-    }
 }

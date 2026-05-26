@@ -13,6 +13,7 @@ import type { CopyrightInfoDTO } from "../models/CopyrightInfoDTO";
 import type { UpdateCopyrightRequest } from "../requestmodel/UpdateCopyrightRequest";
 import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResponse";
 import type { AudioTrackDTO } from "../responsemodel/AudioTrackDTO";
+import type { AdminAudioTrackPageResponse } from "../responsemodel/AdminAudioTrackPageResponse";
 import type { ModerateAudioTrackRequest } from "../requestmodel/ModerateAudioTrackRequest";
 
 export const getAdminUsers = async (
@@ -139,6 +140,49 @@ export const getPendingTracks = async (
     params: { page, size },
   });
 
+  return response.data;
+};
+
+export const getAdminAudioTracks = async (
+  page = 0,
+  size = 10,
+  title?: string,
+  audioType?: string,
+  status?: string,
+): Promise<AdminAudioTrackPageResponse> => {
+  const params: Record<string, number | string> = { page, size };
+
+  if (title) {
+    params.title = title;
+  }
+
+  if (audioType && audioType !== "all") {
+    params.audioType = audioType;
+  }
+
+  if (status && status !== "all") {
+    params.status = status;
+  }
+
+  const response = await axiosClient.get<AdminAudioTrackPageResponse>("/admin/audio-tracks", {
+    params,
+  });
+
+  return response.data;
+};
+
+export const softDeleteAdminAudioTrack = async (id: number): Promise<string> => {
+  const response = await axiosClient.delete<string>(`/admin/audio-tracks/${id}`);
+  return response.data;
+};
+
+export const restoreAdminAudioTrack = async (id: number): Promise<string> => {
+  const response = await axiosClient.put<string>(`/admin/audio-tracks/${id}/restore`);
+  return response.data;
+};
+
+export const getAdminAudioTrackDetail = async (id: number): Promise<AudioTrackDTO> => {
+  const response = await axiosClient.get<AudioTrackDTO>(`/admin/audio-tracks/${id}`);
   return response.data;
 };
 

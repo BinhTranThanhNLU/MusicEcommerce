@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getAdminUsers, toggleUserStatus } from "../../apis/adminApi";
 import type { AdminUserModel } from "../../models/AdminUserModel";
 

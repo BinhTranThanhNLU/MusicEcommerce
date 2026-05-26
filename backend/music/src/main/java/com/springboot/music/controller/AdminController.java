@@ -1,6 +1,7 @@
 package com.springboot.music.controller;
 
 import com.springboot.music.dto.AdminUserDetailDTO;
+import com.springboot.music.dto.AdminLicenseDTO;
 import com.springboot.music.responsemodel.AdminUserPageResponse;
 import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
 import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
@@ -8,6 +9,7 @@ import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.dto.AdminTopTrackDTO;
 import com.springboot.music.responsemodel.AdminOrderPageResponse;
+import com.springboot.music.responsemodel.AdminLicensePageResponse;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
@@ -34,6 +36,32 @@ public class AdminController {
 
     public AdminController(AdminService adminService) {
         this.adminService = adminService;
+    }
+
+    // ------------------------------ Quản lý giấy phép -----------------------------
+
+    @PutMapping("/licenses/{orderDetailId}/revoke")
+    @Operation(summary = "Thu hồi giấy phép của một order detail")
+    public ResponseEntity<String> revokeLicense(@PathVariable @Positive Integer orderDetailId) {
+        return ResponseEntity.ok(adminService.revokeLicense(orderDetailId));
+    }
+
+    @GetMapping("/licenses")
+    @Operation(summary = "Lấy danh sách giấy phép của toàn hệ thống (có phân trang & lọc)")
+    public ResponseEntity<AdminLicensePageResponse> getAllLicenses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "all") String licenseType,
+            @RequestParam(required = false, defaultValue = "all") String status) {
+
+        return ResponseEntity.ok(adminService.getLicenses(page, size, search, licenseType, status));
+    }
+
+    @GetMapping("/licenses/{orderDetailId}")
+    @Operation(summary = "Lấy chi tiết một giấy phép theo order detail ID")
+    public ResponseEntity<AdminLicenseDTO> getLicenseDetail(@PathVariable @Positive Integer orderDetailId) {
+        return ResponseEntity.ok(adminService.getLicenseDetail(orderDetailId));
     }
 
     // ------------------------------ Kiểm duyệt nhạc -----------------------------
@@ -203,14 +231,6 @@ public class AdminController {
             @PathVariable @Positive Integer id,
             @RequestBody UpdateCopyrightRequest request) {
         return ResponseEntity.ok(adminService.updateCopyright(id, request));
-    }
-
-    // ------------------------------ Quản lý giấy phép -----------------------------
-
-    @PutMapping("/licenses/{orderDetailId}/revoke")
-    @Operation(summary = "Thu hồi giấy phép của một order detail")
-    public ResponseEntity<String> revokeLicense(@PathVariable @Positive Integer orderDetailId) {
-        return ResponseEntity.ok(adminService.revokeLicense(orderDetailId));
     }
 
     // ------------------------------ Dashboard & Thống kê -----------------------------

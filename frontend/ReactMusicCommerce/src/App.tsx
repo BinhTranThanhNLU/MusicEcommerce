@@ -40,6 +40,7 @@ import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminOrderDetailPage from "./pages/admin/AdminOrderDetailPage";
 import AdminCopyrightPage from "./pages/admin/AdminCopyrightPage";
+import AdminLicensePage from "./pages/admin/AdminLicensePage";
 import AdminModerationPage from "./pages/admin/AdminModerationPage";
 import AdminRevenuePage from "./pages/admin/AdminRevenuePage";
 import AdminTrackPage from "./pages/admin/AdminTrackPage";
@@ -177,6 +178,7 @@ function App() {
                   <Route path="orders" element={<AdminOrdersPage />} />
                   <Route path="orders/:id" element={<AdminOrderDetailPage />} />
                   <Route path="copyright" element={<AdminCopyrightPage />} />
+                  <Route path="licenses" element={<AdminLicensePage />} />
                 </Route>
               </Route>
 

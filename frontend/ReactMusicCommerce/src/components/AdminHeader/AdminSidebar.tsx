@@ -134,6 +134,23 @@ const AdminSidebar = () => {
             <i className="bi bi-shield-check me-3 fs-5"></i> Quản lý Bản quyền
           </NavLink>
         </li>
+        <li className="nav-item mb-1">
+          <NavLink
+            to="/admin/licenses"
+            className={({ isActive }) =>
+              `nav-link rounded d-flex align-items-center fw-medium ${
+                isActive ? "opacity-100" : "text-light opacity-75 hover-opacity-100"
+              }`
+            }
+            style={({ isActive }) =>
+              isActive
+                ? { backgroundColor: "#334155", color: "#f8fafc", borderLeft: "4px solid #818cf8" }
+                : {}
+            }
+          >
+            <i className="bi bi-file-earmark-check me-3 fs-5"></i> Quản lý Giấy phép
+          </NavLink>
+        </li>
          <li className="nav-item mb-1">
           <NavLink
             to="/admin/revenue"

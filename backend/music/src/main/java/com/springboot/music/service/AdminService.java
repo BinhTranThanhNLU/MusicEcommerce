@@ -21,6 +21,7 @@ import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.OrderRepository;
 import com.springboot.music.repository.PaymentTransactionRepository;
 import com.springboot.music.repository.UserRepository;
+import com.springboot.music.specification.OrderDetailSpecification;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +92,80 @@ public class AdminService {
         this.orderDetailRepository = orderDetailRepository;
         this.audioTrackMapper = audioTrackMapper;
         this.emailService = emailService;
+    }
+
+    // ------------------------------ Quản lý giấy phép -----------------------------
+
+    @Transactional
+    public String revokeLicense(Integer orderDetailId) {
+        OrderDetail od = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy order detail"));
+        od.setLicenseStatus("REVOKED");
+        orderDetailRepository.save(od);
+        return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
+    }
+
+    @Transactional(readOnly = true)
+    public AdminLicensePageResponse getLicenses(int page, int size, String search, String licenseType, String status) {
+        validatePagination(page, size);
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<OrderDetail> licensePage = orderDetailRepository.findAll(
+                OrderDetailSpecification.filterForAdmin(search, licenseType, status),
+                pageable
+        );
+
+        List<AdminLicenseDTO> licenses = licensePage.getContent().stream()
+                .map(this::mapAdminLicense)
+                .toList();
+
+        return AdminLicensePageResponse.builder()
+                .licenses(licenses)
+                .currentPage(licensePage.getNumber())
+                .totalPages(licensePage.getTotalPages())
+                .totalItems(licensePage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminLicenseDTO getLicenseDetail(Integer orderDetailId) {
+        if (orderDetailId == null || orderDetailId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order detail id không hợp lệ");
+        }
+
+        OrderDetail orderDetail = orderDetailRepository.findById(orderDetailId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy giấy phép"));
+        return mapAdminLicense(orderDetail);
+    }
+
+    private AdminLicenseDTO mapAdminLicense(OrderDetail detail) {
+        if (detail == null) {
+            return null;
+        }
+
+        OrderEntity order = detail.getOrder();
+        AudioTrack audioTrack = detail.getAudioTrack();
+        License license = detail.getLicense();
+        User customer = order != null ? order.getUser() : null;
+        User artist = audioTrack != null ? audioTrack.getArtist() : null;
+
+        return AdminLicenseDTO.builder()
+                .orderDetailId(detail.getId())
+                .orderId(order != null ? order.getId() : null)
+                .audioId(audioTrack != null ? audioTrack.getId() : null)
+                .trackName(audioTrack != null ? audioTrack.getTitle() : null)
+                .artistName(artist != null ? artist.getName() : null)
+                .customerName(customer != null ? customer.getName() : null)
+                .customerEmail(customer != null ? customer.getEmail() : null)
+                .coverImage(audioTrack != null ? audioTrack.getCoverImage() : null)
+                .watermarkId(detail.getWatermarkId())
+                .licenseType(license != null ? license.getLicenseType() : null)
+                .price(detail.getPrice())
+                .licenseStatus(detail.getLicenseStatus())
+                .paymentStatus(order != null ? order.getPaymentStatus() : null)
+                .issuedAt(order != null ? order.getCreatedAt() : null)
+                .expiredAt(detail.getExpiredAt())
+                .build();
     }
 
     // ------------------------------ Kiểm duyệt nhạc -----------------------------
@@ -546,17 +621,6 @@ public class AdminService {
         }
 
         return dto;
-    }
-
-    // ------------------------------ Quản lý giấy phép -----------------------------
-
-    @Transactional
-    public String revokeLicense(Integer orderDetailId) {
-        OrderDetail od = orderDetailRepository.findById(orderDetailId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy order detail"));
-        od.setLicenseStatus("REVOKED");
-        orderDetailRepository.save(od);
-        return "Đã thu hồi giấy phép (orderDetailId=" + orderDetailId + ")";
     }
 
     // ------------------------------ Dashboard & Thống kê -----------------------------

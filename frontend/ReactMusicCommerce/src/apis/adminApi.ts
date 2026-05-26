@@ -15,6 +15,8 @@ import type { AudioTrackPageResponse } from "../responsemodel/AudioTrackPageResp
 import type { AudioTrackDTO } from "../responsemodel/AudioTrackDTO";
 import type { AdminAudioTrackPageResponse } from "../responsemodel/AdminAudioTrackPageResponse";
 import type { ModerateAudioTrackRequest } from "../requestmodel/ModerateAudioTrackRequest";
+import type { AdminLicensePageResponse } from "../responsemodel/AdminLicensePageResponse";
+import type { AdminLicenseModel } from "../models/AdminLicenseModel";
 
 export const getAdminUsers = async (
   page: number,
@@ -251,5 +253,43 @@ export const updateAdminCopyright = async (
     request,
   );
 
+  return response.data;
+};
+
+export const getAdminLicenses = async (
+  page = 0,
+  size = 10,
+  search?: string,
+  licenseType?: string,
+  status?: string,
+): Promise<AdminLicensePageResponse> => {
+  const params: Record<string, number | string> = { page, size };
+
+  if (search) {
+    params.search = search;
+  }
+
+  if (licenseType && licenseType !== "all") {
+    params.licenseType = licenseType;
+  }
+
+  if (status && status !== "all") {
+    params.status = status;
+  }
+
+  const response = await axiosClient.get<AdminLicensePageResponse>("/admin/licenses", {
+    params,
+  });
+
+  return response.data;
+};
+
+export const getAdminLicenseDetail = async (orderDetailId: number): Promise<AdminLicenseModel> => {
+  const response = await axiosClient.get<AdminLicenseModel>(`/admin/licenses/${orderDetailId}`);
+  return response.data;
+};
+
+export const revokeAdminLicense = async (orderDetailId: number): Promise<string> => {
+  const response = await axiosClient.put<string>(`/admin/licenses/${orderDetailId}/revoke`);
   return response.data;
 };

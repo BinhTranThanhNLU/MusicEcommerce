@@ -3,7 +3,6 @@ package com.springboot.music.controller;
 import com.springboot.music.dto.*;
 import com.springboot.music.entity.User;
 import com.springboot.music.repository.UserRepository;
-import com.springboot.music.requestmodel.CreateAudioTrackRequest;
 import com.springboot.music.responsemodel.ArtistLicensePageResponse;
 import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.responsemodel.TransactionPageResponse;
@@ -12,13 +11,10 @@ import com.springboot.music.service.AudioTrackService;
 import com.springboot.music.service.CertificateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -45,12 +41,34 @@ public class ArtistController {
         return ResponseEntity.ok(artistService.getAllArtists());
     }
 
+    // ------------------------------ Dashboard & Thống kê -----------------------------
+
     @GetMapping("/me/dashboard/summary")
     @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard chính của Nghệ sĩ")
     public ResponseEntity<ArtistDashboardSummaryDTO> getDashboardSummary(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(artistService.getDashboardSummary(email));
     }
+
+    @GetMapping("/me/revenue/summary")
+    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard Doanh thu của Nghệ sĩ")
+    public ResponseEntity<ArtistRevenueSummaryDTO> getMyRevenueSummary(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getArtistRevenueSummary(email));
+    }
+
+    @GetMapping("/me/transactions")
+    @Operation(summary = "Lấy lịch sử giao dịch của nghệ sĩ (có phân trang)")
+    public ResponseEntity<TransactionPageResponse> getMyTransactions(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        String email = authentication.getName();
+        return ResponseEntity.ok(artistService.getArtistTransactions(email, page, size));
+    }
+
+    // ------------------------------ Quản lý nhạc -----------------------------
 
     @GetMapping("/me/tracks")
     @Operation(summary = "Lấy danh sách track của nghệ sĩ đang đăng nhập")
@@ -71,6 +89,10 @@ public class ArtistController {
     public ResponseEntity<AudioTrackDTO> resubmitAudioTrack(@PathVariable Integer id) {
         return ResponseEntity.ok(audioTrackService.resubmitAudioTrack(id));
     }
+
+    // api cho upload nhạc, update, delete ở class AudioTrackService
+
+    // ------------------------------ Quản lý giấy phép -----------------------------
 
     @GetMapping("/me/licenses")
     @Operation(summary = "Lấy danh sách giấy phép đã bán của nghệ sĩ đang đăng nhập")
@@ -118,24 +140,5 @@ public class ArtistController {
                 .headers(headers)
                 .body(certificate.content());
     }
-
-    @GetMapping("/me/revenue/summary")
-    @Operation(summary = "Lấy dữ liệu tổng quan cho trang Dashboard Doanh thu của Nghệ sĩ")
-    public ResponseEntity<ArtistRevenueSummaryDTO> getMyRevenueSummary(Authentication authentication) {
-        String email = authentication.getName();
-        return ResponseEntity.ok(artistService.getArtistRevenueSummary(email));
-    }
-
-    @GetMapping("/me/transactions")
-    @Operation(summary = "Lấy lịch sử giao dịch của nghệ sĩ (có phân trang)")
-    public ResponseEntity<TransactionPageResponse> getMyTransactions(
-            Authentication authentication,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        String email = authentication.getName();
-        return ResponseEntity.ok(artistService.getArtistTransactions(email, page, size));
-    }
-
 
 }

@@ -9,7 +9,7 @@ const ArtistLayout = () => {
       <ArtistSidebar />
       <div className="main-content flex-grow-1 d-flex flex-column bg-light min-vh-100">
         <ArtistHeader />
-        <main className="p-0" style={{ overflowY: "auto" }}>
+        <main className="p-0" style={{ overflowY: "scroll" }}>
           <Outlet />
         </main>
       </div>

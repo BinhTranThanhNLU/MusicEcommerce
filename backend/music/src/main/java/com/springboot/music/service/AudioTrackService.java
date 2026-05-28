@@ -91,7 +91,8 @@ public class AudioTrackService {
         this.audioTrackSearchRepository = audioTrackSearchRepository;
     }
 
-    // Lấy tất cả audio track đã được duyệt, không phân trang, kèm thông tin đánh giá
+    // ------------------------------ Các api cho việc hiển thị trên user page -----------------------------
+
     @Transactional(readOnly = true)
     public List<AudioTrackDTO> getAllAudioTracks() {
         List<AudioTrack> tracks = audioTrackRepository.findByStatusIgnoreCase("APPROVED");
@@ -100,7 +101,6 @@ public class AudioTrackService {
         return dtos;
     }
 
-    // Lấy audio track theo genre, mood, theme với phân trang và filter nâng cao
     @Transactional(readOnly = true)
     public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
@@ -111,7 +111,6 @@ public class AudioTrackService {
         return createPageResponse(audioTrackPage);
     }
 
-    // Lấy audio track theo genre, mood, theme với phân trang và filter nâng cao
     @Transactional(readOnly = true)
     public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
@@ -122,7 +121,6 @@ public class AudioTrackService {
         return createPageResponse(audioTrackPage);
     }
 
-    // Lấy audio track theo genre, mood, theme với phân trang và filter nâng cao
     @Transactional(readOnly = true)
     public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
         Pageable pageable = PageRequest.of(page, size);
@@ -133,7 +131,7 @@ public class AudioTrackService {
         return createPageResponse(audioTrackPage);
     }
 
-    // Tạo response phân trang từ Page<AudioTrack>, đồng thời bổ sung thông tin đánh giá vào DTO
+    // Hàm helper để tạo response cho các API phân trang
     private AudioTrackPageResponse createPageResponse(Page<AudioTrack> audioTrackPage) {
         List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
         enrichReviewStats(audioTracks);

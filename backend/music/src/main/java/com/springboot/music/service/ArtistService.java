@@ -57,7 +57,8 @@ public class ArtistService {
                 .toList();
     }
 
-    // Lấy dữ liệu tổng quan cho trang Dashboard chính của Nghệ sĩ
+    // ------------------------------ Dashboard & Thống kê -----------------------------
+
     @Transactional(readOnly = true)
     public ArtistDashboardSummaryDTO getDashboardSummary(String email) {
         User artist = userRepository.findByEmail(email);
@@ -133,64 +134,6 @@ public class ArtistService {
                 .build();
     }
 
-    // Lấy danh sách giấy phép đã bán của nghệ sĩ đang đăng nhập, có hỗ trợ phân trang, lọc và tìm kiếm
-    @Transactional(readOnly = true)
-    public ArtistLicensePageResponse getArtistLicenses(String email, int page, int size, String search, String licenseType, String status) {
-        User artist = userRepository.findByEmail(email);
-        if (artist == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        Page<OrderDetail> orderDetailPage = orderDetailRepository.findAll(
-                OrderDetailSpecification.filterForArtist(artist.getId(), search, licenseType, status),
-                pageable
-        );
-
-        List<ArtistLicenseDTO> licenseDTOs = orderDetailPage.getContent().stream().map(detail ->
-            ArtistLicenseDTO.builder()
-                    .orderDetailId(detail.getId())
-                    .watermarkId(detail.getWatermarkId() != null ? detail.getWatermarkId() : "Không áp dụng")
-                    .customerName(detail.getOrder().getUser().getName())
-                    .customerEmail(detail.getOrder().getUser().getEmail())
-                    .audioId(detail.getAudioTrack().getId())
-                    .trackName(detail.getAudioTrack().getTitle())
-                    .coverImage(detail.getAudioTrack().getCoverImage())
-                    .licenseType(detail.getLicense().getLicenseType())
-                    .price(resolveArtistEarnings(detail))
-                    .licenseStatus(detail.getLicenseStatus())
-                    .issuedAt(detail.getOrder().getCreatedAt())
-                    .expiredAt(detail.getExpiredAt())
-                    .build()).collect(Collectors.toList());
-
-        return new ArtistLicensePageResponse(
-                licenseDTOs,
-                orderDetailPage.getNumber(),
-                orderDetailPage.getTotalPages(),
-                orderDetailPage.getTotalElements()
-        );
-    }
-
-    // Lấy thống kê nhanh về giấy phép của nghệ sĩ (Tổng số giấy phép đã bán, số giấy phép thương mại/độc quyền, số cảnh báo bản quyền)
-    @Transactional(readOnly = true)
-    public ArtistLicenseStatsDTO getArtistLicenseStats(String email) {
-        User artist = userRepository.findByEmail(email);
-        if (artist == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
-        }
-
-        long total = orderDetailRepository.countTotalLicensesByArtistId(artist.getId());
-        long commercial = orderDetailRepository.countCommercialLicensesByArtistId(artist.getId());
-
-        return ArtistLicenseStatsDTO.builder()
-                .totalLicenses(total)
-                .commercialAndExclusiveLicenses(commercial)
-                .copyrightWarnings(0) // Tạm thời để 0, sau này làm module Report sẽ thay thế bằng Query thật
-                .build();
-    }
-
-    // Lấy dữ liệu tổng quan về doanh thu của nghệ sĩ: Tổng doanh thu, số dư khả dụng, số tiền đang Hold, cơ cấu doanh thu theo loại giấy phép (dữ liệu cho biểu đồ tròn), top 5 bài hát bán chạy nhất (dữ liệu cho danh sách), doanh thu theo thời gian (dữ liệu cho biểu đồ đường)
     @Transactional(readOnly = true)
     public ArtistRevenueSummaryDTO getArtistRevenueSummary(String email) {
         User artist = userRepository.findByEmail(email);
@@ -224,7 +167,46 @@ public class ArtistService {
                 .build();
     }
 
-    // Hàm phụ trợ: Nhóm doanh thu theo 6 tháng gần nhất (sử dụng artistEarnings)
+    @Transactional(readOnly = true)
+    public TransactionPageResponse getArtistTransactions(String email, int page, int size) {
+        User artist = userRepository.findByEmail(email);
+        if (artist == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
+        }
+
+        // Sắp xếp mặc định mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("order.createdAt").descending());
+        Page<OrderDetail> orderDetailPage = orderDetailRepository.findTransactionsByArtistId(artist.getId(), pageable);
+
+        // Chuyển đổi Entity sang DTO
+        List<TransactionDTO> dtos = orderDetailPage.getContent().stream().map(od -> {
+            String licenseName = od.getLicense().getLicenseType();
+            String trackTitle = od.getAudioTrack().getTitle();
+
+            // Use a single source of truth for net artist revenue.
+            Double actualAmount = resolveArtistEarnings(od);
+
+            return TransactionDTO.builder()
+                    .id(od.getId())
+                    .createdAt(od.getOrder().getCreatedAt())
+                    .type("sale")
+                    .title("Bán giấy phép " + (licenseName.contains("Commercial") ? "Thương mại" : licenseName.contains("Extended") ? "Độc quyền" : "Cá nhân"))
+                    .desc("Tác phẩm: " + trackTitle)
+                    .amount(actualAmount)
+                    .status("Hoàn tất")
+                    .build();
+        }).collect(Collectors.toList());
+
+        return new TransactionPageResponse(
+                dtos,
+                orderDetailPage.getNumber(),
+                orderDetailPage.getTotalPages(),
+                orderDetailPage.getTotalElements()
+        );
+    }
+
+    // ------------------------------ Helper của Dashboard & Thống kê -----------------------------
+
     private List<RevenueChartDTO> generateChartData(List<OrderDetail> orders) {
         List<RevenueChartDTO> chartData = new ArrayList<>();
         YearMonth currentMonth = YearMonth.now();
@@ -289,69 +271,63 @@ public class ArtistService {
         return value == null ? 0L : value;
     }
 
-    // Lấy danh sách giao dịch của nghệ sĩ (bao gồm cả bán giấy phép và rút tiền), có hỗ trợ phân trang
+    // ------------------------------ Quản lý giấy phép -----------------------------
     @Transactional(readOnly = true)
-    public TransactionPageResponse getArtistTransactions(String email, int page, int size) {
+    public ArtistLicensePageResponse getArtistLicenses(String email, int page, int size, String search, String licenseType, String status) {
         User artist = userRepository.findByEmail(email);
         if (artist == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
         }
 
-        // Sắp xếp mặc định mới nhất lên đầu
-        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("order.createdAt").descending());
-        Page<OrderDetail> orderDetailPage = orderDetailRepository.findTransactionsByArtistId(artist.getId(), pageable);
+        Pageable pageable = PageRequest.of(page, size);
 
-        // Chuyển đổi Entity sang DTO
-        List<TransactionDTO> dtos = orderDetailPage.getContent().stream().map(od -> {
-            String licenseName = od.getLicense().getLicenseType();
-            String trackTitle = od.getAudioTrack().getTitle();
+        Page<OrderDetail> orderDetailPage = orderDetailRepository.findAll(
+                OrderDetailSpecification.filterForArtist(artist.getId(), search, licenseType, status),
+                pageable
+        );
 
-            // Use a single source of truth for net artist revenue.
-            Double actualAmount = resolveArtistEarnings(od);
+        List<ArtistLicenseDTO> licenseDTOs = orderDetailPage.getContent().stream().map(detail ->
+            ArtistLicenseDTO.builder()
+                    .orderDetailId(detail.getId())
+                    .watermarkId(detail.getWatermarkId() != null ? detail.getWatermarkId() : "Không áp dụng")
+                    .customerName(detail.getOrder().getUser().getName())
+                    .customerEmail(detail.getOrder().getUser().getEmail())
+                    .audioId(detail.getAudioTrack().getId())
+                    .trackName(detail.getAudioTrack().getTitle())
+                    .coverImage(detail.getAudioTrack().getCoverImage())
+                    .licenseType(detail.getLicense().getLicenseType())
+                    .price(resolveArtistEarnings(detail))
+                    .licenseStatus(detail.getLicenseStatus())
+                    .issuedAt(detail.getOrder().getCreatedAt())
+                    .expiredAt(detail.getExpiredAt())
+                    .build()).collect(Collectors.toList());
 
-            return TransactionDTO.builder()
-                    .id(od.getId())
-                    .createdAt(od.getOrder().getCreatedAt())
-                    .type("sale")
-                    .title("Bán giấy phép " + (licenseName.contains("Commercial") ? "Thương mại" : licenseName.contains("Extended") ? "Độc quyền" : "Cá nhân"))
-                    .desc("Tác phẩm: " + trackTitle)
-                    .amount(actualAmount)
-                    .status("Hoàn tất")
-                    .build();
-        }).collect(Collectors.toList());
-
-        return new TransactionPageResponse(
-                dtos,
+        return new ArtistLicensePageResponse(
+                licenseDTOs,
                 orderDetailPage.getNumber(),
                 orderDetailPage.getTotalPages(),
                 orderDetailPage.getTotalElements()
         );
     }
 
-    // Lấy danh sách track của nghệ sĩ
     @Transactional(readOnly = true)
-    public AudioTrackPageResponse getMyTracks(String email, int page, int size, String keyword, String genreName, String status) {
+    public ArtistLicenseStatsDTO getArtistLicenseStats(String email) {
         User artist = userRepository.findByEmail(email);
         if (artist == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
         }
 
-        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("uploadDate").descending());
+        long total = orderDetailRepository.countTotalLicensesByArtistId(artist.getId());
+        long commercial = orderDetailRepository.countCommercialLicensesByArtistId(artist.getId());
 
-        // Gọi Specification mới
-        Page<com.springboot.music.entity.AudioTrack> trackPage = audioTrackRepository.findAll(
-                AudioTrackSpecification.filterForArtist(artist.getId(), keyword, genreName, null, null, null, null, status),
-                pageable
-        );
-
-        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(trackPage.getContent());
-        return new AudioTrackPageResponse(
-                audioTracks,
-                trackPage.getNumber(),
-                trackPage.getTotalPages(),
-                trackPage.getTotalElements()
-        );
+        return ArtistLicenseStatsDTO.builder()
+                .totalLicenses(total)
+                .commercialAndExclusiveLicenses(commercial)
+                .copyrightWarnings(0) // Tạm thời để 0, sau này làm module Report sẽ thay thế bằng Query thật
+                .build();
     }
+
+    // ------------------------------ Helper Quản lý giấy phép -----------------------------
 
     private Double resolveArtistEarnings(OrderDetail detail) {
         if (detail == null) {
@@ -365,7 +341,6 @@ public class ArtistService {
         double grossPrice = detail.getPrice() == null ? 0.0 : detail.getPrice();
         Double commission = detail.getCommissionRate();
 
-        // Fallback for legacy rows where artistEarnings was not persisted.
         if (commission == null && detail.getLicense() != null) {
             commission = detail.getLicense().getCommissionRate();
         }
@@ -392,6 +367,32 @@ public class ArtistService {
         }
 
         return rate;
+    }
+
+    // ------------------------------ Quản lý nhạc -----------------------------
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getMyTracks(String email, int page, int size, String keyword, String genreName, String status) {
+        User artist = userRepository.findByEmail(email);
+        if (artist == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Không tìm thấy thông tin nghệ sĩ");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("uploadDate").descending());
+
+        // Gọi Specification mới
+        Page<com.springboot.music.entity.AudioTrack> trackPage = audioTrackRepository.findAll(
+                AudioTrackSpecification.filterForArtist(artist.getId(), keyword, genreName, null, null, null, null, status),
+                pageable
+        );
+
+        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(trackPage.getContent());
+        return new AudioTrackPageResponse(
+                audioTracks,
+                trackPage.getNumber(),
+                trackPage.getTotalPages(),
+                trackPage.getTotalElements()
+        );
     }
 
 }

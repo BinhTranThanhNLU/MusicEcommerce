@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "../../assets/css/artistDashboard.css";
 import DashboardStats from "../../components/ArtistDashboardComponent/DashboardStats";
 import RevenueChart from "../../components/ArtistDashboardComponent/RevenueChart";

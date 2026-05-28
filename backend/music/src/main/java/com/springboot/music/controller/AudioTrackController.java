@@ -27,6 +27,8 @@ public class AudioTrackController {
         this.audioTrackService = audioTrackService;
     }
 
+    // ------------------------------ Các api cho việc hiển thị trên user page -----------------------------
+
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả Audio Track", description = "Trả về danh sách các bài hát cùng thông tin nghệ sĩ, giá khởi điểm và các thẻ tags.")
     public ResponseEntity<List<AudioTrackDTO>> getAllAudioTracks() {
@@ -105,6 +107,8 @@ public class AudioTrackController {
         AudioTrackPageResponse response = audioTrackService.getAudioTracksByArtistId(id, genreId, page, size, minPrice, maxPrice, types, sort, status);
         return ResponseEntity.ok(response);
     }
+
+    // ------------------------------ Quản lý nhạc của artist -----------------------------
 
     @PostMapping(value = {"/upload"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload audio track", description = "Nhan file nhac goc, cover image va metadata de tao moi audio track trang thai Pending.")

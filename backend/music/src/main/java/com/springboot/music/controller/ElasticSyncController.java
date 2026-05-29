@@ -67,7 +67,8 @@ public class ElasticSyncController {
 
         for (AudioTrack track : tracks) {
             try {
-                AudioTrackDocument doc = toDocument(track);
+                AudioTrackDocument existingDoc = audioTrackESRepository.findById(String.valueOf(track.getId())).orElse(null);
+                AudioTrackDocument doc = toDocument(track, existingDoc);
 
                 // KIỂM TRA CHẶN LỖI: Nếu AI trả về null thì đánh dấu là lỗi, không lưu vào ES
                 if (doc.getEmbeddingVector() == null || doc.getEmbeddingVector().isEmpty()) {
@@ -95,7 +96,7 @@ public class ElasticSyncController {
         return ResponseEntity.ok(message);
     }
 
-    private AudioTrackDocument toDocument(AudioTrack track) {
+    private AudioTrackDocument toDocument(AudioTrack track, AudioTrackDocument existingDoc) {
         AudioTrackDocument document = new AudioTrackDocument();
         document.setId(String.valueOf(track.getId()));
         document.setTitle(track.getTitle());
@@ -122,6 +123,11 @@ public class ElasticSyncController {
         // Gọi AI của Bách Khoa để dịch chuỗi này sang mảng 768 số thực
         List<Double> vector = semanticSearchService.getEmbedding(textToEmbed);
         document.setEmbeddingVector(vector);
+
+        // Preserve previously synced melody vector if this sync route does not regenerate it.
+        if (existingDoc != null && existingDoc.getMelodyVector() != null) {
+            document.setMelodyVector(existingDoc.getMelodyVector().clone());
+        }
 
         return document;
     }

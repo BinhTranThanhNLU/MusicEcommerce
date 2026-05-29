@@ -61,6 +61,12 @@ public class AudioTrackDocument {
     @JsonProperty("embeddingVector")
     private List<Double> embeddingVector;
 
+//    @Field(type = FieldType.Dense_Vector, dims = 768)
+//    private double[] embeddingVector;
+
+    @Field(type = FieldType.Dense_Vector, dims = 92)
+    private double[] melodyVector;
+
     public AudioTrackDocument() {
     }
 
@@ -182,5 +188,21 @@ public class AudioTrackDocument {
 
     public void setEmbeddingVector(List<Double> embeddingVector) {
         this.embeddingVector = embeddingVector;
+    }
+
+//    public double[] getEmbeddingVector() {
+//        return embeddingVector;
+//    }
+//
+//    public void setEmbeddingVector(double[] embeddingVector) {
+//        this.embeddingVector = embeddingVector;
+//    }
+
+    public double[] getMelodyVector() {
+        return melodyVector;
+    }
+
+    public void setMelodyVector(double[] melodyVector) {
+        this.melodyVector = melodyVector;
     }
 }

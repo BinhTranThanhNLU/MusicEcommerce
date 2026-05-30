@@ -89,86 +89,9 @@ public class AudioTrackService {
         this.audioTrackIndexingService = audioTrackIndexingService;
     }
 
-    // ------------------------------ Các api cho việc hiển thị trên user page -----------------------------
+    // ------------------------------ Method cho chức năng upload-----------------------------
 
-    @Transactional(readOnly = true)
-    public List<AudioTrackDTO> getAllAudioTracks() {
-        List<AudioTrack> tracks = audioTrackRepository.findByStatusIgnoreCase("APPROVED");
-        List<AudioTrackDTO> dtos = audioTrackMapper.toDtoList(tracks);
-        enrichReviewStats(dtos);
-        return dtos;
-    }
-
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
-        Pageable pageable = PageRequest.of(page, size);
-
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds, sort, null);
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
-
-        return createPageResponse(audioTrackPage);
-    }
-
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
-        Pageable pageable = PageRequest.of(page, size);
-
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds, sort, null);
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
-
-        return createPageResponse(audioTrackPage);
-    }
-
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
-        Pageable pageable = PageRequest.of(page, size);
-
-        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds, sort, null);
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
-
-        return createPageResponse(audioTrackPage);
-    }
-
-    // Hàm helper để tạo response cho các API phân trang
-    private AudioTrackPageResponse createPageResponse(Page<AudioTrack> audioTrackPage) {
-        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
-        enrichReviewStats(audioTracks);
-        return new AudioTrackPageResponse(
-                audioTracks,
-                audioTrackPage.getNumber(),
-                audioTrackPage.getTotalPages(),
-                audioTrackPage.getTotalElements()
-        );
-    }
-
-    // Lấy chi tiết một audio track theo id, kèm thông tin đánh giá
-    @Transactional(readOnly = true)
-    public AudioTrackDTO getAudioTrackById(int id) {
-        AudioTrack audioTrack = audioTrackRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Audio track not found with id: " + id));
-        AudioTrackDTO dto = audioTrackMapper.toDto(audioTrack);
-        enrichReviewStats(List.of(dto));
-        return dto;
-    }
-
-    // Lấy audio track theo artist id với phân trang và filter nâng cao, đồng thời chỉ truyền artistId hiện tại vào Specification để đảm bảo chỉ lấy bài hát của artist đó
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getAudioTracksByArtistId(int artistId, Integer genreId, int page, int size, Double minPrice, Double maxPrice, List<String> types, String sort, String status) {
-        Pageable pageable = PageRequest.of(page, size);
-
-        String genreName = null;
-        if (genreId != null) {
-            Genre genre = genreRepository.findById(genreId).orElse(null);
-            genreName = genre != null ? genre.getName() : null;
-        }
-
-        Specification<AudioTrack> spec = AudioTrackSpecification.filterForArtist(artistId, null, genreName, minPrice, maxPrice, types, sort, status);
-        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
-
-        return createPageResponse(audioTrackPage);
-    }
-
-    // Tạo mới một audio track, kèm xử lý upload file và tạo preview
+    // Tạo mới một audio track
     @Transactional
     public AudioTrackDTO createAudioTrack(CreateAudioTrackRequest request,
                                           MultipartFile originalFile,
@@ -244,30 +167,39 @@ public class AudioTrackService {
         return dto;
     }
 
-    // Giải quyết người dùng hiện tại từ context bảo mật, đồng thời kiểm tra vai trò và tồn tại của người dùng
+
+    // ------------------------------ Các helper method cho chức năng upload -----------------------------
+
+    // Đồng bộ hóa lên elastic server
+    private void syncToElasticsearch(AudioTrack track, List<AudioTrackLicense> licenses) {
+        // Dùng service index thống nhất để tránh ghi đè mất vector giữa các luồng sync khác nhau.
+        audioTrackIndexingService.indexTrack(track, licenses);
+    }
+
+    // Xác thực người dùng hiện tại
     private User resolveCurrentArtist() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Can dang nhap de upload bai hat");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cần đăng nhập để upload bài hát");
         }
 
         User user = Optional.ofNullable(userRepository.findByEmail(authentication.getName()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Nguoi dung khong ton tai"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng không tồn tại"));
 
         String roleName = user.getRole() != null ? user.getRole().getName() : null;
         if (roleName == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tai khoan khong co quyen upload bai hat");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản không có quyền upload bài hát");
         }
 
         String normalizedRole = roleName.toUpperCase(Locale.ROOT);
         if (!normalizedRole.contains("ARTIST") && !normalizedRole.contains("ADMIN")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chi artist hoac admin moi duoc upload bai hat");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ artist hoặc admin mới có quyền upload bài hát");
         }
 
         return user;
     }
 
-    // Chuẩn hóa và validate các trường text bắt buộc, đồng thời trả về giá trị đã được trim
+    // Chuẩn hóa và kiểm tra dữ liệu văn bản bắt buộc
     private String normalizeRequiredText(String value, String errorMessage) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMessage);
@@ -281,7 +213,7 @@ public class AudioTrackService {
         return normalized;
     }
 
-    // Chuẩn hóa các trường text tùy chọn, nếu null hoặc chỉ chứa whitespace thì trả về null
+    // Chuẩn hóa dữ liệu văn bản tùy chọn (có thể để trống)
     private String normalizeOptionalText(String value) {
         if (value == null) {
             return null;
@@ -291,14 +223,15 @@ public class AudioTrackService {
         return normalized.isBlank() ? null : normalized;
     }
 
-    // Validate file upload, đảm bảo file không null và không rỗng, đồng thời phân biệt giữa audio file và cover image để trả về thông báo lỗi phù hợp
+    // Kiểm tra file upload hợp lệ và không được để trống (audio hoặc ảnh bìa)
     private void validateUploadFile(MultipartFile file, boolean audioFile) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    audioFile ? "Audio file khong duoc de trong" : "Cover image khong duoc de trong");
+                    audioFile ? "Audio file không được để trống" : "Cover image không được để trống");
         }
     }
 
+    // Tải genres
     private List<Genre> loadGenres(List<Integer> genreIds) {
         if (genreIds == null || genreIds.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất 1 thể loại");
@@ -307,26 +240,28 @@ public class AudioTrackService {
         List<Genre> genres = new ArrayList<>();
         for (Integer genreId : new LinkedHashSet<>(genreIds)) {
             Genre genre = genreRepository.findById(genreId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Genre khong ton tai: " + genreId));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Genre không tồn tại: " + genreId));
             genres.add(genre);
         }
         return genres;
     }
 
+    // Tải moods
     private List<Mood> loadMoods(List<Integer> moodIds) {
         if (moodIds == null || moodIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 cảm xúc");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất 1 cảm xúc");
         }
 
         List<Mood> moods = new ArrayList<>();
         for (Integer moodId : new LinkedHashSet<>(moodIds)) {
             Mood mood = moodRepository.findById(moodId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mood khong ton tai: " + moodId));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mood không tồn tại: " + moodId));
             moods.add(mood);
         }
         return moods;
     }
 
+    // Tải themes
     private List<Theme> loadThemes(List<Integer> themeIds) {
         if (themeIds == null || themeIds.isEmpty()) {
             return List.of();
@@ -341,10 +276,10 @@ public class AudioTrackService {
         return themes;
     }
 
-    // Xử lý thông tin license price từ request
+    // Tạo, kiểm tra và lưu danh sách license kèm giá cho bài hát
     private List<AudioTrackLicense> buildAndSaveLicenses(AudioTrack savedTrack, List<LicensePriceRequest> licensePrices) {
         if (licensePrices == null || licensePrices.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 license price");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất 1 license price");
         }
 
         Set<Integer> seenLicenseIds = new HashSet<>();
@@ -352,16 +287,16 @@ public class AudioTrackService {
 
         for (LicensePriceRequest licensePrice : licensePrices) {
             if (licensePrice == null || licensePrice.getLicenseId() == null || licensePrice.getPrice() == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thong tin license price khong hop le");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thông tin license price không hợp lệ");
             }
 
             if (!seenLicenseIds.add(licensePrice.getLicenseId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "License id bi trung: " + licensePrice.getLicenseId());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "License id bị trùng: " + licensePrice.getLicenseId());
             }
 
             License license = licenseRepository.findById(licensePrice.getLicenseId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                            "License khong ton tai: " + licensePrice.getLicenseId()));
+                            "License không tồn tại: " + licensePrice.getLicenseId()));
 
             AudioTrackLicense trackLicense = AudioTrackLicense.builder()
                     .id(new AudioTrackLicenseId(savedTrack.getId(), license.getId()))
@@ -376,7 +311,7 @@ public class AudioTrackService {
         return trackLicenses;
     }
 
-    // Tạo file preview có watermark từ file gốc, lưu vào storage và trả về URL
+    // Tạo file preview có watermark và lưu vào hệ thống lưu trữ cloudinary
     private String createAndStorePreviewFile(MultipartFile originalFile) {
         Path previewFilePath = audioMixerService.createWatermarkedPreview(originalFile);
         try {
@@ -386,7 +321,7 @@ public class AudioTrackService {
         }
     }
 
-    // Xóa file tạm nếu tồn tại
+    // Xóa file tạm sau khi đã lưu vào cloudinary
     private void cleanupTempFile(Path filePath) {
         if (filePath == null) {
             return;
@@ -399,44 +334,7 @@ public class AudioTrackService {
         }
     }
 
-    // Bổ sung thông tin đánh giá vào DTO
-    private void enrichReviewStats(List<AudioTrackDTO> audioTracks) {
-        for (AudioTrackDTO dto : audioTracks) {
-            if (dto == null || dto.getId() == null) {
-                continue;
-            }
-
-            Double averageRating = audioTrackReviewRepository.getAverageRatingByAudioTrackId(dto.getId());
-            long reviewCount = audioTrackReviewRepository.countByAudioTrack_Id(dto.getId());
-
-            dto.setAverageRating(averageRating == null ? 0.0 : roundOneDecimal(averageRating));
-            dto.setReviewCount(reviewCount);
-        }
-    }
-
-    // Làm tròn điểm đánh giá trung bình đến 1 chữ số thập phân để hiển thị đẹp hơn
-    private double roundOneDecimal(double value) {
-        return Math.round(value * 10.0) / 10.0;
-    }
-
-    // Tăng play count của audio track khi người dùng nghe preview, đồng thời trả về play count mới sau khi đã tăng
-    @Transactional
-    public AudioTrackPlayCountResponse incrementPreviewPlayCount(Integer audioId) {
-        if (audioId == null || audioId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
-        }
-
-        int updatedRows = audioTrackRepository.incrementPlayCount(audioId);
-        if (updatedRows == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai");
-        }
-
-        Integer playCount = audioTrackRepository.findPlayCountById(audioId);
-        return AudioTrackPlayCountResponse.builder()
-                .audioId(audioId)
-                .playCount(playCount == null ? 0 : playCount)
-                .build();
-    }
+    // ------------------------------ Các method cho chức năng quản lý audio track-----------------------------
 
     // Cập nhật thông tin audio track
     @Transactional
@@ -444,11 +342,11 @@ public class AudioTrackService {
                                           MultipartFile newOriginalFile,
                                           MultipartFile newCoverImageFile) {
         if (audioId == null || audioId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id không hợp lệ");
         }
 
         AudioTrack audioTrack = audioTrackRepository.findById(audioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track không tồn tại"));
 
         UpdateAudioTrackRequest request = parseUpdateRequest(updateRequestJson);
         boolean hasAnyField = false;
@@ -496,7 +394,7 @@ public class AudioTrackService {
                 hasAnyField = true;
                 String title = request.getTitle().trim();
                 if (title.isBlank()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title khong duoc de trong");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title không được để trống");
                 }
                 audioTrack.setTitle(title);
             }
@@ -505,7 +403,7 @@ public class AudioTrackService {
                 hasAnyField = true;
                 String audioType = request.getAudioType().trim();
                 if (audioType.isBlank()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio type khong duoc de trong");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio type không được để trống");
                 }
                 audioTrack.setAudioType(audioType);
             }
@@ -526,7 +424,7 @@ public class AudioTrackService {
                 hasAnyField = true;
                 String authorName = request.getAuthorName().trim();
                 if (authorName.isBlank()) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author khong duoc de trong");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author name không được để trống");
                 }
 
                 CopyrightInfo copyrightInfo = copyrightInfoRepository.findByAudioTrack_Id(audioId)
@@ -539,7 +437,7 @@ public class AudioTrackService {
             if (request.getDuration() != null) {
                 hasAnyField = true;
                 if (request.getDuration() <= 0) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phai lon hon 0");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration phải lớn hơn 0");
                 }
                 audioTrack.setDuration(request.getDuration());
             }
@@ -547,7 +445,7 @@ public class AudioTrackService {
         }
 
         if (!hasAnyField) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Can it nhat 1 truong de cap nhat");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không có trường nào để cập nhật");
         }
 
         if (audioTrack.getStatus() == null || !"Need Revision".equalsIgnoreCase(audioTrack.getStatus())) {
@@ -560,6 +458,26 @@ public class AudioTrackService {
         return dto;
     }
 
+    // Xóa một audio track
+    @Transactional
+    public void deleteAudioTrack(Integer audioId) {
+        if (audioId == null || audioId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id không hợp lệ");
+        }
+
+        AudioTrack audioTrack = audioTrackRepository.findById(audioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track không tồn tại"));
+
+        try {
+            audioTrackRepository.delete(audioTrack);
+            audioTrackRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Không thể xóa vì audio track đang được sử dụng", ex);
+        }
+    }
+
+    // Nộp lại audio track sau khi được yêu cầu chỉnh sửa
     @Transactional
     public AudioTrackDTO resubmitAudioTrack(Integer audioId) {
         if (audioId == null || audioId <= 0) {
@@ -587,8 +505,9 @@ public class AudioTrackService {
         return dto;
     }
 
+    // ------------------------------ Các helper method cho chức năng quản lý audio track-----------------------------
 
-    // Phân tích JSON string thành UpdateAudioTrackRequest object, đồng thời xử lý lỗi nếu JSON không hợp lệ
+    // Chuyển đổi chuỗi JSON thành đối tượng UpdateAudioTrackRequest và kiểm tra tính hợp lệ
     private UpdateAudioTrackRequest parseUpdateRequest(String updateRequestJson) {
         if (updateRequestJson == null || updateRequestJson.isBlank()) {
             return null;
@@ -603,28 +522,124 @@ public class AudioTrackService {
         }
     }
 
-    // Xóa một audio track, đồng thời xử lý lỗi nếu audio track đang được sử dụng trong dữ liệu
+
+    // ------------------------------ Các method cho việc hiển thị trên user page -----------------------------
+
+    @Transactional(readOnly = true)
+    public List<AudioTrackDTO> getAllAudioTracks() {
+        List<AudioTrack> tracks = audioTrackRepository.findByStatusIgnoreCase("APPROVED");
+        List<AudioTrackDTO> dtos = audioTrackMapper.toDtoList(tracks);
+        enrichReviewStats(dtos);
+        return dtos;
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByGenreId(int idGenre, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(idGenre, null, null, minPrice, maxPrice, types, artistIds, sort, null);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByMoodId(int idMood, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, idMood, null, minPrice, maxPrice, types, artistIds, sort, null);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByThemeId(int idTheme, int page, int size, Double minPrice, Double maxPrice, List<String> types, List<Integer> artistIds, String sort) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Specification<AudioTrack> spec = AudioTrackSpecification.filter(null, null, idTheme, minPrice, maxPrice, types, artistIds, sort, null);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackDTO getAudioTrackById(int id) {
+        AudioTrack audioTrack = audioTrackRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Audio track not found with id: " + id));
+        AudioTrackDTO dto = audioTrackMapper.toDto(audioTrack);
+        enrichReviewStats(List.of(dto));
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getAudioTracksByArtistId(int artistId, Integer genreId, int page, int size, Double minPrice, Double maxPrice, List<String> types, String sort, String status) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        String genreName = null;
+        if (genreId != null) {
+            Genre genre = genreRepository.findById(genreId).orElse(null);
+            genreName = genre != null ? genre.getName() : null;
+        }
+
+        Specification<AudioTrack> spec = AudioTrackSpecification.filterForArtist(artistId, null, genreName, minPrice, maxPrice, types, sort, status);
+        Page<AudioTrack> audioTrackPage = audioTrackRepository.findAll(spec, pageable);
+
+        return createPageResponse(audioTrackPage);
+    }
+
+    // Tăng play count của audio track khi người dùng nghe preview
     @Transactional
-    public void deleteAudioTrack(Integer audioId) {
+    public AudioTrackPlayCountResponse incrementPreviewPlayCount(Integer audioId) {
         if (audioId == null || audioId <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio id không hợp lệ");
         }
 
-        AudioTrack audioTrack = audioTrackRepository.findById(audioId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track khong ton tai"));
+        int updatedRows = audioTrackRepository.incrementPlayCount(audioId);
+        if (updatedRows == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Audio track không tồn tại");
+        }
 
-        try {
-            audioTrackRepository.delete(audioTrack);
-            audioTrackRepository.flush();
-        } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Khong the xoa audio track vi du lieu dang duoc su dung", ex);
+        Integer playCount = audioTrackRepository.findPlayCountById(audioId);
+        return AudioTrackPlayCountResponse.builder()
+                .audioId(audioId)
+                .playCount(playCount == null ? 0 : playCount)
+                .build();
+    }
+
+    // ------------------------------ Các helper method cho việc hiển thị trên user page -----------------------------
+
+    // Hàm helper để tạo response cho các API phân trang
+    private AudioTrackPageResponse createPageResponse(Page<AudioTrack> audioTrackPage) {
+        List<AudioTrackDTO> audioTracks = audioTrackMapper.toDtoList(audioTrackPage.getContent());
+        enrichReviewStats(audioTracks);
+        return new AudioTrackPageResponse(
+                audioTracks,
+                audioTrackPage.getNumber(),
+                audioTrackPage.getTotalPages(),
+                audioTrackPage.getTotalElements()
+        );
+    }
+
+    // Bổ sung thông tin đánh giá vào DTO
+    private void enrichReviewStats(List<AudioTrackDTO> audioTracks) {
+        for (AudioTrackDTO dto : audioTracks) {
+            if (dto == null || dto.getId() == null) {
+                continue;
+            }
+
+            Double averageRating = audioTrackReviewRepository.getAverageRatingByAudioTrackId(dto.getId());
+            long reviewCount = audioTrackReviewRepository.countByAudioTrack_Id(dto.getId());
+
+            dto.setAverageRating(averageRating == null ? 0.0 : roundOneDecimal(averageRating));
+            dto.setReviewCount(reviewCount);
         }
     }
 
-    private void syncToElasticsearch(AudioTrack track, List<AudioTrackLicense> licenses) {
-        // Dùng service index thống nhất để tránh ghi đè mất vector giữa các luồng sync khác nhau.
-        audioTrackIndexingService.indexTrack(track, licenses);
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
+
+
 
 }

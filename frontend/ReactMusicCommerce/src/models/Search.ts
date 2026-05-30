@@ -24,6 +24,7 @@ export interface AudioTrackSearchDocument {
   id: string;
   title: string;
   artistName: string;
+  score?: number;
   audioType?: string;
   description?: string;
   lyrics?: string;

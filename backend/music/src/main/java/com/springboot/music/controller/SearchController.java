@@ -35,8 +35,16 @@ public class SearchController {
         try {
             SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.melodySearch(file, size);
 
+//            List<AudioTrackDocument> results = searchHits.stream()
+//                    .map(hit -> hit.getContent())
+//                    .collect(Collectors.toList());
+
             List<AudioTrackDocument> results = searchHits.stream()
-                    .map(hit -> hit.getContent())
+                    .map(hit -> {
+                        AudioTrackDocument doc = hit.getContent();
+                        doc.setScore(hit.getScore());
+                        return doc;
+                    })
                     .collect(Collectors.toList());
 
             AudioTrackSearchResponse response = new AudioTrackSearchResponse(
@@ -70,8 +78,16 @@ public class SearchController {
         SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.fullTextSearch(q, page, size);
 
         // Bóc tách List dữ liệu
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         // Lấy TỔNG SỐ BẢN GHI thực tế từ ES
@@ -100,8 +116,16 @@ public class SearchController {
 
         SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.fuzzySearch(q, page, size);
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         long totalHits = searchHits.getTotalHits();
@@ -129,8 +153,16 @@ public class SearchController {
 
         SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.phraseSearch(q, page, size);
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         long totalHits = searchHits.getTotalHits();
@@ -164,8 +196,16 @@ public class SearchController {
                         request.getSize()
                 );
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         long totalHits = searchHits.getTotalHits();
@@ -204,8 +244,16 @@ public class SearchController {
                         request.getSize()
                 );
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         long totalHits = searchHits.getTotalHits();
@@ -239,8 +287,16 @@ public class SearchController {
         SearchHits<AudioTrackDocument> searchHits =
                 audioTrackSearchService.autocomplete(q, limit);
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(results);
@@ -257,8 +313,16 @@ public class SearchController {
 
         SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.semanticSearch(q, size);
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         AudioTrackSearchResponse response = new AudioTrackSearchResponse(
@@ -281,8 +345,16 @@ public class SearchController {
         // Gọi method hybrid mới
         SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.hybridSearch(q, page, size);
 
+//        List<AudioTrackDocument> results = searchHits.stream()
+//                .map(hit -> hit.getContent())
+//                .collect(Collectors.toList());
+
         List<AudioTrackDocument> results = searchHits.stream()
-                .map(hit -> hit.getContent())
+                .map(hit -> {
+                    AudioTrackDocument doc = hit.getContent();
+                    doc.setScore(hit.getScore());
+                    return doc;
+                })
                 .collect(Collectors.toList());
 
         long totalHits = searchHits.getTotalHits();

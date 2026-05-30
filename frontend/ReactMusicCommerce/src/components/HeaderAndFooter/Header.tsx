@@ -11,7 +11,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { CART_ITEMS_UPDATED_EVENT } from "../../utils/cartStorage";
 import { getCart } from "../../apis/cartApi";
 import type { AudioTrackSearchDocument } from "../../models/Search";
-import { autocompleteTrackSearch } from "../../apis/audioTrackApi";
+import { autocompleteTrackSearch } from "../../apis/searchApi";
 
 
 const Header = () => {

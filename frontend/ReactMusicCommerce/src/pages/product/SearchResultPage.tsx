@@ -108,7 +108,8 @@ const SearchResultPage = () => {
   const canUsePagination = useMemo(
     () =>
       !(
-        (effectiveSearchType === "semantic" || effectiveSearchType === "melody") &&
+        (effectiveSearchType === "semantic" ||
+          effectiveSearchType === "melody") &&
         !isFilterMode
       ),
     [effectiveSearchType, isFilterMode],
@@ -186,32 +187,39 @@ const SearchResultPage = () => {
           effectiveSearchType === "melody" && melodyFile
             ? await melodySearchTracks(melodyFile, size)
             : searchType === "hybrid" && !isFilterMode
-            ? await hybridSearchTracks(query, page, size)
-            : searchType === "semantic" && !isFilterMode
-              ? await semanticSearchTracks(query, size)
-              : isFilterMode
-                ? query
-                  ? await advancedSearchTracks({
-                      ...requestPayload,
-                      keyword: query,
-                    })
-                  : await filterSearchTracks(requestPayload)
-                : searchType === "fuzzy"
-                  ? await fuzzySearchTracks(query, page, size)
-                  : searchType === "phrase"
-                    ? await phraseSearchTracks(query, page, size)
-                    : await fullTextSearchTracks(query, page, size);
+              ? await hybridSearchTracks(query, page, size)
+              : searchType === "semantic" && !isFilterMode
+                ? await semanticSearchTracks(query, size)
+                : isFilterMode
+                  ? query
+                    ? await advancedSearchTracks({
+                        ...requestPayload,
+                        keyword: query,
+                      })
+                    : await filterSearchTracks(requestPayload)
+                  : searchType === "fuzzy"
+                    ? await fuzzySearchTracks(query, page, size)
+                    : searchType === "phrase"
+                      ? await phraseSearchTracks(query, page, size)
+                      : await fullTextSearchTracks(query, page, size);
+
+        console.table(
+          response.results?.map((t) => ({ title: t.title, score: t.score })),
+        );
 
         setTracks(response.results || []);
         setTotalResults(response.totalResults || 0);
         setTotalPages(
-          (effectiveSearchType === "semantic" || effectiveSearchType === "melody") &&
-          !isFilterMode
+          (effectiveSearchType === "semantic" ||
+            effectiveSearchType === "melody") &&
+            !isFilterMode
             ? 1
             : response.totalPages || 0,
         );
         if (effectiveSearchType === "melody") {
-          setMelodyQuery(response.query || (melodyFile ? `file: ${melodyFile.name}` : ""));
+          setMelodyQuery(
+            response.query || (melodyFile ? `file: ${melodyFile.name}` : ""),
+          );
         }
       } catch (error: any) {
         setTracks([]);

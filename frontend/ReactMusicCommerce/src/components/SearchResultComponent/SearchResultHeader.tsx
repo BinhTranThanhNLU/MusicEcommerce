@@ -18,6 +18,7 @@ interface SearchResultHeaderProps {
   query: string;
   searchType: SearchType;
   onSearch: (keyword: string) => void;
+  onMelodySearch: (audioFile: File) => void;
   filters: SearchFilters;
   genres: GenreModel[];
   moods: MoodModel[];
@@ -31,6 +32,7 @@ const searchTypeLabel: Record<SearchType, string> = {
   fuzzy: "Fuzzy",
   phrase: "Phrase",
   semantic: "Thông minh (Semantic)",
+  melody: "Giai điệu (Melody)",
   hybrid: "Kết hợp (Hybrid)",
   advanced: "Nâng cao (Advanced)",
   filter: "Lọc (Filter)",
@@ -41,6 +43,7 @@ const SearchResultHeader = ({
   query,
   searchType,
   onSearch,
+  onMelodySearch,
   filters,
   genres,
   moods,
@@ -50,6 +53,7 @@ const SearchResultHeader = ({
 }: SearchResultHeaderProps) => {
   const [keyword, setKeyword] = useState(query);
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
+  const [melodyFile, setMelodyFile] = useState<File | null>(null);
 
   useEffect(() => {
     setKeyword(query);
@@ -67,6 +71,14 @@ const SearchResultHeader = ({
   const handleFilterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onApplyFilters(localFilters);
+  };
+
+  const handleMelodySearchClick = () => {
+    if (!melodyFile) {
+      return;
+    }
+
+    onMelodySearch(melodyFile);
   };
 
   const updateFilter = (key: keyof SearchFilters, value: string) => {
@@ -119,6 +131,38 @@ const SearchResultHeader = ({
           </div>
 
           <form className="search-filters-panel mt-4" onSubmit={handleFilterSubmit}>
+            <div className="row g-3 mb-3 align-items-end">
+              <div className="col-12 col-md-8">
+                <label className="form-label mb-1">Tìm theo giai điệu (audio file)</label>
+                <div className="input-group">
+                  <input
+                    type="file"
+                    className="form-control"
+                    accept="audio/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      setMelodyFile(file);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleMelodySearchClick}
+                    disabled={!melodyFile}
+                  >
+                    Tìm giai điệu
+                  </button>
+                </div>
+              </div>
+              <div className="col-12 col-md-4">
+                {melodyFile && (
+                  <p className="small text-muted mb-0">
+                    File đã chọn: <strong>{melodyFile.name}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="row g-3">
               <div className="col-12 col-md-6 col-xl-2">
                 <label className="form-label mb-1">Trạng thái</label>

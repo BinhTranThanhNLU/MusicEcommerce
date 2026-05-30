@@ -14,9 +14,10 @@ import {
   filterSearchTracks,
   fullTextSearchTracks,
   fuzzySearchTracks,
+  melodySearchTracks,
   phraseSearchTracks,
   semanticSearchTracks,
-} from "../../apis/audioTrackApi";
+} from "../../apis/searchApi";
 import type { GenreModel } from "../../models/GenreModel";
 import type { MoodModel } from "../../models/MoodModel";
 import type { ThemeModel } from "../../models/ThemeModel";
@@ -31,6 +32,7 @@ const getSafeSearchType = (input: string | null): SearchType => {
     input === "fuzzy" ||
     input === "phrase" ||
     input === "semantic" ||
+    input === "melody" ||
     input === "hybrid" ||
     input === "advanced" ||
     input === "filter"
@@ -72,6 +74,8 @@ const SearchResultPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [httpError, setHttpError] = useState<string | null>(null);
+  const [melodyFile, setMelodyFile] = useState<File | null>(null);
+  const [melodyQuery, setMelodyQuery] = useState("");
 
   const query = (searchParams.get("q") || "").trim();
   const page = Math.max(0, Number(searchParams.get("page") || "0"));
@@ -98,9 +102,15 @@ const SearchResultPage = () => {
       ? "advanced"
       : "filter"
     : searchType;
+  const displayQuery =
+    effectiveSearchType === "melody" ? melodyQuery || query : query;
 
   const canUsePagination = useMemo(
-    () => !(effectiveSearchType === "semantic" && !isFilterMode),
+    () =>
+      !(
+        (effectiveSearchType === "semantic" || effectiveSearchType === "melody") &&
+        !isFilterMode
+      ),
     [effectiveSearchType, isFilterMode],
   );
 
@@ -127,7 +137,14 @@ const SearchResultPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!query && !isFilterMode) {
+    if (effectiveSearchType === "melody" && !melodyFile) {
+      setTracks([]);
+      setTotalResults(0);
+      setTotalPages(0);
+      return;
+    }
+
+    if (effectiveSearchType !== "melody" && !query && !isFilterMode) {
       setTracks([]);
       setTotalResults(0);
       setTotalPages(0);
@@ -166,7 +183,9 @@ const SearchResultPage = () => {
         };
 
         const response =
-          searchType === "hybrid" && !isFilterMode
+          effectiveSearchType === "melody" && melodyFile
+            ? await melodySearchTracks(melodyFile, size)
+            : searchType === "hybrid" && !isFilterMode
             ? await hybridSearchTracks(query, page, size)
             : searchType === "semantic" && !isFilterMode
               ? await semanticSearchTracks(query, size)
@@ -186,10 +205,14 @@ const SearchResultPage = () => {
         setTracks(response.results || []);
         setTotalResults(response.totalResults || 0);
         setTotalPages(
-          effectiveSearchType === "semantic" && !isFilterMode
+          (effectiveSearchType === "semantic" || effectiveSearchType === "melody") &&
+          !isFilterMode
             ? 1
             : response.totalPages || 0,
         );
+        if (effectiveSearchType === "melody") {
+          setMelodyQuery(response.query || (melodyFile ? `file: ${melodyFile.name}` : ""));
+        }
       } catch (error: any) {
         setTracks([]);
         setTotalResults(0);
@@ -211,6 +234,7 @@ const SearchResultPage = () => {
     filters,
     isFilterMode,
     effectiveSearchType,
+    melodyFile,
   ]);
 
   const updateSearchParams = (next: {
@@ -276,6 +300,26 @@ const SearchResultPage = () => {
     });
   };
 
+  const handleMelodySearch = (audioFile: File) => {
+    if (!audioFile) {
+      return;
+    }
+
+    setMelodyFile(audioFile);
+    setMelodyQuery(`file: ${audioFile.name}`);
+    updateSearchParams({
+      q: "",
+      page: 0,
+      type: "melody",
+      status: "",
+      genre: "",
+      mood: "",
+      theme: "",
+      minPrice: "",
+      maxPrice: "",
+    });
+  };
+
   const handleApplyFilters = (nextFilters: SearchFilters) => {
     updateSearchParams({
       page: 0,
@@ -318,9 +362,10 @@ const SearchResultPage = () => {
     <main className="main">
       <SearchResultHeader
         totalResults={totalResults}
-        query={query}
+        query={displayQuery}
         searchType={effectiveSearchType}
         onSearch={handleSearchOnResultPage}
+        onMelodySearch={handleMelodySearch}
         filters={filters}
         genres={genres}
         moods={moods}

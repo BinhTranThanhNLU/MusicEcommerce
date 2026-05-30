@@ -5,6 +5,10 @@ import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.repository.AudioTrackRepository;
 import com.springboot.music.repository.AudioTrackSearchRepository;
 import com.springboot.music.service.MelodyExtractionService;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.document.Document;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +31,16 @@ public class MelodySyncController {
     private final AudioTrackRepository audioTrackRepository;
     private final AudioTrackSearchRepository audioTrackESRepository;
     private final MelodyExtractionService melodyExtractionService;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     public MelodySyncController(AudioTrackRepository audioTrackRepository,
                                 AudioTrackSearchRepository audioTrackESRepository,
-                                MelodyExtractionService melodyExtractionService) {
+                                MelodyExtractionService melodyExtractionService,
+                                ElasticsearchOperations elasticsearchOperations) {
         this.audioTrackRepository = audioTrackRepository;
         this.audioTrackESRepository = audioTrackESRepository;
         this.melodyExtractionService = melodyExtractionService;
+        this.elasticsearchOperations = elasticsearchOperations;
     }
 
     @PostMapping("/melody-vectors")
@@ -79,14 +86,17 @@ public class MelodySyncController {
                 double[] melodyArray = melodyVector.stream().mapToDouble(Double::doubleValue).toArray();
 
                 // 3. Tìm Document CÓ SẴN trong Elasticsearch để cập nhật (Không tạo mới để giữ nguyên Semantic Search)
-                AudioTrackDocument doc = audioTrackESRepository.findById(String.valueOf(track.getId()))
-                        .orElseThrow(() -> new RuntimeException("Chưa có Document trong ES. Hãy chạy Sync Semantic trước!"));
+                // 3. TẠO TÀI LIỆU CẬP NHẬT (Chỉ chứa trường cần sửa)
+                Document document = Document.create();
+                document.put("melodyVector", melodyArray);
 
-                System.out.println("Kích thước vector: " + melodyVector.size());
+                // 4. THỰC HIỆN PARTIAL UPDATE VÀO ELASTICSEARCH
+                UpdateQuery updateQuery = UpdateQuery.builder(String.valueOf(track.getId()))
+                        .withDocument(document)
+                        .build();
 
-                // 4. Cập nhật và lưu lại
-                doc.setMelodyVector(melodyArray);
-                audioTrackESRepository.save(doc);
+                elasticsearchOperations.update(updateQuery, IndexCoordinates.of("audio_tracks_index"));
+
                 syncedCount++;
 
                 // NGỦ 1 GIÂY (Tránh làm cháy CPU của service Python khi phân tích âm thanh liên tục)

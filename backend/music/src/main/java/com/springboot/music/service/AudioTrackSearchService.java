@@ -9,6 +9,7 @@ import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,13 +21,45 @@ public class AudioTrackSearchService {
     private final AudioTrackSearchRepository audioTrackSearchRepository;
     private final ElasticsearchOperations elasticsearchOperations;
     private final SemanticSearchService semanticSearchService;
+    private final MelodySearchService melodySearchService;
 
     public AudioTrackSearchService(AudioTrackSearchRepository audioTrackSearchRepository,
                                    ElasticsearchOperations elasticsearchOperations,
-                                   SemanticSearchService semanticSearchService) {
+                                   SemanticSearchService semanticSearchService,
+                                   MelodySearchService melodySearchService) {
         this.audioTrackSearchRepository = audioTrackSearchRepository;
         this.elasticsearchOperations = elasticsearchOperations;
         this.semanticSearchService = semanticSearchService;
+        this.melodySearchService = melodySearchService;
+    }
+
+    public SearchHits<AudioTrackDocument> melodySearch(MultipartFile audioFile, int size) {
+        // 1. Dịch file âm thanh thành Vector 92 chiều
+        List<Double> queryVector = melodySearchService.extractMelodyVector(audioFile);
+
+        if (queryVector == null || queryVector.size() != 92) {
+            throw new RuntimeException("Không thể trích xuất vector giai điệu (yêu cầu 92 chiều)");
+        }
+
+        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
+        String vectorJson = queryVector.toString();
+
+        // 3. Viết query KNN tìm kiếm các vector giai điệu gần nhất
+        // So khớp với field "melodyVector" trong AudioTrackDocument
+        String queryJson = """
+        {
+          "knn": {
+            "field": "melodyVector",
+            "query_vector": %s,
+            "k": %d,
+            "num_candidates": 100
+          }
+        }
+        """.formatted(vectorJson, size);
+
+        Query query = new StringQuery(queryJson);
+
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
 
     public SearchHits<AudioTrackDocument> fullTextSearch(String keyword, int page, int size) {

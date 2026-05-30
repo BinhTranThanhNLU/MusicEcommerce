@@ -7,6 +7,8 @@ import com.springboot.music.service.AudioTrackSearchService;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +21,39 @@ public class SearchController {
 
     public SearchController(AudioTrackSearchService audioTrackSearchService) {
         this.audioTrackSearchService = audioTrackSearchService;
+    }
+
+    @PostMapping(value = "/melody", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AudioTrackSearchResponse> melodySearch(
+            @RequestParam("audio") MultipartFile file,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (file == null || file.isEmpty() || size <= 0 || size > 100) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        try {
+            SearchHits<AudioTrackDocument> searchHits = audioTrackSearchService.melodySearch(file, size);
+
+            List<AudioTrackDocument> results = searchHits.stream()
+                    .map(hit -> hit.getContent())
+                    .collect(Collectors.toList());
+
+            AudioTrackSearchResponse response = new AudioTrackSearchResponse(
+                    results,
+                    0,
+                    size,
+                    searchHits.getTotalHits(),
+                    "melody",
+                    "file: " + file.getOriginalFilename()
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            // Ném lỗi 500 nếu Python server sập hoặc lỗi trích xuất
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/full-text")

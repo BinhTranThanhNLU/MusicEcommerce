@@ -17,6 +17,7 @@ import type { AdminAudioTrackPageResponse } from "../responsemodel/AdminAudioTra
 import type { ModerateAudioTrackRequest } from "../requestmodel/ModerateAudioTrackRequest";
 import type { AdminLicensePageResponse } from "../responsemodel/AdminLicensePageResponse";
 import type { AdminLicenseModel } from "../models/AdminLicenseModel";
+import type { AudioTrackSearchResponse } from "../models/Search";
 
 export const getAdminUsers = async (
   page: number,
@@ -211,6 +212,13 @@ export const requestTrackRevision = async (
   request: ModerateAudioTrackRequest,
 ): Promise<AudioTrackDTO> => {
   const response = await axiosClient.put<AudioTrackDTO>(`/admin/tracks/${id}/need-revision`, request);
+  return response.data;
+};
+
+export const checkCopyright = async (
+  id: number,
+): Promise<AudioTrackSearchResponse> => {
+  const response = await axiosClient.get<AudioTrackSearchResponse>(`/admin/tracks/${id}/copyright-check`);
   return response.data;
 };
 

@@ -6,9 +6,11 @@ import {
   getTrackModerationDetail,
   rejectTrack,
   requestTrackRevision,
+  checkCopyright,
 } from "../../apis/adminApi";
 import type { AudioTrackDTO } from "../../responsemodel/AudioTrackDTO";
 import type { ModerateAudioTrackRequest } from "../../requestmodel/ModerateAudioTrackRequest";
+import type { AudioTrackSearchResponse } from "../../models/Search";
 import Swal from "sweetalert2";
 import AdminModerationHeader from "../../components/AdminModerationComponent/AdminModerationHeader";
 import AdminModerationTable from "../../components/AdminModerationComponent/AdminModerationTable";
@@ -36,6 +38,9 @@ const AdminModerationPage = () => {
   const [reason, setReason] = useState("");
   const [revisionPointsText, setRevisionPointsText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [copyrightCheckLoading, setCopyrightCheckLoading] = useState(false);
+  const [copyrightCheckResults, setCopyrightCheckResults] = useState<AudioTrackSearchResponse | null>(null);
+  const [copyrightCheckError, setCopyrightCheckError] = useState<string | null>(null);
 
   const fetchTracks = useCallback(async () => {
     setLoading(true);
@@ -103,6 +108,39 @@ const AdminModerationPage = () => {
     setModerationMode(null);
     setReason("");
     setRevisionPointsText("");
+    setCopyrightCheckResults(null);
+    setCopyrightCheckError(null);
+  };
+
+  const handleCheckCopyright = async (trackId: number) => {
+    setCopyrightCheckLoading(true);
+    setCopyrightCheckError(null);
+    setCopyrightCheckResults(null);
+
+    try {
+      const results = await checkCopyright(trackId);
+      setCopyrightCheckResults(results);
+      
+      if (results.results && results.results.length === 0) {
+        await Swal.fire({
+          icon: "info",
+          title: "Không tìm thấy bài hát tương tự",
+          text: "Bài hát này không có bản ghi âm nào tương tự trong hệ thống.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error) {
+      const errorMsg = parseApiError(error, "Không thể kiểm tra bản quyền bằng Giai điệu.").message;
+      setCopyrightCheckError(errorMsg);
+      await Swal.fire({
+        icon: "error",
+        title: "Lỗi kiểm tra bản quyền",
+        text: errorMsg,
+      });
+    } finally {
+      setCopyrightCheckLoading(false);
+    }
   };
 
   const handleApprove = async (trackId: number) => {
@@ -241,12 +279,16 @@ const AdminModerationPage = () => {
         reason={reason}
         revisionPointsText={revisionPointsText}
         submitting={submitting}
+        copyrightCheckLoading={copyrightCheckLoading}
+        copyrightCheckResults={copyrightCheckResults}
+        copyrightCheckError={copyrightCheckError}
         onClose={closeTrackDetail}
         onReasonChange={setReason}
         onRevisionPointsChange={setRevisionPointsText}
         onOpenModerationForm={openModerationForm}
         onSubmitModeration={submitModeration}
         onApprove={handleApprove}
+        onCheckCopyright={handleCheckCopyright}
       />
     </div>
   );

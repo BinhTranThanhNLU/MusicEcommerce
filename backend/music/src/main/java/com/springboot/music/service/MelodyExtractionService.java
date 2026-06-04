@@ -2,6 +2,7 @@ package com.springboot.music.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.net.URL;
@@ -27,6 +29,56 @@ public class MelodyExtractionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String PYTHON_API_URL = "http://localhost:5000/api/extract-audio";
 
+    // -------------------------------------------------------------------------
+    // HÀM MỚI: Xử lý trực tiếp MultipartFile (dùng cho luồng Upload mới)
+    // -------------------------------------------------------------------------
+    public List<Double> extractMelodyVector(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File âm thanh không hợp lệ hoặc trống rỗng");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+
+        // Chuyển MultipartFile thành ByteArrayResource để RestTemplate gửi đi trực tiếp từ RAM
+        // Ghi đè getFilename() là bắt buộc vì Python Flask (request.files) cần tên file để nhận diện
+        ByteArrayResource fileAsResource = new ByteArrayResource(file.getBytes()) {
+            @Override
+            public String getFilename() {
+                return file.getOriginalFilename();
+            }
+        };
+
+        body.add("audio", fileAsResource);
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        // Gửi POST request tới cổng 5000
+        ResponseEntity<String> response = restTemplate.postForEntity(PYTHON_API_URL, requestEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+            throw new RuntimeException("Python API trả về lỗi: " + response.getStatusCode());
+        }
+
+        // Parse chuỗi JSON trả về để lấy vector
+        JsonNode rootNode = objectMapper.readTree(response.getBody());
+        if (rootNode.has("error")) {
+            throw new RuntimeException(rootNode.get("error").asText());
+        }
+
+        JsonNode vectorNode = rootNode.get("vector");
+        List<Double> vector = new ArrayList<>();
+        for (JsonNode node : vectorNode) {
+            vector.add(node.asDouble());
+        }
+
+        return vector;
+    }
+
+    // -------------------------------------------------------------------------
+    // HÀM CŨ: Xử lý từ Cloudinary URL (có thể giữ lại hoặc xóa nếu không dùng)
+    // -------------------------------------------------------------------------
     public List<Double> extractVectorFromUrl(String audioUrl) throws Exception {
         Path tempFile = null;
         try {

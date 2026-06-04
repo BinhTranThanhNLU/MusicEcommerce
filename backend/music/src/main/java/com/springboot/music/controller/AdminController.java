@@ -2,19 +2,13 @@ package com.springboot.music.controller;
 
 import com.springboot.music.dto.AdminUserDetailDTO;
 import com.springboot.music.dto.AdminLicenseDTO;
-import com.springboot.music.responsemodel.AdminUserPageResponse;
-import com.springboot.music.responsemodel.AdminUserOrderPageResponse;
-import com.springboot.music.responsemodel.AdminUserTrackPageResponse;
+import com.springboot.music.responsemodel.*;
 import com.springboot.music.dto.AdminOrderWithDetailsDTO;
 import com.springboot.music.dto.AdminDashboardOverviewDTO;
 import com.springboot.music.dto.AdminTopTrackDTO;
-import com.springboot.music.responsemodel.AdminOrderPageResponse;
-import com.springboot.music.responsemodel.AdminLicensePageResponse;
-import com.springboot.music.responsemodel.AudioTrackPageResponse;
 import com.springboot.music.requestmodel.UpdateOrderStatusRequest;
 import com.springboot.music.requestmodel.UpdateCopyrightRequest;
 import com.springboot.music.requestmodel.ModerateAudioTrackRequest;
-import com.springboot.music.responsemodel.CopyrightPageResponse;
 import com.springboot.music.dto.CopyrightInfoDTO;
 import com.springboot.music.dto.AudioTrackDTO;
 import com.springboot.music.service.AdminService;
@@ -65,12 +59,19 @@ public class AdminController {
     }
 
     // ------------------------------ Kiểm duyệt nhạc -----------------------------
+    
     @GetMapping("/tracks/pending")
     @Operation(summary = "Lấy danh sách bài hát đang chờ duyệt")
     public ResponseEntity<AudioTrackPageResponse> getPendingTracks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(adminService.getPendingTracks(page, size));
+    }
+
+    @GetMapping("/tracks/{id}/copyright-check")
+    @Operation(summary = "Kiểm tra bản quyền bằng Vector Giai điệu (KNN Search)")
+    public ResponseEntity<AudioTrackSearchResponse> checkCopyright(@PathVariable @Positive Integer id) {
+        return ResponseEntity.ok(adminService.checkCopyrightByMelody(id));
     }
 
     @GetMapping("/tracks/{id}")

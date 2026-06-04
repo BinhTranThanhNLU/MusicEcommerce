@@ -1,5 +1,6 @@
 package com.springboot.music.service;
 
+import com.springboot.music.document.AudioTrackDocument;
 import com.springboot.music.dto.*;
 import com.springboot.music.entity.AudioTrack;
 import com.springboot.music.entity.AudioTrackModeration;
@@ -29,22 +30,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.elasticsearch.core.query.Query;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
@@ -72,6 +74,8 @@ public class AdminService {
     private final AudioTrackMapper audioTrackMapper;
     private final EmailService emailService;
 
+    private final ElasticsearchOperations elasticsearchOperations;
+
     public AdminService(UserRepository userRepository,
                         UserMapper userMapper,
                         OrderRepository orderRepository,
@@ -81,7 +85,8 @@ public class AdminService {
                         CopyrightInfoRepository copyrightInfoRepository,
                         OrderDetailRepository orderDetailRepository,
                         AudioTrackMapper audioTrackMapper,
-                        EmailService emailService) {
+                        EmailService emailService,
+                        ElasticsearchOperations elasticsearchOperations) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.orderRepository = orderRepository;
@@ -92,6 +97,171 @@ public class AdminService {
         this.orderDetailRepository = orderDetailRepository;
         this.audioTrackMapper = audioTrackMapper;
         this.emailService = emailService;
+        this.elasticsearchOperations = elasticsearchOperations;
+    }
+
+    // ------------------------------ Kiểm duyệt nhạc -----------------------------
+
+    @Transactional(readOnly = true)
+    public AudioTrackSearchResponse checkCopyrightByMelody(Integer audioId) {
+        try {
+            // 1. Validate input
+            if (audioId == null || audioId <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Audio ID không hợp lệ");
+            }
+
+            // 2. Lấy tài liệu của bài hát đang chờ duyệt từ Elasticsearch
+            AudioTrackDocument pendingTrack = elasticsearchOperations.get(audioId.toString(), AudioTrackDocument.class);
+            if (pendingTrack == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài hát với ID: " + audioId);
+            }
+
+            double[] melodyVector = pendingTrack.getMelodyVector();
+            if (melodyVector == null || melodyVector.length == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy dữ liệu vector giai điệu của bài hát này");
+            }
+
+            // 3. Validate vector dimension (dims = 92)
+            if (melodyVector.length != 92) {
+                log.warn("Vector dimension mismatch for audio {}: expected 92, got {}", audioId, melodyVector.length);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "Chiều dài vector không hợp lệ. Audio ID " + audioId + " có " + melodyVector.length + " chiều thay vì 92");
+            }
+
+            // 4. Convert vector an toàn sử dụng JSON library
+            ObjectMapper mapper = new ObjectMapper();
+            String vectorJson = mapper.writeValueAsString(Arrays.asList(
+                    Arrays.stream(melodyVector).boxed().toArray(Double[]::new)
+            ));
+
+            // 5. Tạo query KNN an toàn - tìm top 5 bài giống nhất
+            // Filter: status = 'Approved' và id khác bài hiện tại
+            String queryJson = buildCopyrightCheckQuery(vectorJson, audioId);
+            
+            // 6. Thực thi query Elasticsearch
+            Query query = new StringQuery(queryJson);
+            SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+
+            // 7. Map kết quả trả về với score
+            List<AudioTrackDocument> results = searchHits.stream()
+                    .map(hit -> {
+                        AudioTrackDocument doc = hit.getContent();
+                        doc.setScore(hit.getScore()); // getScore() can be null, setter accepts Float
+                        return doc;
+                    })
+                    .sorted((a, b) -> Float.compare(
+                            b.getScore() != null ? b.getScore() : 0f,
+                            a.getScore() != null ? a.getScore() : 0f
+                    ))
+                    .collect(Collectors.toList());
+
+            log.info("Copyright check for audio {} found {} similar tracks", audioId, results.size());
+            
+            return new AudioTrackSearchResponse(
+                    results, 0, 5, searchHits.getTotalHits(), "copyright-check", "Check for track: " + audioId
+            );
+        } catch (Exception ex) {
+            log.error("Error during copyright check for audio {}: {}", audioId, ex.getMessage(), ex);
+            if (ex instanceof ResponseStatusException rse) {
+                throw rse;
+            }
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi khi kiểm tra bản quyền: " + ex.getMessage());
+        }
+    }
+
+    /**
+     * Xây dựng query KNN an toàn cho Elasticsearch
+     */
+    private String buildCopyrightCheckQuery(String vectorJson, Integer audioId) {
+        return """
+            {
+              "knn": {
+                "field": "melodyVector",
+                "query_vector": %s,
+                "k": 5,
+                "num_candidates": 50,
+                "filter": {
+                  "bool": {
+                    "must_not": [
+                      {"term": {"id": "%s"}}
+                    ],
+                    "must": [
+                      {"term": {"status": "Approved"}}
+                    ]
+                  }
+                }
+              }
+            }
+            """.formatted(vectorJson, audioId.toString());
+    }
+
+
+    @Transactional(readOnly = true)
+    public AudioTrackPageResponse getPendingTracks(int page, int size) {
+        validatePagination(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
+
+        Page<AudioTrack> trackPage = audioTrackRepository.findByStatusIgnoreCase(TRACK_STATUS_PENDING, pageable);
+        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
+
+        return AudioTrackPageResponse.builder()
+                .tracks(tracks)
+                .currentPage(trackPage.getNumber())
+                .totalPages(trackPage.getTotalPages())
+                .totalItems(trackPage.getTotalElements())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AudioTrackDTO getTrackModerationDetail(Integer audioId) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
+    @Transactional
+    public AudioTrackDTO approveTrack(Integer audioId) {
+        return applyModerationDecision(audioId, TRACK_STATUS_APPROVED, null, Collections.emptyList());
+    }
+
+    @Transactional
+    public AudioTrackDTO rejectTrack(Integer audioId, ModerateAudioTrackRequest request) {
+        String reason = normalizeModerationReason(request != null ? request.getReason() : null);
+        return applyModerationDecision(audioId, TRACK_STATUS_REJECTED, reason, Collections.emptyList());
+    }
+
+    @Transactional
+    public AudioTrackDTO requestRevision(Integer audioId, ModerateAudioTrackRequest request) {
+        List<String> revisionPoints = normalizeRevisionPoints(request != null ? request.getRevisionPoints() : null);
+        String reason = request != null ? normalizeOptionalText(request.getReason()) : null;
+        if ((reason == null || reason.isBlank()) && revisionPoints.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất một điểm cần sửa hoặc mô tả lý do");
+        }
+        return applyModerationDecision(audioId, TRACK_STATUS_NEED_REVISION, reason, revisionPoints);
+    }
+
+    // ------------------------------ Helper của Kiểm duyệt nhạc -----------------------------
+
+    private String normalizeModerationReason(String reason) {
+        String normalized = normalizeOptionalText(reason);
+        if (normalized == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống");
+        }
+        return normalized;
+    }
+
+    private List<String> normalizeRevisionPoints(List<String> revisionPoints) {
+        if (revisionPoints == null || revisionPoints.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> normalized = new ArrayList<>();
+        for (String point : revisionPoints) {
+            String value = normalizeOptionalText(point);
+            if (value != null) {
+                normalized.add(value);
+            }
+        }
+        return normalized;
     }
 
     // ------------------------------ Quản lý giấy phép -----------------------------
@@ -170,74 +340,7 @@ public class AdminService {
                 .build();
     }
 
-    // ------------------------------ Kiểm duyệt nhạc -----------------------------
-    @Transactional(readOnly = true)
-    public AudioTrackPageResponse getPendingTracks(int page, int size) {
-        validatePagination(page, size);
-        Pageable pageable = PageRequest.of(page, size, Sort.by("uploadDate").descending());
 
-        Page<AudioTrack> trackPage = audioTrackRepository.findByStatusIgnoreCase(TRACK_STATUS_PENDING, pageable);
-        List<AudioTrackDTO> tracks = audioTrackMapper.toDtoList(trackPage.getContent());
-
-        return AudioTrackPageResponse.builder()
-                .tracks(tracks)
-                .currentPage(trackPage.getNumber())
-                .totalPages(trackPage.getTotalPages())
-                .totalItems(trackPage.getTotalElements())
-                .build();
-    }
-
-    @Transactional(readOnly = true)
-    public AudioTrackDTO getTrackModerationDetail(Integer audioId) {
-        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
-        return audioTrackMapper.toDto(audioTrack);
-    }
-
-    @Transactional
-    public AudioTrackDTO approveTrack(Integer audioId) {
-        return applyModerationDecision(audioId, TRACK_STATUS_APPROVED, null, Collections.emptyList());
-    }
-
-    @Transactional
-    public AudioTrackDTO rejectTrack(Integer audioId, ModerateAudioTrackRequest request) {
-        String reason = normalizeModerationReason(request != null ? request.getReason() : null);
-        return applyModerationDecision(audioId, TRACK_STATUS_REJECTED, reason, Collections.emptyList());
-    }
-
-    @Transactional
-    public AudioTrackDTO requestRevision(Integer audioId, ModerateAudioTrackRequest request) {
-        List<String> revisionPoints = normalizeRevisionPoints(request != null ? request.getRevisionPoints() : null);
-        String reason = request != null ? normalizeOptionalText(request.getReason()) : null;
-        if ((reason == null || reason.isBlank()) && revisionPoints.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất một điểm cần sửa hoặc mô tả lý do");
-        }
-        return applyModerationDecision(audioId, TRACK_STATUS_NEED_REVISION, reason, revisionPoints);
-    }
-
-    // ------------------------------ Helper của Kiểm duyệt nhạc -----------------------------
-
-    private String normalizeModerationReason(String reason) {
-        String normalized = normalizeOptionalText(reason);
-        if (normalized == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống");
-        }
-        return normalized;
-    }
-
-    private List<String> normalizeRevisionPoints(List<String> revisionPoints) {
-        if (revisionPoints == null || revisionPoints.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<String> normalized = new ArrayList<>();
-        for (String point : revisionPoints) {
-            String value = normalizeOptionalText(point);
-            if (value != null) {
-                normalized.add(value);
-            }
-        }
-        return normalized;
-    }
 
     // ------------------------------ Quản lý User -----------------------------
 

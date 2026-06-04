@@ -885,6 +885,29 @@ INSERT INTO `user` VALUES (11, 'usera@gmail.com', '$2a$10$p4vJJ1iLfQfZGgwQ6dkBcu
 INSERT INTO `user` VALUES (12, '22130030@st.hcmuaf.edu.vn', '$2a$10$PJtR69Rvt0GXLsO8hKekhOONMRIWd7xqaER/WuZITS8BhGK22nrIS', 'congle', NULL, 3, 1, 1, 'local', NULL, '2026-05-07 06:46:33', NULL);
 
 -- ----------------------------
+-- Table structure for email_verification_otp
+-- ----------------------------
+DROP TABLE IF EXISTS `email_verification_otp`;
+CREATE TABLE `email_verification_otp`  (
+  `otp_id` int(11) NOT NULL AUTO_INCREMENT,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NOT NULL,
+  `otp_code` varchar(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_vietnamese_ci NOT NULL COMMENT 'Mã OTP 6 số',
+  `attempts` int(11) NOT NULL DEFAULT 0 COMMENT 'Số lần nhập sai',
+  `max_attempts` int(11) NOT NULL DEFAULT 5 COMMENT 'Tối đa số lần nhập sai',
+  `created_at` datetime NOT NULL COMMENT 'Thời gian tạo OTP',
+  `expires_at` datetime NOT NULL COMMENT 'Thời gian hết hạn OTP',
+  `verified_at` datetime NULL DEFAULT NULL COMMENT 'Thời gian xác minh thành công',
+  `is_verified` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Trạng thái xác minh',
+  PRIMARY KEY (`otp_id`) USING BTREE,
+  INDEX `email`(`email`) USING BTREE,
+  INDEX `created_at`(`created_at`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_vietnamese_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of email_verification_otp
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for user_library
 -- ----------------------------
 DROP TABLE IF EXISTS `user_library`;

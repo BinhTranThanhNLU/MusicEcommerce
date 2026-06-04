@@ -5,17 +5,25 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.springboot.music.dto.UserDTO;
+import com.springboot.music.entity.EmailVerificationOtp;
 import com.springboot.music.entity.Role;
 import com.springboot.music.entity.User;
 import com.springboot.music.exception.EmailAlreadyExistsException;
 import com.springboot.music.exception.InvalidCredentialsException;
 import com.springboot.music.exception.InvalidRoleException;
 import com.springboot.music.mapper.UserMapper;
+import com.springboot.music.repository.EmailVerificationOtpRepository;
 import com.springboot.music.repository.RoleRepository;
 import com.springboot.music.repository.UserRepository;
 import com.springboot.music.requestmodel.RegisterRequest;
+import com.springboot.music.requestmodel.RegisterWithOtpRequest;
+import com.springboot.music.requestmodel.SendEmailOtpRequest;
+import com.springboot.music.requestmodel.VerifyEmailOtpRequest;
 import com.springboot.music.responsemodel.LoginResponse;
+import com.springboot.music.responsemodel.SendOtpResponse;
+import com.springboot.music.responsemodel.VerifyOtpResponse;
 import com.springboot.music.security.JwtService;
+import com.springboot.music.util.OtpUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,19 +41,233 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserMapper userMapper;
     private final EmailService emailService;
+    private final EmailVerificationOtpRepository emailVerificationOtpRepository;
 
     @Value("${app.google.client-id}")
     private String googleClientId;
 
+    @Value("${app.otp.expiry-minutes:5}")
+    private Integer otpExpiryMinutes;
+
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder, JwtService jwtService, UserMapper userMapper,
-                       EmailService emailService) {
+                       EmailService emailService, EmailVerificationOtpRepository emailVerificationOtpRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userMapper = userMapper;
         this.emailService = emailService;
+        this.emailVerificationOtpRepository = emailVerificationOtpRepository;
+    }
+
+    // Bước 1: Gửi OTP tới email
+    public SendOtpResponse sendEmailVerificationOtp(SendEmailOtpRequest request) {
+        // 1. Kiểm tra email đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
+        }
+
+        // 2. Tạo OTP mới
+        String otp = OtpUtil.generateOtp();
+
+        // 3. Xóa OTP cũ nếu có
+        try {
+            var oldOtp = emailVerificationOtpRepository.findFirstByEmailOrderByCreatedAtDesc(request.getEmail());
+            if (oldOtp.isPresent()) {
+                emailVerificationOtpRepository.delete(oldOtp.get());
+            }
+        } catch (Exception e) {
+            // Ignore if old OTP doesn't exist
+        }
+
+        // 4. Lưu OTP vào database
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(otpExpiryMinutes);
+        EmailVerificationOtp newOtp = EmailVerificationOtp.builder()
+                .email(request.getEmail())
+                .otpCode(otp)
+                .attempts(0)
+                .maxAttempts(5)
+                .createdAt(LocalDateTime.now())
+                .expiresAt(expiresAt)
+                .isVerified(false)
+                .build();
+
+        emailVerificationOtpRepository.save(newOtp);
+
+        // 5. Gửi OTP tới email
+        emailService.sendEmailVerificationOtp(request.getEmail(), otp, otpExpiryMinutes);
+
+        return new SendOtpResponse(
+                "Mã OTP đã được gửi tới email của bạn",
+                request.getEmail(),
+                otpExpiryMinutes
+        );
+    }
+
+    // Bước 2: Xác minh OTP và tạo tài khoản
+    @Transactional
+    public VerifyOtpResponse verifyEmailOtpAndRegister(VerifyEmailOtpRequest verifyRequest, SendEmailOtpRequest registerRequest) {
+        // 1. Lấy OTP từ database
+        var otpRecord = emailVerificationOtpRepository.findFirstByEmailOrderByCreatedAtDesc(verifyRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã OTP. Vui lòng yêu cầu gửi lại."));
+
+        // 2. Kiểm tra OTP
+        if (otpRecord.isExpired()) {
+            throw new RuntimeException("Mã OTP đã hết hạn. Vui lòng yêu cầu lại.");
+        }
+
+        if (otpRecord.isMaxAttemptsExceeded()) {
+            throw new RuntimeException("Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã OTP mới.");
+        }
+
+        if (!otpRecord.getOtpCode().equals(verifyRequest.getOtp())) {
+            otpRecord.setAttempts(otpRecord.getAttempts() + 1);
+            emailVerificationOtpRepository.save(otpRecord);
+            int remainingAttempts = otpRecord.getMaxAttempts() - otpRecord.getAttempts();
+            throw new RuntimeException("Mã OTP không đúng. Còn " + remainingAttempts + " lần thử.");
+        }
+
+        // 3. Đánh dấu OTP là đã xác minh
+        otpRecord.setIsVerified(true);
+        otpRecord.setVerifiedAt(LocalDateTime.now());
+        emailVerificationOtpRepository.save(otpRecord);
+
+        // 4. Tạo tài khoản mới
+        // Kiểm tra email đã tồn tại chưa (double check)
+        if (userRepository.findByEmail(verifyRequest.getEmail()) != null) {
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
+        }
+
+        // Xác định Role
+        String requestedRole = registerRequest.getRole() != null ? registerRequest.getRole().toLowerCase() : "user";
+        if (!requestedRole.equals("user") && !requestedRole.equals("artist")) {
+            requestedRole = "user";
+        }
+
+        Role userRole = roleRepository.findByName(requestedRole);
+        if (userRole == null) {
+            throw new InvalidRoleException("Role '" + requestedRole + "' not found in database");
+        }
+
+        // Tạo User mới
+        User user = new User();
+        user.setName(registerRequest.getName());
+        user.setEmail(verifyRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setAuthProvider("local");
+        user.setIsActive(true);
+        user.setIsEmailVerified(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setRole(userRole);
+
+        userRepository.save(user);
+
+        return new VerifyOtpResponse(
+                "Email xác minh thành công! Tài khoản đã được tạo.",
+                true,
+                verifyRequest.getEmail()
+        );
+    }
+
+    // Xác minh OTP và tạo tài khoản (phiên bản kết hợp)
+    @Transactional
+    public VerifyOtpResponse verifyEmailOtpAndRegister(RegisterWithOtpRequest request) {
+        // 1. Lấy OTP từ database
+        var otpRecord = emailVerificationOtpRepository.findFirstByEmailOrderByCreatedAtDesc(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mã OTP. Vui lòng yêu cầu gửi lại."));
+
+        // 2. Kiểm tra OTP
+        if (otpRecord.isExpired()) {
+            throw new RuntimeException("Mã OTP đã hết hạn. Vui lòng yêu cầu lại.");
+        }
+
+        if (otpRecord.isMaxAttemptsExceeded()) {
+            throw new RuntimeException("Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã OTP mới.");
+        }
+
+        if (!otpRecord.getOtpCode().equals(request.getOtp())) {
+            otpRecord.setAttempts(otpRecord.getAttempts() + 1);
+            emailVerificationOtpRepository.save(otpRecord);
+            int remainingAttempts = otpRecord.getMaxAttempts() - otpRecord.getAttempts();
+            throw new RuntimeException("Mã OTP không đúng. Còn " + remainingAttempts + " lần thử.");
+        }
+
+        // 3. Đánh dấu OTP là đã xác minh
+        otpRecord.setIsVerified(true);
+        otpRecord.setVerifiedAt(LocalDateTime.now());
+        emailVerificationOtpRepository.save(otpRecord);
+
+        // 4. Tạo tài khoản mới
+        // Kiểm tra email đã tồn tại chưa (double check)
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
+        }
+
+        // Xác định Role
+        String requestedRole = request.getRole() != null ? request.getRole().toLowerCase() : "user";
+        if (!requestedRole.equals("user") && !requestedRole.equals("artist")) {
+            requestedRole = "user";
+        }
+
+        Role userRole = roleRepository.findByName(requestedRole);
+        if (userRole == null) {
+            throw new InvalidRoleException("Role '" + requestedRole + "' not found in database");
+        }
+
+        // Tạo User mới
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setAuthProvider("local");
+        user.setIsActive(true);
+        user.setIsEmailVerified(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setRole(userRole);
+
+        userRepository.save(user);
+
+        return new VerifyOtpResponse(
+                "Email xác minh thành công! Tài khoản đã được tạo.",
+                true,
+                request.getEmail()
+        );
+    }
+
+    // Đăng ký (phương thức cũ - giữ lại cho tương thích)
+    public void register(RegisterRequest request) {
+        // 1. Kiểm tra email đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
+        }
+
+        // 2. Xác định Role (Chỉ cho phép user hoặc artist)
+        String requestedRole = request.getRole() != null ? request.getRole().toLowerCase() : "user";
+        if (!requestedRole.equals("user") && !requestedRole.equals("artist")) {
+            requestedRole = "user"; // Nếu gửi bậy bạ, mặc định cho về user
+        }
+
+        Role userRole = roleRepository.findByName(requestedRole);
+        if (userRole == null) {
+            throw new InvalidRoleException("Role '" + requestedRole + "' not found in database");
+        }
+
+        // 3. Tạo User mới
+        User user = new User();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword())); // Mã hóa mật khẩu
+        user.setAuthProvider("local");
+        user.setIsActive(true);
+        user.setIsEmailVerified(true); // tạm thời cho đã xác minh email luôn để dễ test, sau này sẽ thêm chức năng gửi mail xác minh
+        user.setCreatedAt(LocalDateTime.now());
+
+        // Gán Role đã xác định
+        user.setRole(userRole);
+
+        // 4. Lưu vào DB
+        userRepository.save(user);
     }
 
     // Đăng nhập
@@ -133,40 +355,7 @@ public class AuthService {
         }
     }
 
-    // Đăng ký
-    public void register(RegisterRequest request) {
-        // 1. Kiểm tra email đã tồn tại chưa
-        if (userRepository.findByEmail(request.getEmail()) != null) {
-            throw new EmailAlreadyExistsException("Email đã được đăng ký");
-        }
 
-        // 2. Xác định Role (Chỉ cho phép user hoặc artist)
-        String requestedRole = request.getRole() != null ? request.getRole().toLowerCase() : "user";
-        if (!requestedRole.equals("user") && !requestedRole.equals("artist")) {
-            requestedRole = "user"; // Nếu gửi bậy bạ, mặc định cho về user
-        }
-
-        Role userRole = roleRepository.findByName(requestedRole);
-        if (userRole == null) {
-            throw new InvalidRoleException("Role '" + requestedRole + "' not found in database");
-        }
-
-        // 3. Tạo User mới
-        User user = new User();
-        user.setName(request.getName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // Mã hóa mật khẩu
-        user.setAuthProvider("local");
-        user.setIsActive(true);
-        user.setIsEmailVerified(true); // tạm thời cho đã xác minh email luôn để dễ test, sau này sẽ thêm chức năng gửi mail xác minh
-        user.setCreatedAt(LocalDateTime.now());
-
-        // Gán Role đã xác định
-        user.setRole(userRole);
-
-        // 4. Lưu vào DB
-        userRepository.save(user);
-    }
 
     // Quên mật khẩu (Tạo token và "gửi mail")
     public void forgotPassword(String email) {

@@ -178,6 +178,54 @@ public class EmailService {
                 </html>
                 """, resetLink);
     }
+
+    // Gửi OTP xác minh email
+    public void sendEmailVerificationOtp(String toEmail, String otp, int expiresInMinutes) {
+        try {
+            JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
+            if (mailSender == null) {
+                log.warn("Mail sender is not configured, skip sending email verification OTP");
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Mã xác minh email MusicCommerce");
+            helper.setText(buildEmailVerificationOtpHtml(otp, expiresInMinutes), true);
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send email verification OTP: " + e.getMessage());
+        }
+    }
+
+    private String buildEmailVerificationOtpHtml(String otp, int expiresInMinutes) {
+        return String.format("""
+                <html>
+                <body style="font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 24px;">
+                    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 32px; border: 1px solid #e5e7eb;">
+                        <h2 style="margin-top: 0; color: #111827;">Xác minh email của bạn</h2>
+                        <p style="color: #374151; line-height: 1.6;">
+                            Cảm ơn bạn đã đăng ký tài khoản MusicCommerce. 
+                            Để hoàn tất quá trình đăng ký, vui lòng xác minh email của bạn bằng mã OTP dưới đây.
+                        </p>
+                        <p style="margin: 32px 0; text-align: center;">
+                            <span style="display: inline-block; background: #f3f4f6; padding: 16px 24px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; color: #1f2937; letter-spacing: 2px;">%s</span>
+                        </p>
+                        <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+                            Mã OTP này sẽ hết hạn sau <strong>%d phút</strong>.
+                        </p>
+                        <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+                            Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email này.
+                        </p>
+                    </div>
+                </body>
+                </html>
+                """, otp, expiresInMinutes);
+    }
 }
 
 

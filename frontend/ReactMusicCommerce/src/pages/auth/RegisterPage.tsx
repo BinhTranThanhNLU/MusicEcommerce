@@ -1,8 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import PageTitle from "../../components/utils/PageTitle";
 import { useState } from "react";
-import type { RegisterRequest } from "../../requestmodel/RegisterRequest";
-import { registerUser } from "../../apis/authApi";
+import {
+  sendEmailVerificationOtp,
+  verifyEmailOtpAndRegister,
+} from "../../apis/authApi";
+import type { SendEmailOtpRequest } from "../../requestmodel/SendEmailOtpRequest";
+import type { RegisterWithOtpRequest } from "../../requestmodel/RegisterWithOtpRequest";
 import Swal from "sweetalert2";
 import { parseApiError } from "../../utils/apiError";
 
@@ -108,42 +112,85 @@ const RegisterPage = () => {
     if (hasError) {
       setFieldErrors(newFieldErrors);
       setError("Vui lòng kiểm tra lại các thông tin chưa hợp lệ.");
-      return; // Dừng lại ngay lập tức, không gọi API
+      return;
     }
 
-    // Check điều khoản dịch vụ riêng biệt
     if (!termsAccepted) {
       setError("Bạn phải đồng ý với Điều khoản dịch vụ và Chính sách bảo mật để tiếp tục.");
       return;
     }
-  
 
     setIsLoading(true);
 
     try {
-      // 1. Tạo cục data
-      const requestData: RegisterRequest = {
+      const requestData: SendEmailOtpRequest = {
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
         role: formData.role,
       };
 
-      // 2. Gọi API
-      await registerUser(requestData);
+      await sendEmailVerificationOtp(requestData);
 
-      // 3. Xử lý khi thành công
-      Swal.fire({
+      let verified = false;
+
+      while (!verified) {
+        const otpResult = await Swal.fire({
+          icon: "question",
+          title: "Xác minh email",
+          text: `Mã OTP 6 số đã được gửi tới ${formData.email}.`,
+          input: "text",
+          inputLabel: "Nhập mã OTP",
+          inputPlaceholder: "123456",
+          inputAttributes: {
+            inputmode: "numeric",
+            maxlength: "6",
+            autocomplete: "one-time-code",
+          },
+          showCancelButton: true,
+          confirmButtonText: "Xác minh",
+          cancelButtonText: "Hủy",
+          allowOutsideClick: false,
+          inputValidator: (value) => {
+            if (!/^\d{6}$/.test(value ?? "")) {
+              return "OTP phải là 6 chữ số";
+            }
+
+            return undefined;
+          },
+        });
+
+        if (!otpResult.isConfirmed || typeof otpResult.value !== "string") {
+          return;
+        }
+
+        try {
+          const verifyRequest: RegisterWithOtpRequest = {
+            ...requestData,
+            otp: otpResult.value.trim(),
+          };
+
+          await verifyEmailOtpAndRegister(verifyRequest);
+          verified = true;
+        } catch (err: unknown) {
+          const parsed = parseApiError(err, "Xác minh OTP thất bại. Vui lòng thử lại!");
+          await Swal.fire({
+            icon: "error",
+            title: "OTP không hợp lệ",
+            text: parsed.message,
+          });
+        }
+      }
+
+      await Swal.fire({
         icon: "success",
         title: "Thành công!",
-        text: "Tài khoản của bạn đã được tạo thành công.",
+        text: "Email của bạn đã được xác minh và tài khoản đã được tạo.",
         confirmButtonText: "Đăng nhập ngay",
         confirmButtonColor: "#007bff",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate("/login");
-        }
       });
+
+      navigate("/login");
     } catch (err: unknown) {
       const parsed = parseApiError(err, "Đăng ký thất bại. Vui lòng thử lại!");
       const mappedFieldErrors = mapRegisterFieldErrors(parsed.fieldErrors);
@@ -305,11 +352,13 @@ const RegisterPage = () => {
 
                       <div className="form-check mb-4">
                         <input
+                          checked={termsAccepted}
                           className="form-check-input"
                           type="checkbox"
                           id="termsCheck"
                           name="termsCheck"
                           required
+                          onChange={(event) => setTermsAccepted(event.target.checked)}
                         />
                         <label
                           className="form-check-label"

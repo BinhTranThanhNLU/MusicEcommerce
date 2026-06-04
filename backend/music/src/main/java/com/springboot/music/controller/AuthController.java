@@ -2,6 +2,8 @@ package com.springboot.music.controller;
 
 import com.springboot.music.requestmodel.*;
 import com.springboot.music.responsemodel.LoginResponse;
+import com.springboot.music.responsemodel.SendOtpResponse;
+import com.springboot.music.responsemodel.VerifyOtpResponse;
 import com.springboot.music.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +40,19 @@ public class AuthController {
         return ResponseEntity.ok("User registered successfully");
     }
 
+    @PostMapping("/send-otp")
+    public ResponseEntity<SendOtpResponse> sendEmailVerificationOtp(@Valid @RequestBody SendEmailOtpRequest request) {
+        SendOtpResponse response = authService.sendEmailVerificationOtp(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/verify-otp-and-register")
+    public ResponseEntity<VerifyOtpResponse> verifyEmailOtpAndRegister(
+            @Valid @RequestBody RegisterWithOtpRequest request) {
+        VerifyOtpResponse response = authService.verifyEmailOtpAndRegister(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
@@ -50,3 +65,6 @@ public class AuthController {
         return ResponseEntity.ok("Password has been reset successfully. You can now login.");
     }
 }
+
+
+

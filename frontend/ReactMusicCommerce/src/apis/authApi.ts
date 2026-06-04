@@ -3,6 +3,10 @@ import type { LoginRequest } from "../requestmodel/LoginRequest";
 import type { GoogleLoginRequest } from "../requestmodel/GoogleLoginRequest";
 import type { LoginResponse } from "../responsemodel/LoginResponse";
 import type { RegisterRequest } from "../requestmodel/RegisterRequest";
+import type { SendEmailOtpRequest } from "../requestmodel/SendEmailOtpRequest";
+import type { RegisterWithOtpRequest } from "../requestmodel/RegisterWithOtpRequest";
+import type { SendOtpResponse } from "../responsemodel/SendOtpResponse";
+import type { VerifyOtpResponse } from "../responsemodel/VerifyOtpResponse";
 import type { ForgotPasswordRequest } from "../requestmodel/ForgotPasswordRequest";
 import type { ResetPasswordRequest } from "../requestmodel/ResetPasswordRequest";
 
@@ -18,6 +22,20 @@ export const loginWithGoogleToken = async (data: GoogleLoginRequest): Promise<Lo
 
 export const registerUser = async (data: RegisterRequest): Promise<string> => {
     const response = await axiosClient.post<string>("/auth/register", data);
+    return response.data;
+};
+
+export const sendEmailVerificationOtp = async (
+    data: SendEmailOtpRequest,
+): Promise<SendOtpResponse> => {
+    const response = await axiosClient.post<SendOtpResponse>("/auth/send-otp", data);
+    return response.data;
+};
+
+export const verifyEmailOtpAndRegister = async (
+    data: RegisterWithOtpRequest,
+): Promise<VerifyOtpResponse> => {
+    const response = await axiosClient.post<VerifyOtpResponse>("/auth/verify-otp-and-register", data);
     return response.data;
 };
 

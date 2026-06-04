@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { SearchType } from "../../models/Search";
 import type { GenreModel } from "../../models/GenreModel";
 import type { MoodModel } from "../../models/MoodModel";
@@ -55,6 +55,10 @@ const SearchResultHeader = ({
   const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
   const [melodyFile, setMelodyFile] = useState<File | null>(null);
 
+  // cho chức năng thu âm
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
   useEffect(() => {
     setKeyword(query);
   }, [query]);
@@ -62,6 +66,20 @@ const SearchResultHeader = ({
   useEffect(() => {
     setLocalFilters(filters);
   }, [filters]);
+
+  // Cleanup stream micro nếu component bị unmount trong lúc đang thu âm
+  useEffect(() => {
+    return () => {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        mediaRecorderRef.current.stream
+          .getTracks()
+          .forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +103,58 @@ const SearchResultHeader = ({
     setLocalFilters((prev) => ({ ...prev, [key]: value }));
   };
 
+  const startRecording = async () => {
+    try {
+      // 1. Xin quyền truy cập micro
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      // 2. Thu thập các mảnh dữ liệu âm thanh
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      // 3. Xử lý khi kết thúc ghi âm
+      recorder.onstop = () => {
+        // Gom các chunk thành Blob (định dạng webm phổ biến trên trình duyệt)
+        const audioBlob = new Blob(chunks, { type: "audio/webm" });
+
+        // Chuyển đổi Blob thành File object để khớp với cấu trúc API hiện tại
+        const file = new File(
+          [audioBlob],
+          `mic-recording-${new Date().getTime()}.webm`,
+          { type: "audio/webm" },
+        );
+
+        setMelodyFile(file);
+
+        // Tắt stream để tắt đèn báo micro màu đỏ trên tab trình duyệt
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      // Bắt đầu thu âm
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Lỗi truy cập micro:", error);
+      alert(
+        "Không thể truy cập micro. Vui lòng kiểm tra quyền trên trình duyệt.",
+      );
+    }
+  };
+
+  const stopRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
   return (
     <section
       id="search-results-header"
@@ -102,11 +172,12 @@ const SearchResultHeader = ({
                 <h2>Kết quả tìm kiếm</h2>
                 <p>
                   Chúng tôi tìm thấy{" "}
-                  <span className="results-number">{totalResults}</span> kết quả theo{" "}
-                  <span className="search-term">"{query || "..."}"</span>
+                  <span className="results-number">{totalResults}</span> kết quả
+                  theo <span className="search-term">"{query || "..."}"</span>
                 </p>
                 <p className="mb-0 small text-muted">
-                  Kiểu tìm kiếm hiện tại: <strong>{searchTypeLabel[searchType]}</strong>
+                  Kiểu tìm kiếm hiện tại:{" "}
+                  <strong>{searchTypeLabel[searchType]}</strong>
                 </p>
               </div>
             </div>
@@ -116,7 +187,7 @@ const SearchResultHeader = ({
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Tim kiem tren trang ket qua..."
+                    placeholder="Tìm kiếm trên trang kết quả ..."
                     name="search"
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
@@ -130,11 +201,34 @@ const SearchResultHeader = ({
             </div>
           </div>
 
-          <form className="search-filters-panel mt-4" onSubmit={handleFilterSubmit}>
+          {/* Form Filter và Tìm kiếm Giai điệu */}
+          <form
+            className="search-filters-panel mt-4"
+            onSubmit={handleFilterSubmit}
+          >
             <div className="row g-3 mb-3 align-items-end">
               <div className="col-12 col-md-8">
-                <label className="form-label mb-1">Tìm theo giai điệu (audio file)</label>
+                <label className="form-label mb-1">
+                  Tìm theo giai điệu (Upload file hoặc Thu âm)
+                </label>
                 <div className="input-group">
+                  {/* NÚT THU ÂM */}
+                  <button
+                    type="button"
+                    className={`btn ${isRecording ? "btn-danger" : "btn-outline-secondary"}`}
+                    onClick={isRecording ? stopRecording : startRecording}
+                    title={isRecording ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
+                  >
+                    {isRecording ? (
+                      <>
+                        <i className="bi bi-stop-circle-fill me-1"></i>
+                        Đang thu...
+                      </>
+                    ) : (
+                      <i className="bi bi-mic-fill"></i>
+                    )}
+                  </button>
+
                   <input
                     type="file"
                     className="form-control"
@@ -143,17 +237,20 @@ const SearchResultHeader = ({
                       const file = event.target.files?.[0] ?? null;
                       setMelodyFile(file);
                     }}
+                    disabled={isRecording} // Disable nút chọn file khi đang thu âm
                   />
+
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={handleMelodySearchClick}
-                    disabled={!melodyFile}
+                    disabled={!melodyFile || isRecording}
                   >
                     Tìm giai điệu
                   </button>
                 </div>
               </div>
+
               <div className="col-12 col-md-4">
                 {melodyFile && (
                   <p className="small text-muted mb-0">
@@ -163,15 +260,18 @@ const SearchResultHeader = ({
               </div>
             </div>
 
+            {/* Các Select Filters */}
             <div className="row g-3">
               <div className="col-12 col-md-6 col-xl-2">
                 <label className="form-label mb-1">Trạng thái</label>
                 <select
                   className="form-select"
                   value={localFilters.status}
-                  onChange={(event) => updateFilter("status", event.target.value)}
+                  onChange={(event) =>
+                    updateFilter("status", event.target.value)
+                  }
                 >
-                  <option value="">Tat ca</option>
+                  <option value="">Tất cả</option>
                   <option value="Approved">Approved</option>
                   <option value="Pending">Pending</option>
                   <option value="Rejected">Rejected</option>
@@ -183,9 +283,11 @@ const SearchResultHeader = ({
                 <select
                   className="form-select"
                   value={localFilters.genre}
-                  onChange={(event) => updateFilter("genre", event.target.value)}
+                  onChange={(event) =>
+                    updateFilter("genre", event.target.value)
+                  }
                 >
-                  <option value="">Tat ca</option>
+                  <option value="">Tất cả</option>
                   {genres.map((genre) => (
                     <option key={genre.id} value={genre.name}>
                       {genre.name}
@@ -201,7 +303,7 @@ const SearchResultHeader = ({
                   value={localFilters.mood}
                   onChange={(event) => updateFilter("mood", event.target.value)}
                 >
-                  <option value="">Tat ca</option>
+                  <option value="">Tất cả</option>
                   {moods.map((mood) => (
                     <option key={mood.id} value={mood.name}>
                       {mood.name}
@@ -215,9 +317,11 @@ const SearchResultHeader = ({
                 <select
                   className="form-select"
                   value={localFilters.theme}
-                  onChange={(event) => updateFilter("theme", event.target.value)}
+                  onChange={(event) =>
+                    updateFilter("theme", event.target.value)
+                  }
                 >
-                  <option value="">Tat ca</option>
+                  <option value="">Tất cả</option>
                   {themes.map((theme) => (
                     <option key={theme.id} value={theme.name}>
                       {theme.name}
@@ -235,10 +339,11 @@ const SearchResultHeader = ({
                   className="form-control"
                   placeholder="0"
                   value={localFilters.minPrice}
-                  onChange={(event) => updateFilter("minPrice", event.target.value)}
+                  onChange={(event) =>
+                    updateFilter("minPrice", event.target.value)
+                  }
                 />
               </div>
-
               <div className="col-12 col-md-6 col-xl-2">
                 <label className="form-label mb-1">Đến giá</label>
                 <input
@@ -246,9 +351,11 @@ const SearchResultHeader = ({
                   min={0}
                   step="1000"
                   className="form-control"
-                  placeholder="Khong gioi han"
+                  placeholder="Không giới hạn"
                   value={localFilters.maxPrice}
-                  onChange={(event) => updateFilter("maxPrice", event.target.value)}
+                  onChange={(event) =>
+                    updateFilter("maxPrice", event.target.value)
+                  }
                 />
               </div>
             </div>

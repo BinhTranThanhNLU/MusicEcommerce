@@ -169,33 +169,6 @@ public class AdminService {
         }
     }
 
-    /**
-     * Xây dựng query KNN an toàn cho Elasticsearch
-     */
-    private String buildCopyrightCheckQuery(String vectorJson, Integer audioId) {
-        return """
-            {
-              "knn": {
-                "field": "melodyVector",
-                "query_vector": %s,
-                "k": 5,
-                "num_candidates": 50,
-                "filter": {
-                  "bool": {
-                    "must_not": [
-                      {"term": {"id": "%s"}}
-                    ],
-                    "must": [
-                      {"term": {"status": "Approved"}}
-                    ]
-                  }
-                }
-              }
-            }
-            """.formatted(vectorJson, audioId.toString());
-    }
-
-
     @Transactional(readOnly = true)
     public AudioTrackPageResponse getPendingTracks(int page, int size) {
         validatePagination(page, size);
@@ -240,6 +213,29 @@ public class AdminService {
     }
 
     // ------------------------------ Helper của Kiểm duyệt nhạc -----------------------------
+
+    private String buildCopyrightCheckQuery(String vectorJson, Integer audioId) {
+        return """
+            {
+              "knn": {
+                "field": "melodyVector",
+                "query_vector": %s,
+                "k": 5,
+                "num_candidates": 50,
+                "filter": {
+                  "bool": {
+                    "must_not": [
+                      {"term": {"id": "%s"}}
+                    ],
+                    "must": [
+                      {"term": {"status": "Approved"}}
+                    ]
+                  }
+                }
+              }
+            }
+            """.formatted(vectorJson, audioId.toString());
+    }
 
     private String normalizeModerationReason(String reason) {
         String normalized = normalizeOptionalText(reason);
@@ -730,6 +726,36 @@ public class AdminService {
 
     // ------------------------------ Dashboard & Thống kê -----------------------------
 
+    private AudioTrackDTO applyModerationDecision(Integer audioId, String decision, String reason, List<String> revisionPoints) {
+        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
+        String moderatedBy = resolveCurrentModeratorName();
+
+        ensureModerationTransitionAllowed(audioTrack, decision);
+
+        audioTrack.setStatus(decision);
+        audioTrackRepository.save(audioTrack);
+
+        // Luôn tạo một bản ghi moderation mới để lưu lịch sử đánh giá (không ghi đè bản ghi cũ)
+        AudioTrackModeration moderation = AudioTrackModeration.builder()
+                .audioTrack(audioTrack)
+                .decision(decision)
+                .rejectionReason(reason)
+                .revisionPointsJson(serializeRevisionPoints(revisionPoints))
+                .moderatedBy(moderatedBy)
+                .moderatedAt(LocalDateTime.now())
+                .build();
+        audioTrackModerationRepository.save(moderation);
+        log.info("Admin {} created moderation record for track {} -> {}", moderatedBy, audioId, decision);
+
+        if (audioTrack.getModerationHistory() != null) {
+            audioTrack.getModerationHistory().add(moderation);
+        }
+
+        notifyArtist(audioTrack, decision, reason, revisionPoints);
+
+        return audioTrackMapper.toDto(audioTrack);
+    }
+
     @Transactional(readOnly = true)
     public AdminDashboardOverviewDTO getDashboardOverview(String period, int points) {
         String normalizedPeriod = normalizePeriod(period);
@@ -760,36 +786,6 @@ public class AdminService {
                 .licenseRevenueDistribution(licenseRevenueDistribution)
                 .topSellingTracks(topSellingTracks)
                 .build();
-    }
-
-    private AudioTrackDTO applyModerationDecision(Integer audioId, String decision, String reason, List<String> revisionPoints) {
-        AudioTrack audioTrack = getAudioTrackByIdOrThrow(audioId);
-        String moderatedBy = resolveCurrentModeratorName();
-
-        ensureModerationTransitionAllowed(audioTrack, decision);
-
-        audioTrack.setStatus(decision);
-        audioTrackRepository.save(audioTrack);
-
-        // Luôn tạo một bản ghi moderation mới để lưu lịch sử đánh giá (không ghi đè bản ghi cũ)
-        AudioTrackModeration moderation = AudioTrackModeration.builder()
-                .audioTrack(audioTrack)
-                .decision(decision)
-                .rejectionReason(reason)
-                .revisionPointsJson(serializeRevisionPoints(revisionPoints))
-                .moderatedBy(moderatedBy)
-                .moderatedAt(LocalDateTime.now())
-                .build();
-        audioTrackModerationRepository.save(moderation);
-        log.info("Admin {} created moderation record for track {} -> {}", moderatedBy, audioId, decision);
-
-        if (audioTrack.getModerationHistory() != null) {
-            audioTrack.getModerationHistory().add(moderation);
-        }
-
-        notifyArtist(audioTrack, decision, reason, revisionPoints);
-
-        return audioTrackMapper.toDto(audioTrack);
     }
 
     @Transactional(readOnly = true)

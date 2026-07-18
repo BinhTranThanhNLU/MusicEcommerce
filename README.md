@@ -132,24 +132,24 @@ The application uses MySQL for transactional data and Elasticsearch for search i
 
 | API Group | Purpose |
 |---|---|
-| `api/auth` | Authentication, login, registration, token-based access |
-| `api/users` | User profile and account management |
-| `api/audio-tracks` | Track catalog operations |
-| `api/artists` | Artist workflows and catalog management |
-| `api/cart` | Cart management |
-| `api/orders` | Purchase and order management |
-| `api/reviews` | Track reviews and ratings |
-| `api/genres` | Genre catalog |
-| `api/moods` | Mood catalog |
-| `api/themes` | Theme catalog |
-| `api/admin` | Administrative operations and moderation |
-| `api/search` | Intelligent search endpoints |
-| `api/admin/sync` | Search index synchronization |
+| `/api/auth` | Authentication, login, registration, token-based access |
+| `/api/users` | User profile and account management |
+| `/api/audio-tracks` | Track catalog operations |
+| `/api/artists` | Artist workflows and catalog management |
+| `/api/cart` | Cart management |
+| `/api/orders` | Purchase and order management |
+| `/api/reviews` | Track reviews and ratings |
+| `/api/genres` | Genre catalog |
+| `/api/moods` | Mood catalog |
+| `/api/themes` | Theme catalog |
+| `/api/admin` | Administrative operations and moderation |
+| `/api/search` | Intelligent search endpoints |
+| `/api/admin/sync` | Search index synchronization |
 
 ## Search Pipeline
 
 1. The frontend sends search requests from the header search box or search results page.
-2. When no advanced filters are active, the frontend uses the hybrid search flow exposed by `api/search/hybrid`.
+2. When no advanced filters are active, the frontend uses the hybrid search flow exposed by `/api/search/hybrid`.
 3. The backend queries Elasticsearch for full-text, fuzzy, and autocomplete-style lexical retrieval.
 4. For semantic search, the backend calls the Python AI service to generate Vietnamese embeddings.
 5. Search documents are synchronized from MySQL into Elasticsearch through dedicated sync/indexing services.
@@ -216,30 +216,97 @@ Copy `backend/music/src/main/resources/application-secret.example` to `backend/m
 
 ### 4. Start Elasticsearch
 
-Make sure Elasticsearch is running and reachable at `http://localhost:9200`.
+This project uses **Elasticsearch 9.2.6** running in a Docker container.
 
-### 5. Start the backend
+#### Option 1: Using Docker Compose (Recommended)
+
+If the project includes a `docker-compose.yml` file, simply run:
+
+```bash
+docker compose up -d
+```
+
+#### Option 2: Using Docker
+
+Pull the Elasticsearch image:
+
+```bash
+docker pull docker.elastic.co/elasticsearch/elasticsearch:9.2.6
+```
+
+Start a single-node Elasticsearch container:
+
+```bash
+docker run -d \
+  --name my_elasticsearch \
+  -p 9200:9200 \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  docker.elastic.co/elasticsearch/elasticsearch:9.2.6
+```
+
+After the container starts, Elasticsearch will be available at:
+
+```
+http://localhost:9200
+```
+
+Verify that Elasticsearch is running:
+
+```bash
+curl http://localhost:9200
+```
+
+A successful response should look similar to:
+
+```json
+{
+  "cluster_name": "docker-cluster",
+  "version": {
+    "number": "9.2.6"
+  },
+  "tagline": "You Know, for Search"
+}
+```
+### 5. Synchronize Data to Elasticsearch
+
+After the backend and Elasticsearch are running, synchronize the existing music data from MySQL into Elasticsearch.
+
+Send a POST request to:
+
+```http
+POST /api/admin/sync/audio-tracks
+```
+
+Example:
+
+```bash
+curl -X POST http://localhost:8080/api/admin/sync/audio-tracks
+```
+
+This operation will:
+
+- Read all audio tracks from MySQL.
+- Generate semantic embeddings using the AI service.
+- Extract audio features for melody search.
+- Index metadata and vectors into Elasticsearch.
+- Prepare the search engine for intelligent retrieval.
+
+### 6. Start the backend
 
 ```bash
 cd backend/music
 ./mvnw spring-boot:run
 ```
 
-On Windows:
-
-```bash
-cd backend/music
-mvnw.cmd spring-boot:run
-```
-
-### 6. Start the frontend
+### 7. Start the frontend
 
 ```bash
 cd frontend/ReactMusicCommerce
 npm run start
 ```
 
-### 7. Start the AI service
+### 8. Start the AI service
 
 ```bash
 cd backend/music-ai-service
@@ -298,3 +365,4 @@ The following configuration values are used by the project. Some are stored in `
 - Improve recommendation and ranking quality with richer behavior signals.
 - Add CI checks for linting, formatting, and build validation.
 - Add production deployment documentation.
+

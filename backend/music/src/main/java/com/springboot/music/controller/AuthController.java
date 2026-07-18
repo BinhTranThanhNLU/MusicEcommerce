@@ -34,12 +34,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ResponseEntity.ok("User registered successfully");
-    }
-
     @PostMapping("/send-otp")
     public ResponseEntity<SendOtpResponse> sendEmailVerificationOtp(@Valid @RequestBody SendEmailOtpRequest request) {
         SendOtpResponse response = authService.sendEmailVerificationOtp(request);
@@ -63,6 +57,12 @@ public class AuthController {
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok("Password has been reset successfully. You can now login.");
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ResponseEntity.ok("User registered successfully");
     }
 }
 

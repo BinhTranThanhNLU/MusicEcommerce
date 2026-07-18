@@ -33,33 +33,45 @@ public class AudioTrackSearchService {
         this.melodySearchService = melodySearchService;
     }
 
-    public SearchHits<AudioTrackDocument> melodySearch(MultipartFile audioFile, int size) {
-        // 1. Dịch file âm thanh thành Vector 92 chiều
-        List<Double> queryVector = melodySearchService.extractMelodyVector(audioFile);
+    public SearchHits<AudioTrackDocument> autocomplete(String prefix, int limit) {
+//        if (prefix == null || prefix.trim().isEmpty()) {
+//            return List.of();
+//        }
 
-        if (queryVector == null || queryVector.size() != 92) {
-            throw new RuntimeException("Không thể trích xuất vector giai điệu (yêu cầu 92 chiều)");
-        }
+        String cleanPrefix = prefix.trim();
+        Pageable pageable = PageRequest.of(0, limit);
 
-        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
-        String vectorJson = queryVector.toString();
-
-        // 3. Viết query KNN tìm kiếm các vector giai điệu gần nhất
-        // So khớp với field "melodyVector" trong AudioTrackDocument
+        // Prefix search query
         String queryJson = """
-        {
-          "knn": {
-            "field": "melodyVector",
-            "query_vector": %s,
-            "k": %d,
-            "num_candidates": 100
-          }
-        }
-        """.formatted(vectorJson, size);
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "match_phrase_prefix": {
+                                    "title": {
+                                        "query": "%s",
+                                        "boost": 3
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase_prefix": {
+                                    "artistName": {
+                                        "query": "%s",
+                                        "boost": 2
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+                """.formatted(cleanPrefix, cleanPrefix);
 
         Query query = new StringQuery(queryJson);
+        query.setPageable(pageable);
 
-        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return searchHits;
     }
 
     public SearchHits<AudioTrackDocument> fullTextSearch(String keyword, int page, int size) {
@@ -106,7 +118,7 @@ public class AudioTrackSearchService {
                                 "match": {
                                     "lyrics": {
                                         "query": "%s",
-                                        "boost": 1,
+                                        "boost": 3,
                                         "analyzer": "vietnamese"
                                     }
                                 }
@@ -120,7 +132,7 @@ public class AudioTrackSearchService {
         query.setPageable(pageable);
 
         SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
-        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return searchHits;
     }
 
     public SearchHits<AudioTrackDocument> fuzzySearch(String keyword, int page, int size) {
@@ -172,8 +184,73 @@ public class AudioTrackSearchService {
         query.setPageable(pageable);
 
         SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
+        return searchHits;
+    }
+
+    public SearchHits<AudioTrackDocument> semanticSearch(String keyword, int size) {
+//        if (keyword == null || keyword.trim().isEmpty()) {
+//            return SearchHits.empty();
+//        }
+
+        // 1. Dịch câu tìm kiếm của khách hàng (VD: "nhạc nghe lúc mưa") thành Vector
+        List<Double> queryVector = semanticSearchService.getEmbedding(keyword);
+
+        if (queryVector == null || queryVector.size() != 768) {
+            throw new RuntimeException("Không thể tạo vector cho từ khóa");
+        }
+
+        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
+        String vectorJson = queryVector.toString();
+
+        // 3. Viết query KNN tìm kiếm các vector gần nhất
+        String queryJson = """
+            {
+              "knn": {
+                "field": "embeddingVector",
+                "query_vector": %s,
+                "k": %d,
+                "num_candidates": 100
+              }
+            }
+            """.formatted(vectorJson, size);
+
+        Query query = new StringQuery(queryJson);
+
         return elasticsearchOperations.search(query, AudioTrackDocument.class);
     }
+
+    public SearchHits<AudioTrackDocument> melodySearch(MultipartFile audioFile, int size) {
+        // 1. Dịch file âm thanh thành Vector 92 chiều
+        List<Double> queryVector = melodySearchService.extractMelodyVector(audioFile);
+
+        if (queryVector == null || queryVector.size() != 92) {
+            throw new RuntimeException("Không thể trích xuất vector giai điệu (yêu cầu 92 chiều)");
+        }
+
+        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
+        String vectorJson = queryVector.toString();
+
+        // 3. Viết query KNN tìm kiếm các vector giai điệu gần nhất
+        // So khớp với field "melodyVector" trong AudioTrackDocument
+        String queryJson = """
+        {
+          "knn": {
+            "field": "melodyVector",
+            "query_vector": %s,
+            "k": %d,
+            "num_candidates": 100
+          }
+        }
+        """.formatted(vectorJson, size);
+
+        Query query = new StringQuery(queryJson);
+
+        return elasticsearchOperations.search(query, AudioTrackDocument.class);
+    }
+
+
+
+
 
     /**
      * Advanced Search: Kết hợp điều kiện lọc theo status, genre, mood, theme
@@ -419,78 +496,9 @@ public class AudioTrackSearchService {
         return advancedSearch(null, status, genres, moods, themes, minPrice, maxPrice, page, size);
     }
 
-    public SearchHits<AudioTrackDocument> autocomplete(String prefix, int limit) {
-//        if (prefix == null || prefix.trim().isEmpty()) {
-//            return List.of();
-//        }
 
-        String cleanPrefix = prefix.trim();
-        Pageable pageable = PageRequest.of(0, limit);
 
-        // Prefix search query
-        String queryJson = """
-                {
-                    "bool": {
-                        "should": [
-                            {
-                                "match_phrase_prefix": {
-                                    "title": {
-                                        "query": "%s",
-                                        "boost": 3
-                                    }
-                                }
-                            },
-                            {
-                                "match_phrase_prefix": {
-                                    "artistName": {
-                                        "query": "%s",
-                                        "boost": 2
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                }
-                """.formatted(cleanPrefix, cleanPrefix);
 
-        Query query = new StringQuery(queryJson);
-        query.setPageable(pageable);
-
-        SearchHits<AudioTrackDocument> searchHits = elasticsearchOperations.search(query, AudioTrackDocument.class);
-        return elasticsearchOperations.search(query, AudioTrackDocument.class);
-    }
-
-    public SearchHits<AudioTrackDocument> semanticSearch(String keyword, int size) {
-//        if (keyword == null || keyword.trim().isEmpty()) {
-//            return SearchHits.empty();
-//        }
-
-        // 1. Dịch câu tìm kiếm của khách hàng (VD: "nhạc nghe lúc mưa") thành Vector
-        List<Double> queryVector = semanticSearchService.getEmbedding(keyword);
-
-        if (queryVector == null || queryVector.size() != 768) {
-            throw new RuntimeException("Không thể tạo vector cho từ khóa");
-        }
-
-        // 2. Ép mảng List<Double> thành chuỗi JSON dạng [0.1, 0.2, ...]
-        String vectorJson = queryVector.toString();
-
-        // 3. Viết query KNN tìm kiếm các vector gần nhất
-        String queryJson = """
-            {
-              "knn": {
-                "field": "embeddingVector",
-                "query_vector": %s,
-                "k": %d,
-                "num_candidates": 100
-              }
-            }
-            """.formatted(vectorJson, size);
-
-        Query query = new StringQuery(queryJson);
-
-        return elasticsearchOperations.search(query, AudioTrackDocument.class);
-    }
 
     public SearchHits<AudioTrackDocument> hybridSearch(String keyword, int page, int size) {
         String cleanKeyword = keyword.trim();
@@ -519,8 +527,8 @@ public class AudioTrackSearchService {
                   "fields": [
                     "title^5", 
                     "artistName^3", 
-                    "description", 
-                    "lyrics"
+                    "description^1", 
+                    "lyrics^3"
                   ],
                   "type": "best_fields",
                   "analyzer": "vietnamese",

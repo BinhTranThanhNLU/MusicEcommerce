@@ -61,50 +61,6 @@ public class AuthService {
         this.emailVerificationOtpRepository = emailVerificationOtpRepository;
     }
 
-    // Bước 1: Gửi OTP tới email
-    public SendOtpResponse sendEmailVerificationOtp(SendEmailOtpRequest request) {
-        // 1. Kiểm tra email đã tồn tại chưa
-        if (userRepository.findByEmail(request.getEmail()) != null) {
-            throw new EmailAlreadyExistsException("Email đã được đăng ký");
-        }
-
-        // 2. Tạo OTP mới
-        String otp = OtpUtil.generateOtp();
-
-        // 3. Xóa OTP cũ nếu có
-        try {
-            var oldOtp = emailVerificationOtpRepository.findFirstByEmailOrderByCreatedAtDesc(request.getEmail());
-            if (oldOtp.isPresent()) {
-                emailVerificationOtpRepository.delete(oldOtp.get());
-            }
-        } catch (Exception e) {
-            // Ignore if old OTP doesn't exist
-        }
-
-        // 4. Lưu OTP vào database
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(otpExpiryMinutes);
-        EmailVerificationOtp newOtp = EmailVerificationOtp.builder()
-                .email(request.getEmail())
-                .otpCode(otp)
-                .attempts(0)
-                .maxAttempts(5)
-                .createdAt(LocalDateTime.now())
-                .expiresAt(expiresAt)
-                .isVerified(false)
-                .build();
-
-        emailVerificationOtpRepository.save(newOtp);
-
-        // 5. Gửi OTP tới email
-        emailService.sendEmailVerificationOtp(request.getEmail(), otp, otpExpiryMinutes);
-
-        return new SendOtpResponse(
-                "Mã OTP đã được gửi tới email của bạn",
-                request.getEmail(),
-                otpExpiryMinutes
-        );
-    }
-
     // Bước 2: Xác minh OTP và tạo tài khoản
     @Transactional
     public VerifyOtpResponse verifyEmailOtpAndRegister(VerifyEmailOtpRequest verifyRequest, SendEmailOtpRequest registerRequest) {
@@ -170,7 +126,53 @@ public class AuthService {
         );
     }
 
-    // Xác minh OTP và tạo tài khoản (phiên bản kết hợp)
+    // Bước 1: Gửi OTP tới email
+    public SendOtpResponse sendEmailVerificationOtp(SendEmailOtpRequest request) {
+        // 1. Kiểm tra email đã tồn tại chưa
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            throw new EmailAlreadyExistsException("Email đã được đăng ký");
+        }
+
+        // 2. Tạo OTP mới
+        String otp = OtpUtil.generateOtp();
+
+        // 3. Xóa OTP cũ nếu có
+        try {
+            var oldOtp = emailVerificationOtpRepository.findFirstByEmailOrderByCreatedAtDesc(request.getEmail());
+            if (oldOtp.isPresent()) {
+                emailVerificationOtpRepository.delete(oldOtp.get());
+            }
+        } catch (Exception e) {
+            // Ignore if old OTP doesn't exist
+        }
+
+        // 4. Lưu OTP vào database
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(otpExpiryMinutes);
+        EmailVerificationOtp newOtp = EmailVerificationOtp.builder()
+                .email(request.getEmail())
+                .otpCode(otp)
+                .attempts(0)
+                .maxAttempts(5)
+                .createdAt(LocalDateTime.now())
+                .expiresAt(expiresAt)
+                .isVerified(false)
+                .build();
+
+        emailVerificationOtpRepository.save(newOtp);
+
+        // 5. Gửi OTP tới email
+        emailService.sendEmailVerificationOtp(request.getEmail(), otp, otpExpiryMinutes);
+
+        return new SendOtpResponse(
+                "Mã OTP đã được gửi tới email của bạn",
+                request.getEmail(),
+                otpExpiryMinutes
+        );
+    }
+
+
+
+    // Xác minh OTP và tạo tài khoản
     @Transactional
     public VerifyOtpResponse verifyEmailOtpAndRegister(RegisterWithOtpRequest request) {
         // 1. Lấy OTP từ database
@@ -396,4 +398,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
+
 }

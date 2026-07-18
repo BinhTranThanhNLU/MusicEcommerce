@@ -47,7 +47,7 @@ def generate_embedding():
 
 
 # ==========================================
-# 2. API Trích xuất đặc trưng âm thanh (MỚI)
+# 2. API Trích xuất đặc trưng âm thanh
 # ==========================================
 @app.route('/api/extract-audio', methods=['POST'])
 def extract_audio():
@@ -73,7 +73,7 @@ def extract_audio():
         # Bước 3: Trả về kết quả cho Spring Boot
         return jsonify({
             "status": "success",
-            "dimensions": len(audio_vector), # Luôn phải là 40
+            "dimensions": len(audio_vector), # Luôn phải là 92
             "vector": audio_vector
         })
         

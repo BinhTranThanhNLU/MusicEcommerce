@@ -25,7 +25,7 @@ public class DigitalWatermarkService {
             tempOriginal = Files.createTempFile("original-", ".mp3");
             tempWatermarked = Files.createTempFile("watermarked-", ".mp3");
 
-            // 2. Tải file từ Firebase Storage về file tạm
+            // 2. Tải file từ  Storage về file tạm
             try (InputStream in = new URL(fileUrl).openStream()) {
                 Files.copy(in, tempOriginal, StandardCopyOption.REPLACE_EXISTING);
             }

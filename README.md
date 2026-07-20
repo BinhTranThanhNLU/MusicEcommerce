@@ -366,3 +366,103 @@ The following configuration values are used by the project. Some are stored in `
 - Add CI checks for linting, formatting, and build validation.
 - Add production deployment documentation.
 
+## Some Screenshots
+### Home Page
+
+![Home](frontend/ReactMusicCommerce/src/assets/img/home.png)
+
+---
+
+### Product List Page
+
+![Product List](frontend/ReactMusicCommerce/src/assets/img/product-list.png)
+
+--- 
+
+### Intelligent Search
+
+![Search](frontend/ReactMusicCommerce/src/assets/img/search.jpeg)
+
+---
+
+### Music Detail
+
+![Music Detail](frontend/ReactMusicCommerce/src/assets/img/music-detail1.png)
+
+![Music Detail Information](frontend/ReactMusicCommerce/src/assets/img/music-detail2.png)
+
+![Music Detail Comment](frontend/ReactMusicCommerce/src/assets/img/music-detail3.png)
+
+---
+
+### Listen to music
+
+![Listen to music](frontend/ReactMusicCommerce/src/assets/img/listen-music.png)
+
+---
+
+### Cart
+
+![Cart](frontend/ReactMusicCommerce/src/assets/img/cart.png)
+
+---
+
+### Checkout
+
+![Checkout](frontend/ReactMusicCommerce/src/assets/img/checkout.png)
+
+---
+
+### Download music and license
+
+![Music Library](frontend/ReactMusicCommerce/src/assets/img/download.png)
+
+---
+
+### History
+
+![History](frontend/ReactMusicCommerce/src/assets/img/history-order.png)
+
+---
+
+### Comment and Rating
+
+![History](frontend/ReactMusicCommerce/src/assets/img/comment-rating.png)
+
+---
+
+### Artist Dashboard
+
+![Artist Dashboard 1](frontend/ReactMusicCommerce/src/assets/img/artist-dashboard1.png)
+
+![Artist Dashboard 2](frontend/ReactMusicCommerce/src/assets/img/artist-dashboard2.png)
+
+![Artist Dashboard 3](frontend/ReactMusicCommerce/src/assets/img/artist-dashboard3.png)
+
+---
+
+### Music Management
+
+![Music Management](frontend/ReactMusicCommerce/src/assets/img/artist-music.png)
+
+---
+
+### Upload Music
+
+![Upload Music 1](frontend/ReactMusicCommerce/src/assets/img/upload1.png)
+
+![Upload Music 2](frontend/ReactMusicCommerce/src/assets/img/upload2.png)
+
+![Upload Music 3](frontend/ReactMusicCommerce/src/assets/img/upload3.png)
+
+---
+
+### Admin Dashboard
+
+![Admin Dashboard 1](frontend/ReactMusicCommerce/src/assets/img/admin-dashboard1.png)
+
+![Admin Dashboard 2](frontend/ReactMusicCommerce/src/assets/img/admin-dashboard2.png)
+
+![Admin Dashboard 3](frontend/ReactMusicCommerce/src/assets/img/admin-dashboard3.png)
+
+---
